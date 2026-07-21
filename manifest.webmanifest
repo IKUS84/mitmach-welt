@@ -1,13 +1,15 @@
 {
   "name": "Mitmach-Welt",
   "short_name": "Mitmach-Welt",
-  "description": "Motivierende Aufgaben-App für Kinder in Wohngruppen.",
+  "description": "Motivierende Aufgaben-App für Kinder in Wohngruppen mit persönlichen Welten und gemeinsamer Gruppenwelt.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fffaf0",
   "theme_color": "#f5c542",
   "orientation": "any",
+  "lang": "de-DE",
+  "categories": ["education", "lifestyle", "productivity"],
   "icons": [
     {
       "src": "./icon-192.png",

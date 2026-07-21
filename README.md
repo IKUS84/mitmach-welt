@@ -1,24 +1,35 @@
-# Mitmach-Welt v1.0
+# Mitmach-Welt v1.1
 
-Erste vollständige Testversion für die Wohngruppe.
+Deutlich erweiterte Testversion für die Wohngruppe.
 
-## Enthalten
+## Neu in Version 1.1
 
-- Kinderverwaltung mit Avataren
-- Aufgabenverwaltung mit Kategorien, Schwierigkeit und Belohnungen
-- geschützter Erzieherbereich
-- zufällig ausgeloste Reihenfolge
-- alle Kinder wählen zuerst ihre Aufgabe
-- individuelle Fertigmeldung
-- drei wertschätzende Bestätigungen
-- Samen, Münzen und Team-Bonus
-- persönliche Mitmach-Welten
-- gemeinsame Gruppenwelt
-- Mitmach-Buch mit Erinnerungen
-- lokale Speicherung
-- Datenexport und Datenimport
-- Offline-Nutzung als PWA
-- Übernahme vorhandener Daten aus früheren Versionen
+- über 100 Avatare in vier Kategorien
+- Avatare dürfen mehrfach vergeben werden
+- persönliche Farbe und eigene Themenwelt pro Kind
+- sechs Themenwelten: Blumenwiese, Zauberwald, Meeresbucht, Weltraum, Dinotal und Bauernhof
+- fairere Auslosung: Die App berücksichtigt, wer zuletzt zuerst wählen durfte
+- Aufgaben mit mehreren Plätzen für gemeinsame Tätigkeiten
+- Aufgaben nach Wochentagen planbar
+- Sonnenblumen-Vorschlag bei der Aufgabenwahl
+- persönliche Welten mit Tagesgeschichten, Wetter und freischaltbaren Elementen
+- Weltladen mit dekorativen Extras
+- Mitmach-Buch mit Erinnerungen und Meilensteinen
+- größere gemeinsame Gruppenwelt mit Baufortschritt
+- Herzensblumen für freiwillige Hilfe und freundliches Verhalten
+- Team-Bonus nach einer vollständig geschafften Runde
+- pädagogische Einblicke ohne Rangliste
+- Ton, Vibration und reduzierte Bewegung einstellbar
+- Offline-Nutzung und Update-Hinweis
+- Datenübernahme aus Version 1.0
+
+## Wichtige Grundsätze
+
+- keine Rangliste zwischen Kindern
+- keine negative Meldung bei nicht geschafften Aufgaben
+- Kinder wählen zuerst alle ihre Aufgaben und arbeiten danach gleichzeitig
+- Belohnungen sind motivierend, aber nicht beschämend oder strafend
+- Daten werden nur lokal im Browser gespeichert
 
 ## Test-PIN
 
@@ -26,11 +37,21 @@ Erste vollständige Testversion für die Wohngruppe.
 
 Die PIN kann im Erzieherbereich geändert werden.
 
-## Aktualisierung auf GitHub Pages
+## Dateien für GitHub Pages
 
-Alle Dateien aus dem ZIP in das Stammverzeichnis des Repositories hochladen und vorhandene Dateien ersetzen.  
+Alle Dateien aus dem ZIP in das Stammverzeichnis des Repositories hochladen und vorhandene Dateien ersetzen:
+
+- `index.html`
+- `styles.css`
+- `app.js`
+- `manifest.webmanifest`
+- `sw.js`
+- `icon-192.png`
+- `icon-512.png`
+- `README.md`
+
 GitHub Pages bleibt auf `main` und `/(root)` eingestellt.
 
-## Installation auf iPhone oder iPad
+## Nach dem Hochladen
 
-Seite in Safari öffnen → Teilen → **Zum Home-Bildschirm**.
+Die App einmal vollständig neu laden. Auf dem iPhone kann zusätzlich Safari → Teilen → **Zum Home-Bildschirm** verwendet werden.
