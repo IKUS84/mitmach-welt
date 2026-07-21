@@ -1,40 +1,386 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f4c542">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Mitmach-Welt">
-<title>Mitmach-Welt</title>
-<link rel="manifest" href="manifest.webmanifest">
-<style>
-:root{--ink:#24352c;--muted:#68766f;--yellow:#f4c542;--yellow2:#ffe783;--green:#4c9a68;--green2:#dff2e3;--blue:#dff4ff;--card:rgba(255,255,255,.95);--red:#c95656;--shadow:0 16px 38px rgba(42,66,51,.14)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(#dff4ff 0 38%,#e8f6d8 38% 100%)}body{min-height:100dvh}button,input,select{font:inherit}button{touch-action:manipulation;cursor:pointer}.shell{max-width:920px;margin:auto;min-height:100dvh;padding-bottom:92px}.top{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center;padding:max(12px,env(safe-area-inset-top)) 14px 11px;background:rgba(255,255,255,.88);backdrop-filter:blur(18px);border-bottom:1px solid #0001}.top h1{font-size:1.28rem;margin:0}.eyebrow{margin:0;color:var(--muted);font-size:.7rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.icon{border:0;background:#fff;border-radius:15px;width:44px;height:44px;box-shadow:0 8px 20px #2332;font-size:1.25rem}.screen{padding:18px 15px 34px}.hero,.card{background:var(--card);border:1px solid #0001;border-radius:26px;box-shadow:var(--shadow);padding:20px}.hero{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff4b2,#fff);margin-bottom:16px}.hero:after{content:"☁️";position:absolute;right:18px;top:12px;font-size:3.2rem;opacity:.38}.mascot{font-size:4.9rem;display:inline-block;transform-origin:bottom center;animation:sway 3.4s ease-in-out infinite}.mascot.spin{animation:spin 1.4s ease-in-out 1}@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}@keyframes spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(370deg) scale(1.15)}100%{transform:rotate(720deg) scale(1)}}.hero h2{font-size:clamp(1.9rem,7vw,2.8rem);margin:8px 0}.hero p,.muted{color:var(--muted);line-height:1.45}.primary,.secondary,.danger{width:100%;border:0;border-radius:18px;padding:16px;font-weight:850}.primary{background:linear-gradient(#ffe783,var(--yellow));color:#3a2b00;box-shadow:0 10px 22px #d99d0044}.secondary{background:#fff;border:2px solid #4f9c6b33;color:var(--ink)}.danger{background:#fff;border:2px solid #c9565633;color:var(--red)}.primary:disabled{opacity:.45}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.child,.task{text-align:left;border:3px solid transparent;transition:.18s}.child.sel,.task.sel{border-color:var(--yellow);background:#fff9d1;transform:translateY(-2px)}.avatar{display:block;font-size:2.8rem;margin-bottom:8px}.actions{display:grid;gap:10px;margin-top:14px}.inline{display:flex;gap:10px}.inline>*{flex:1}.list{display:grid;gap:10px}.row{display:flex;gap:12px;align-items:center;background:#fff;border-radius:18px;padding:13px;box-shadow:0 8px 20px #2941}.grow{flex:1}.num{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#fff0a1;font-weight:900}.status{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:999px;background:#fff2b9;font-size:.78rem;font-weight:850}.status.done{background:#def2e2;color:#34734b}.progressbox{background:#fff;border-radius:22px;padding:16px;box-shadow:0 10px 24px #2941;margin-bottom:14px}.progresshead{display:flex;justify-content:space-between;gap:10px;align-items:center}.progress{height:14px;background:#efe8cd;border-radius:999px;overflow:hidden;margin-top:10px}.progress>div{height:100%;background:linear-gradient(90deg,var(--yellow),#7fbd69);border-radius:999px;transition:.4s}.world{position:relative;min-height:370px;border-radius:30px;overflow:hidden;background:linear-gradient(#bde8ff 0 52%,#91cd68 52%);border:4px solid #ffffffaa;box-shadow:var(--shadow)}.world-name{position:absolute;left:16px;top:14px;background:#ffffffdf;padding:9px 12px;border-radius:13px;font-weight:850;z-index:2}.sun{position:absolute;right:18px;top:18px;font-size:3.7rem}.cloud{position:absolute;left:30%;top:58px;font-size:3rem;opacity:.72;animation:float 8s ease-in-out infinite}@keyframes float{0%,100%{transform:translateX(-15px)}50%{transform:translateX(20px)}}.obj{position:absolute;font-size:2.6rem;filter:drop-shadow(0 6px 5px #0002)}.tree{font-size:4.4rem;bottom:38px;left:53%}.f1{bottom:16px;left:14%}.f2{bottom:20px;left:34%}.f3{bottom:14px;right:12%}.animal{bottom:62px;left:20%;animation:bob 2.2s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}.bench{bottom:20px;right:31%;font-size:3rem}.seed{bottom:18px;left:48%}.house{bottom:37px;right:10%;font-size:4.2rem}.pond{bottom:10px;left:42%;font-size:4rem}.nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(920px,100%);display:grid;grid-template-columns:repeat(3,1fr);background:#fffffff3;backdrop-filter:blur(18px);padding:8px 10px max(8px,env(safe-area-inset-bottom));border-top:1px solid #0001;z-index:30}.nav button{border:0;background:transparent;border-radius:15px;padding:7px;display:grid;place-items:center;font-size:1.15rem}.nav span{font-size:.7rem;font-weight:800}.nav .active{background:#fff1a9}.pin{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:360px;margin:auto}.pin button{border:0;background:white;border-radius:16px;min-height:60px;font-size:1.25rem;font-weight:850;box-shadow:0 8px 18px #2941}.pinshow{text-align:center;font-size:2rem;letter-spacing:.35em;min-height:50px}.form{display:grid;gap:7px;margin-bottom:13px}.form input,.form select{padding:14px;border:1px solid #0002;border-radius:14px;background:#fff}.toast{position:fixed;left:50%;bottom:102px;transform:translate(-50%,15px);opacity:0;background:#21372a;color:white;padding:12px 16px;border-radius:14px;transition:.2s;z-index:60;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}.confetti{position:fixed;inset:0;pointer-events:none;z-index:55;overflow:hidden}.confetti i{position:absolute;top:-20px;font-style:normal;animation:fall 1.8s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}.empty{text-align:center;padding:30px}.tiny{font-size:.8rem}.divider{height:1px;background:#0001;margin:16px 0}@media(min-width:700px){.screen{padding:26px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5c542">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mitmach-Welt">
+  <meta name="description" content="Mitmach-Welt – eine motivierende Aufgaben-App für Kinder in Wohngruppen.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <title>Mitmach-Welt</title>
+  <style>
+    :root{
+      --sky:#dff5ff;--sky2:#f8fdff;--grass:#dcefcf;--cream:#fffaf0;
+      --ink:#20312a;--muted:#6c7b74;--line:rgba(32,49,42,.11);
+      --card:rgba(255,255,255,.94);--yellow:#f6c945;--yellow2:#ffdd69;
+      --green:#4d9a68;--green2:#76b98a;--red:#c95d5d;--blue:#5b9fca;
+      --shadow:0 16px 42px rgba(52,79,63,.14);--radius:26px;
+      --safe-top:max(12px,env(safe-area-inset-top));--safe-bottom:max(10px,env(safe-area-inset-bottom));
+    }
+    *{box-sizing:border-box}
+    html{background:var(--cream)}
+    body{margin:0;min-height:100dvh;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--sky) 0 42%,var(--grass) 42% 100%);-webkit-tap-highlight-color:transparent}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    .app{min-height:100dvh;max-width:980px;margin:auto;background:rgba(255,255,255,.18);padding-bottom:92px}
+    .topbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:10px;padding:var(--safe-top) 15px 12px;background:rgba(255,255,255,.86);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+    .topbar h1{margin:0;font-size:1.24rem;line-height:1.15}
+    .eyebrow{margin:0 0 3px;color:var(--muted);font-size:.69rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+    .icon-btn{width:44px;height:44px;border:0;border-radius:15px;background:white;box-shadow:0 8px 20px rgba(36,61,46,.11);font-size:1.35rem;color:var(--ink)}
+    .screen{padding:18px 15px 34px}
+    .hero{position:relative;overflow:hidden;border-radius:34px;padding:25px 21px;background:linear-gradient(145deg,#fff4b4,#fff 68%);box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.75)}
+    .hero:before{content:"";position:absolute;width:170px;height:170px;right:-55px;top:-70px;border-radius:50%;background:rgba(255,255,255,.55)}
+    .hero:after{content:"☁️";position:absolute;right:17px;top:14px;font-size:3rem;opacity:.42}
+    .mascot{position:relative;z-index:1;display:inline-block;font-size:5.2rem;line-height:1;transform-origin:50% 95%;animation:sway 3.2s ease-in-out infinite}
+    .hero h2{position:relative;z-index:1;margin:11px 0 7px;font-size:clamp(1.8rem,7vw,3.2rem);line-height:1.05}
+    .hero p{position:relative;z-index:1;margin:0;color:var(--muted);font-size:1.03rem;line-height:1.5;max-width:620px}
+    @keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+    .clock{display:inline-flex;align-items:center;gap:7px;margin-top:15px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.77);font-weight:800;font-size:.88rem}
+    .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 2px 11px}
+    .section-head h2{margin:0;font-size:1.24rem}
+    .section-head p{margin:2px 0 0;color:var(--muted);font-size:.88rem}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:0 11px 28px rgba(48,75,58,.1)}
+    .card h3,.card p{margin-top:0}
+    .primary,.secondary,.soft,.danger-btn{width:100%;border:0;border-radius:19px;padding:16px;font-weight:900;min-height:54px}
+    .primary{background:linear-gradient(180deg,var(--yellow2),var(--yellow));color:#493800;box-shadow:0 11px 23px rgba(218,158,0,.25)}
+    .secondary{background:white;color:var(--ink);border:2px solid rgba(77,154,104,.22)}
+    .soft{background:#eaf6ed;color:#27613c}
+    .danger-btn{background:#fff0f0;color:#a94646;border:1px solid rgba(201,93,93,.2)}
+    .primary:active,.secondary:active,.soft:active,.danger-btn:active,.tap-card:active{transform:translateY(1px)}
+    .actions{display:grid;gap:10px;margin-top:15px}
+    .inline-actions{display:flex;gap:9px}
+    .inline-actions>*{flex:1}
+    .stat{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:99px}
+    .stat strong{display:block;font-size:1.5rem}
+    .stat span{font-size:2.25rem}
+    .muted{color:var(--muted)}
+    .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 10px;background:#e5f4e8;font-size:.78rem;font-weight:850}
+    .badge.yellow{background:#fff3ba;color:#745700}.badge.blue{background:#e4f2fb;color:#285f80}
+    .tap-card{text-align:left;border:3px solid transparent;transition:.16s ease}
+    .tap-card.selected{border-color:var(--yellow);background:#fff8d4;transform:translateY(-2px)}
+    .avatar{display:block;font-size:2.8rem;line-height:1;margin-bottom:8px}
+    .tiny-avatar{font-size:2rem;line-height:1}
+    .list{display:grid;gap:10px}
+    .list-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:0 8px 21px rgba(48,75,58,.08)}
+    .list-main{flex:1;min-width:0}.list-main strong{display:block}.list-main small{color:var(--muted)}
+    .round-number{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#fff0a6;font-weight:950}
+    .progress-box{margin-top:14px;padding:14px;background:rgba(255,255,255,.75);border-radius:20px}
+    .progress-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:.86rem;font-weight:850}
+    .progress{height:14px;border-radius:999px;background:#ebe5ce;overflow:hidden}
+    .progress>div{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--yellow),#77bd79);transition:width .35s ease}
+    .task-icon{font-size:2.45rem;line-height:1;margin-bottom:9px}
+    .task-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+    .status{font-size:.79rem;font-weight:900;color:var(--green)}
+    .status.pending{color:#b67800}.status.done{color:#2a7747}
+    .world{position:relative;min-height:390px;overflow:hidden;border-radius:32px;background:linear-gradient(#bfe9ff 0 52%,#8dcc68 52% 100%);box-shadow:var(--shadow);border:4px solid rgba(255,255,255,.7)}
+    .world-name{position:absolute;left:16px;top:15px;z-index:4;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.88);font-weight:900}
+    .world-sky{position:absolute;right:18px;top:17px;font-size:3.7rem}
+    .world-cloud{position:absolute;top:78px;font-size:3.1rem;opacity:.85;animation:cloud 18s linear infinite}
+    @keyframes cloud{from{left:-80px}to{left:110%}}
+    .object{position:absolute;filter:drop-shadow(0 6px 5px rgba(0,0,0,.13));animation:float 3.5s ease-in-out infinite}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    .tree{font-size:5rem;bottom:36px;left:52%}.flower-a{font-size:2.5rem;bottom:15px;left:12%}.flower-b{font-size:2.4rem;bottom:19px;left:34%}.flower-c{font-size:2.6rem;bottom:13px;right:11%}
+    .animal{font-size:2.7rem;bottom:58px;left:18%}.bench{font-size:3.1rem;bottom:18px;right:31%}.house{font-size:4.5rem;bottom:36px;right:11%}.pond{font-size:3.4rem;bottom:12px;left:43%}
+    .memory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .memory{background:white;border:1px solid var(--line);border-radius:18px;padding:13px}
+    .memory.locked{opacity:.5;filter:grayscale(1)}
+    .memory strong{display:block;margin-top:7px}
+    .form{display:grid;gap:13px}.field{display:grid;gap:7px}.field label{font-weight:900;font-size:.9rem}
+    .field input,.field select,.field textarea{width:100%;border:1px solid rgba(32,49,42,.2);border-radius:15px;padding:14px;background:white;color:var(--ink)}
+    .field textarea{min-height:90px;resize:vertical}
+    .tabs{display:flex;gap:7px;overflow:auto;padding-bottom:3px;margin-bottom:13px}.tab{white-space:nowrap;border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--muted);font-weight:850}.tab.active{background:#fff0a5;color:var(--ink)}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.switch{width:52px;height:30px;border:0;border-radius:999px;background:#d9dfdc;padding:3px}.switch i{display:block;width:24px;height:24px;border-radius:50%;background:white;transition:.2s}.switch.on{background:var(--green)}.switch.on i{transform:translateX(22px)}
+    .modal-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:end center;background:rgba(18,30,24,.45);padding:18px 12px max(18px,env(safe-area-inset-bottom));backdrop-filter:blur(5px)}
+    .modal{width:min(620px,100%);max-height:88dvh;overflow:auto;border-radius:30px;background:#fffdf7;padding:20px;box-shadow:0 28px 80px rgba(16,30,22,.34)}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.modal-head h2{margin:0}.close{border:0;background:#eef1ef;border-radius:13px;width:40px;height:40px;font-size:1.2rem}
+    .pin-dots{text-align:center;min-height:45px;margin:6px 0 15px;font-size:2rem;letter-spacing:.35em}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.keypad button{border:0;border-radius:17px;min-height:61px;background:#f4f6f4;font-size:1.3rem;font-weight:950}
+    .celebrate{text-align:center}.celebrate .big{font-size:5.5rem;animation:pop .7s ease}.celebrate h2{font-size:1.8rem;margin:8px 0}.celebrate p{color:var(--muted)}
+    @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+    .bottom-nav{position:fixed;left:50%;bottom:0;z-index:30;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 10px var(--safe-bottom);background:rgba(255,255,255,.95);backdrop-filter:blur(18px);border-top:1px solid var(--line)}
+    .bottom-nav button{border:0;border-radius:16px;background:transparent;padding:7px 2px;display:grid;place-items:center;gap:2px;color:var(--muted);font-size:1.18rem}.bottom-nav button span{font-size:.69rem;font-weight:900}.bottom-nav button.active{background:#fff1ac;color:var(--ink)}
+    .toast{position:fixed;left:50%;bottom:102px;z-index:80;transform:translate(-50%,18px);opacity:0;pointer-events:none;max-width:90%;padding:12px 16px;border-radius:14px;background:#20352a;color:white;text-align:center;font-weight:750;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .empty{text-align:center;padding:28px 16px}.empty .emoji{font-size:4rem}.empty h3{margin:8px 0}.empty p{color:var(--muted)}
+    .hidden{display:none!important}
+    @media(min-width:720px){.screen{padding:25px 27px 42px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.memory-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.modal-backdrop{place-items:center}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
+  </style>
 </head>
 <body>
-<div class="shell"><header class="top"><button id="back" class="icon" hidden>←</button><div><p class="eyebrow">Projekt Sonnenblume · v0.2</p><h1 id="title">Mitmach-Welt</h1></div><button id="home" class="icon">⌂</button></header><main id="app" class="screen"></main><nav class="nav"><button data-nav="home" class="active">🏠<span>Start</span></button><button data-nav="worlds">🌍<span>Welten</span></button><button data-nav="educator">🔒<span>Erzieher</span></button></nav></div><div id="toast" class="toast"></div><div id="confetti" class="confetti"></div>
+<div class="app">
+  <header class="topbar">
+    <button id="backBtn" class="icon-btn" aria-label="Zurück" hidden>←</button>
+    <div><p class="eyebrow">Projekt Sonnenblume · Version 1.0</p><h1 id="title">Mitmach-Welt</h1></div>
+    <button id="homeBtn" class="icon-btn" aria-label="Startseite">⌂</button>
+  </header>
+  <main id="app" class="screen" aria-live="polite"></main>
+  <nav class="bottom-nav" aria-label="Hauptnavigation">
+    <button data-nav="home" class="active">🏠<span>Start</span></button>
+    <button data-nav="round">🌻<span>Runde</span></button>
+    <button data-nav="worlds">🌍<span>Welten</span></button>
+    <button data-nav="educator">🔒<span>Erzieher</span></button>
+  </nav>
+</div>
+<div id="modalRoot"></div>
+<div id="toast" class="toast" role="status"></div>
 <script>
-const DCH=[{id:'lucy',name:'Lucy',avatar:'🦊',seeds:2,coins:10,completed:0},{id:'noah',name:'Noah',avatar:'🐼',seeds:3,coins:15,completed:0},{id:'tius',name:'Tius',avatar:'🦁',seeds:1,coins:5,completed:0},{id:'jari',name:'Jari',avatar:'🐸',seeds:2,coins:8,completed:0}],DTA=[{id:'bed',title:'Bett machen',icon:'🛏️',reward:5,seeds:1},{id:'table',title:'Tisch decken',icon:'🍽️',reward:6,seeds:1},{id:'toys',title:'Spielsachen aufräumen',icon:'🧸',reward:5,seeds:1},{id:'laundry',title:'Wäsche einsammeln',icon:'🧺',reward:6,seeds:1},{id:'plants',title:'Blumen gießen',icon:'🪴',reward:4,seeds:1},{id:'room',title:'Zimmer aufräumen',icon:'🧹',reward:8,seeds:2},{id:'trash',title:'Müll rausbringen',icon:'🗑️',reward:6,seeds:1},{id:'shoes',title:'Schuhe ordnen',icon:'👟',reward:4,seeds:1}];
-const S={screen:'home',history:[],selected:[],order:[],assign:{},roundStatus:{},idx:0,pending:null,pin:'',unlocked:false,world:null,lastReward:null};
-const app=document.getElementById('app'),ttl=document.getElementById('title'),back=document.getElementById('back'),toast=document.getElementById('toast'),confetti=document.getElementById('confetti');
-function init(){if(!localStorage.mw_children)localStorage.mw_children=JSON.stringify(DCH);if(!localStorage.mw_tasks)localStorage.mw_tasks=JSON.stringify(DTA);if(!localStorage.mw_pin)localStorage.mw_pin='2468';if(!localStorage.mw_group)localStorage.mw_group=JSON.stringify({points:0,bonuses:0})}function kids(){return JSON.parse(localStorage.mw_children||'[]')}function tasks(){return JSON.parse(localStorage.mw_tasks||'[]')}function group(){return JSON.parse(localStorage.mw_group||'{"points":0,"bonuses":0}')}function saveKids(x){localStorage.mw_children=JSON.stringify(x)}function saveTasks(x){localStorage.mw_tasks=JSON.stringify(x)}function saveGroup(x){localStorage.mw_group=JSON.stringify(x)}function msg(x){toast.textContent=x;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2100)}function celebrate(){confetti.innerHTML='';for(let i=0;i<30;i++){let e=document.createElement('i');e.textContent=['🌻','✨','🌼','🌱'][Math.floor(Math.random()*4)];e.style.left=Math.random()*100+'%';e.style.animationDelay=Math.random()*.45+'s';e.style.fontSize=(18+Math.random()*16)+'px';confetti.appendChild(e)}setTimeout(()=>confetti.innerHTML='',2300)}function go(x,h=true){if(h&&S.screen!==x)S.history.push(S.screen);S.screen=x;render()}function chrome(x){ttl.textContent=x;back.hidden=S.screen==='home';document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===S.screen))}back.onclick=()=>{S.screen=S.history.pop()||'home';render()};document.getElementById('home').onclick=()=>{S.history=[];S.screen='home';render()};document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav));
-function home(){chrome('Mitmach-Welt');let done=kids().reduce((a,c)=>a+c.completed,0),g=group();app.innerHTML=`<section class="hero"><div class="mascot">🌻</div><h2>Hallo, ihr Lieben!</h2><p>Heute kann eure eigene Welt und eure Gruppenwelt wieder ein Stück wachsen.</p><div class="actions"><button class="primary" id="start">🌻 Mitmach-Runde starten</button></div></section><section class="grid"><article class="card"><span class="avatar">👧</span><strong>${kids().length} Kinder</strong><p class="muted tiny">in der Mitmach-Welt</p></article><article class="card"><span class="avatar">✅</span><strong>${done} Aufgaben</strong><p class="muted tiny">insgesamt geschafft</p></article><article class="card"><span class="avatar">🏡</span><strong>${g.points} Gruppenpunkte</strong><p class="muted tiny">für unsere Welt</p></article></section>`;start.onclick=()=>{S.selected=[];S.order=[];S.assign={};S.roundStatus={};S.idx=0;go('select')}}
-function select(){chrome('Wer macht heute mit?');app.innerHTML=`<h2>Kinder auswählen</h2><p class="muted">${S.selected.length} ausgewählt</p><section class="grid">${kids().map(c=>`<button class="card child ${S.selected.includes(c.id)?'sel':''}" data-k="${c.id}"><span class="avatar">${c.avatar}</span><strong>${c.name}</strong><p class="muted">${S.selected.includes(c.id)?'Ausgewählt ✓':'Antippen'}</p></button>`).join('')}</section><div class="actions"><button class="primary" id="lot" ${S.selected.length?'':'disabled'}>🌻 Reihenfolge auslosen</button></div>`;document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{let id=b.dataset.k;S.selected=S.selected.includes(id)?S.selected.filter(x=>x!==id):[...S.selected,id];select()});lot.onclick=()=>{S.order=[...S.selected].sort(()=>Math.random()-.5);S.order.forEach(id=>S.roundStatus[id]='open');go('order')}}
-function order(){chrome('Die Sonnenblume lost aus');let ks=kids();app.innerHTML=`<section class="hero" style="text-align:center"><div class="mascot spin">🌻</div><h2>Die Reihenfolge steht!</h2><p>Alle wählen zuerst ihre Aufgabe. Danach legen alle gleichzeitig los.</p></section><div class="list">${S.order.map((id,i)=>{let c=ks.find(x=>x.id===id);return`<div class="row"><div class="num">${i+1}</div><span class="avatar" style="margin:0">${c.avatar}</span><strong>${c.name}</strong></div>`}).join('')}</div><div class="actions"><button class="primary" id="choose">Aufgaben auswählen</button></div>`;choose.onclick=()=>{S.idx=0;go('choose')}}
-function choose(){let id=S.order[S.idx],c=kids().find(x=>x.id===id),taken=Object.values(S.assign);chrome(c.name+' wählt');let available=tasks().filter(t=>!taken.includes(t.id));app.innerHTML=`<section class="hero"><div class="mascot">${c.avatar}</div><h2>${c.name}, welche Aufgabe möchtest du?</h2><p>Gewählte Aufgaben verschwinden automatisch aus der Liste.</p></section><section class="grid">${available.map(t=>`<button class="card task" data-t="${t.id}"><span class="avatar">${t.icon}</span><strong>${t.title}</strong><p class="muted">🌱 ${t.seeds} · 🪙 ${t.reward}</p></button>`).join('')}</section>`;document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.assign[id]=b.dataset.t;if(S.idx<S.order.length-1){S.idx++;choose()}else go('overview')})}
-function overview(){chrome('Heute übernimmt');let ks=kids(),ts=tasks(),doneCount=S.order.filter(id=>S.roundStatus[id]==='done').length,total=S.order.length,pct=total?Math.round(doneCount/total*100):0;app.innerHTML=`<div class="progressbox"><div class="progresshead"><div><strong>🌞 Tagesziel</strong><div class="muted tiny">${doneCount} von ${total} Aufgaben bestätigt</div></div><strong>${pct}%</strong></div><div class="progress"><div style="width:${pct}%"></div></div></div><div class="list">${S.order.map(id=>{let c=ks.find(x=>x.id===id),t=ts.find(x=>x.id===S.assign[id]),st=S.roundStatus[id];return`<div class="row"><span class="avatar" style="margin:0">${c.avatar}</span><div class="grow"><strong>${c.name}</strong><div>${t.icon} ${t.title}</div><div class="status ${st==='done'?'done':''}">${st==='done'?'✅ Bestätigt':'⏳ Noch offen'}</div></div>${st==='done'?'<span style="font-size:1.8rem">🌼</span>':`<button class="secondary" style="width:auto" data-done="${id}">Ich bin fertig</button>`}</div>`}).join('')}</div><div class="actions"><button class="secondary" id="again">Neue Runde beginnen</button></div>`;document.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{S.pending=b.dataset.done;S.pin='';go('pin')});again.onclick=()=>{S.selected=[];S.order=[];S.assign={};S.roundStatus={};go('select')}}
-function pin(){chrome('Erzieher bestätigen');app.innerHTML=`<section class="card"><h2 style="text-align:center">Erzieher-PIN</h2><p class="muted" style="text-align:center">Test-PIN: 2468</p><div class="pinshow">${'•'.repeat(S.pin.length)}</div><div class="pin">${[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].map(x=>`<button data-key="${x}">${x}</button>`).join('')}</div></section>`;document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{let k=b.dataset.key;if(k==='⌫')S.pin=S.pin.slice(0,-1);else if(k==='✓'){if(S.pin===localStorage.mw_pin)go('confirm');else{S.pin='';msg('PIN ist nicht richtig.');pin()}return}else if(S.pin.length<4)S.pin+=k;pin()})}
-function confirm(){let c=kids().find(x=>x.id===S.pending),t=tasks().find(x=>x.id===S.assign[S.pending]);chrome('Leistung bestätigen');app.innerHTML=`<section class="hero" style="text-align:center"><div class="mascot">${c.avatar}</div><h2>${c.name}</h2><p>${t.icon} ${t.title}</p></section><div class="actions"><button class="primary" data-r="super">🌟 Super gemacht</button><button class="secondary" data-r="almost">🌱 Fast geschafft</button><button class="secondary" data-r="together">🤝 Gemeinsam geschafft</button></div>`;document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{let r=b.dataset.r,list=kids(),i=list.findIndex(x=>x.id===S.pending),coins=Math.max(1,Math.round(t.reward*(r==='super'?1:.75))),seeds=r==='almost'?0:t.seeds;list[i].coins+=coins;list[i].seeds+=seeds;list[i].completed++;saveKids(list);S.roundStatus[S.pending]='done';let g=group();g.points+=1;let allDone=S.order.every(id=>S.roundStatus[id]==='done');if(allDone){g.points+=3;g.bonuses+=1}saveGroup(g);S.lastReward={child:list[i],coins,seeds,result:r,allDone};celebrate();go('reward')})}
-function world(c){return`<section class="world"><div class="world-name">${c.avatar} ${c.name}s Welt</div><div class="sun">${c.completed>=8?'🌈':'☀️'}</div><div class="cloud">☁️</div><div class="obj f1">🌼</div>${c.seeds>=2?'<div class="obj f2">🌷</div>':''}${c.seeds>=3?'<div class="obj f3">🌻</div>':''}${c.seeds>=4?'<div class="obj tree">🌳</div>':'<div class="obj seed">🌱</div>'}${c.seeds>=6?'<div class="obj animal">🦋</div>':''}${c.coins>=20?'<div class="obj bench">🪑</div>':''}</section><section class="grid" style="margin-top:12px"><article class="card">🌱 <strong>${c.seeds}</strong><p class="muted tiny">Samen</p></article><article class="card">🪙 <strong>${c.coins}</strong><p class="muted tiny">Münzen</p></article><article class="card">✅ <strong>${c.completed}</strong><p class="muted tiny">Aufgaben</p></article></section>`}
-function groupWorld(){let g=group();return`<section class="world"><div class="world-name">🏡 Unsere Welt</div><div class="sun">${g.points>=15?'🌈':'☀️'}</div><div class="cloud">☁️</div><div class="obj tree">🌳</div><div class="obj f1">🌼</div><div class="obj f3">🌻</div>${g.points>=5?'<div class="obj bench">🪑</div>':''}${g.points>=10?'<div class="obj pond">💧</div>':''}${g.points>=18?'<div class="obj house">🏡</div>':''}</section><section class="grid" style="margin-top:12px"><article class="card">🤝 <strong>${g.points}</strong><p class="muted tiny">Gruppenpunkte</p></article><article class="card">🎁 <strong>${g.bonuses}</strong><p class="muted tiny">Teamboni</p></article></section>`}
-function reward(){let r=S.lastReward;chrome('Belohnung');app.innerHTML=`<section class="hero" style="text-align:center"><div class="mascot">🌻</div><h2>${r.child.name}, deine Welt ist gewachsen!</h2><p>🪙 +${r.coins} Münzen &nbsp; 🌱 +${r.seeds} Samen</p>${r.allDone?'<p><strong>🎉 Teamziel erreicht: +3 Gruppenpunkte!</strong></p>':''}</section>${world(r.child)}<div class="actions"><button class="primary" id="ov">Zur Aufgabenübersicht</button><button class="secondary" id="cw">Meine Welt ansehen</button></div>`;ov.onclick=()=>go('overview');cw.onclick=()=>{S.world=r.child.id;go('childWorld')}}
-function worlds(){chrome('Mitmach-Welten');app.innerHTML=`<h2>Eigene Welten</h2><section class="grid">${kids().map(c=>`<button class="card child" data-w="${c.id}"><span class="avatar">${c.avatar}</span><strong>${c.name}</strong><p class="muted">🌱 ${c.seeds} · 🪙 ${c.coins}</p></button>`).join('')}</section><h2 style="margin-top:22px">Unsere Gruppenwelt</h2>${groupWorld()}`;document.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{S.world=b.dataset.w;go('childWorld')})}
-function childWorld(){let c=kids().find(x=>x.id===S.world)||kids()[0];chrome(c.name+'s Welt');app.innerHTML=world(c)}
-function educator(){chrome('Erzieherbereich');if(!S.unlocked){app.innerHTML=`<section class="card"><h2>Geschützter Bereich</h2><p class="muted">Standard-PIN: 2468</p><div class="form"><label>PIN</label><input id="ep" type="password" inputmode="numeric" maxlength="4"></div><button class="primary" id="unlock">Öffnen</button></section>`;unlock.onclick=()=>{if(ep.value===localStorage.mw_pin){S.unlocked=true;educator()}else msg('PIN ist nicht richtig.')};return}app.innerHTML=`<section class="grid"><button class="card child" id="manage"><span class="avatar">👧</span><strong>Kinder verwalten</strong><p class="muted tiny">hinzufügen oder löschen</p></button><button class="card child" id="manageTasks"><span class="avatar">📋</span><strong>Aufgaben verwalten</strong><p class="muted tiny">eigene Aufgaben anlegen</p></button><button class="card child" id="reset"><span class="avatar">↺</span><strong>Testdaten zurücksetzen</strong></button></section>`;manage.onclick=()=>go('manage');manageTasks.onclick=()=>go('tasksManage');reset.onclick=()=>{if(confirm('Alle Testdaten zurücksetzen?')){['mw_children','mw_tasks','mw_group'].forEach(k=>localStorage.removeItem(k));init();msg('Zurückgesetzt.');educator()}}}
-function manage(){chrome('Kinder verwalten');app.innerHTML=`<div class="list">${kids().map(c=>`<div class="row"><span class="avatar" style="margin:0">${c.avatar}</span><div class="grow"><strong>${c.name}</strong><div class="muted">🌱 ${c.seeds} · 🪙 ${c.coins}</div></div><button class="danger" style="width:auto;padding:10px" data-del="${c.id}">Löschen</button></div>`).join('')}</div><section class="card" style="margin-top:14px"><h2>Neues Kind</h2><div class="form"><label>Name oder Spitzname</label><input id="nn" maxlength="20"></div><div class="form"><label>Avatar</label><select id="na"><option>🦊</option><option>🐼</option><option>🦁</option><option>🐸</option><option>🐨</option><option>🦄</option><option>🐯</option><option>🐙</option></select></div><button class="primary" id="add">Kind anlegen</button></section>`;document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{let id=b.dataset.del,c=kids().find(x=>x.id===id);if(confirm(c.name+' wirklich löschen?')){saveKids(kids().filter(x=>x.id!==id));manage()}});add.onclick=()=>{let n=nn.value.trim();if(!n)return msg('Bitte Namen eintragen.');let x=kids();x.push({id:'c'+Date.now(),name:n,avatar:na.value,seeds:0,coins:0,completed:0});saveKids(x);msg(n+' wurde angelegt.');manage()}}
-function tasksManage(){chrome('Aufgaben verwalten');app.innerHTML=`<div class="list">${tasks().map(t=>`<div class="row"><span class="avatar" style="margin:0">${t.icon}</span><div class="grow"><strong>${t.title}</strong><div class="muted">🌱 ${t.seeds} · 🪙 ${t.reward}</div></div><button class="danger" style="width:auto;padding:10px" data-tdel="${t.id}">Löschen</button></div>`).join('')}</div><section class="card" style="margin-top:14px"><h2>Neue Aufgabe</h2><div class="form"><label>Bezeichnung</label><input id="tn" maxlength="28"></div><div class="form"><label>Symbol</label><select id="ti"><option>🧹</option><option>🛏️</option><option>🍽️</option><option>🧺</option><option>🪴</option><option>🗑️</option><option>👟</option><option>📚</option></select></div><div class="inline"><div class="form"><label>Münzen</label><input id="tr" type="number" min="1" max="20" value="5"></div><div class="form"><label>Samen</label><input id="ts" type="number" min="0" max="3" value="1"></div></div><button class="primary" id="tadd">Aufgabe anlegen</button></section>`;document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{let id=b.dataset.tdel,t=tasks().find(x=>x.id===id);if(confirm(t.title+' wirklich löschen?')){saveTasks(tasks().filter(x=>x.id!==id));tasksManage()}});tadd.onclick=()=>{let n=tn.value.trim();if(!n)return msg('Bitte eine Aufgabe eintragen.');let x=tasks();x.push({id:'t'+Date.now(),title:n,icon:ti.value,reward:Number(tr.value)||5,seeds:Number(ts.value)||0});saveTasks(x);msg('Aufgabe wurde angelegt.');tasksManage()}}
-function render(){({home,select,order,choose,overview,pin,confirm,reward,worlds,childWorld,educator,manage,tasksManage}[S.screen]||home)()}init();render();if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+(() => {
+  "use strict";
+  const STORAGE_KEY="mitmach_welt_state_v1";
+  const DEFAULTS={
+    version:1,
+    settings:{pin:"2468",groupName:"Unsere Gruppe",sound:true},
+    children:[
+      {id:"lucy",name:"Lucy",avatar:"🦊",color:"#ef9c5a",coins:10,seeds:2,completed:0,kindness:0},
+      {id:"noah",name:"Noah",avatar:"🐼",color:"#69add0",coins:15,seeds:3,completed:0,kindness:0},
+      {id:"tius",name:"Tius",avatar:"🦁",color:"#e8be48",coins:5,seeds:1,completed:0,kindness:0},
+      {id:"jari",name:"Jari",avatar:"🐸",color:"#73b36d",coins:8,seeds:2,completed:0,kindness:0}
+    ],
+    tasks:[
+      {id:"bed",title:"Bett machen",icon:"🛏️",category:"Zimmer",difficulty:1,coins:5,seeds:1,active:true},
+      {id:"table",title:"Tisch decken",icon:"🍽️",category:"Gemeinschaft",difficulty:2,coins:6,seeds:1,active:true},
+      {id:"toys",title:"Spielsachen aufräumen",icon:"🧸",category:"Ordnung",difficulty:1,coins:5,seeds:1,active:true},
+      {id:"laundry",title:"Wäsche einsammeln",icon:"🧺",category:"Zimmer",difficulty:2,coins:6,seeds:1,active:true},
+      {id:"plants",title:"Blumen gießen",icon:"🪴",category:"Natur",difficulty:1,coins:4,seeds:1,active:true},
+      {id:"room",title:"Zimmer aufräumen",icon:"🧹",category:"Ordnung",difficulty:3,coins:8,seeds:2,active:true},
+      {id:"trash",title:"Müll rausbringen",icon:"🗑️",category:"Gemeinschaft",difficulty:2,coins:6,seeds:1,active:true},
+      {id:"animals",title:"Tiere versorgen",icon:"🐾",category:"Verantwortung",difficulty:3,coins:8,seeds:2,active:true}
+    ],
+    group:{points:0,completedRounds:0,kindnessFlowers:0},
+    round:null
+  };
+  const ui={screen:"home",history:[],selected:[],order:[],chooseIndex:0,worldChildId:null,educatorUnlocked:false,educatorTab:"children"};
+  const $=s=>document.querySelector(s);
+  const app=$("#app"),title=$("#title"),backBtn=$("#backBtn"),homeBtn=$("#homeBtn"),modalRoot=$("#modalRoot"),toast=$("#toast");
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  const id=()=>crypto.randomUUID?crypto.randomUUID():"id_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  const escapeHtml=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  function migrate(){
+    if(localStorage.getItem(STORAGE_KEY)) return;
+    const d=clone(DEFAULTS);
+    try{
+      const oldChildren=JSON.parse(localStorage.getItem("mw_children")||"null");
+      if(Array.isArray(oldChildren)&&oldChildren.length) d.children=oldChildren.map(c=>({id:c.id||id(),name:c.name||"Kind",avatar:c.avatar||"🙂",color:c.color||"#77aa88",coins:Number(c.coins||0),seeds:Number(c.seeds||0),completed:Number(c.completed||0),kindness:Number(c.kindness||0)}));
+      const oldTasks=JSON.parse(localStorage.getItem("mw_tasks")||"null");
+      if(Array.isArray(oldTasks)&&oldTasks.length) d.tasks=oldTasks.map(t=>({id:t.id||id(),title:t.title||"Aufgabe",icon:t.icon||"✅",category:t.category||"Alltag",difficulty:Number(t.difficulty||1),coins:Number(t.reward??t.coins??5),seeds:Number(t.seeds??1),active:t.active!==false}));
+      const pin=localStorage.getItem("mw_pin"); if(pin) d.settings.pin=pin;
+    }catch(e){}
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(d));
+  }
+  migrate();
+  let data=load();
+  function load(){try{return {...clone(DEFAULTS),...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}}catch(e){return clone(DEFAULTS)}}
+  function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
+  function showToast(msg){toast.textContent=msg;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2200)}
+  function nav(screen,push=true){if(push&&ui.screen!==screen)ui.history.push(ui.screen);ui.screen=screen;render();scrollTo({top:0,behavior:"smooth"})}
+  function back(){ui.screen=ui.history.pop()||"home";render()}
+  function setChrome(t){title.textContent=t;backBtn.hidden=ui.screen==="home";document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===ui.screen||(b.dataset.nav==="round"&&["select","order","choose","round"].includes(ui.screen))))}
+  backBtn.onclick=back;homeBtn.onclick=()=>{ui.history=[];nav("home",false)};
+  document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>nav(b.dataset.nav));
+  function greeting(){const h=new Date().getHours();return h<11?"Guten Morgen":h<18?"Hallo":"Guten Abend"}
+  function formatNow(){return new Intl.DateTimeFormat("de-DE",{weekday:"long",day:"2-digit",month:"long",hour:"2-digit",minute:"2-digit"}).format(new Date())}
+  function activeTasks(){return data.tasks.filter(t=>t.active)}
+  function childBy(id){return data.children.find(c=>c.id===id)}
+  function taskBy(id){return data.tasks.find(t=>t.id===id)}
+  function render(){
+    const routes={home,select,order,choose,round,worlds,childWorld,educator};
+    (routes[ui.screen]||home)();
+  }
+  function home(){
+    setChrome("Mitmach-Welt");
+    const total=data.children.reduce((s,c)=>s+c.completed,0);
+    const current=data.round&&!data.round.finished;
+    app.innerHTML=`
+      <section class="hero">
+        <div class="mascot">🌻</div>
+        <h2>${greeting()}, ${escapeHtml(data.settings.groupName)}!</h2>
+        <p>Mit jeder Aufgabe wächst eine persönliche Welt – und gemeinsam entsteht eure Gruppenwelt.</p>
+        <div id="clock" class="clock">🕒 ${formatNow()}</div>
+        <div class="actions">
+          <button id="mainAction" class="primary">${current?"🌻 Laufende Runde öffnen":"🌻 Mitmach-Runde starten"}</button>
+        </div>
+      </section>
+      <section class="grid" style="margin-top:14px">
+        <article class="card stat"><div><small class="muted">Kinder</small><strong>${data.children.length}</strong></div><span>👧</span></article>
+        <article class="card stat"><div><small class="muted">Geschaffte Aufgaben</small><strong>${total}</strong></div><span>✅</span></article>
+        <article class="card stat"><div><small class="muted">Gruppenpunkte</small><strong>${data.group.points}</strong></div><span>🏡</span></article>
+      </section>
+      <div class="section-head"><div><h2>Heute in der Mitmach-Welt</h2><p>Ruhig, wertschätzend und ohne Wettbewerb.</p></div></div>
+      <section class="grid">
+        <button class="card tap-card" id="openWorlds"><span class="avatar">🌍</span><strong>Welten ansehen</strong><p class="muted">Pflanzen, Tiere und Erinnerungen entdecken.</p></button>
+        <button class="card tap-card" id="openEducator"><span class="avatar">🔒</span><strong>Erzieherbereich</strong><p class="muted">Kinder, Aufgaben und Einstellungen verwalten.</p></button>
+      </section>`;
+    $("#mainAction").onclick=()=>current?nav("round"):startRound();
+    $("#openWorlds").onclick=()=>nav("worlds");$("#openEducator").onclick=()=>nav("educator");
+    setTimeout(()=>{const el=$("#clock");if(el)el.textContent="🕒 "+formatNow()},1000);
+  }
+  function startRound(){
+    if(!data.children.length)return showToast("Lege zuerst mindestens ein Kind an.");
+    if(!activeTasks().length)return showToast("Aktiviere zuerst mindestens eine Aufgabe.");
+    ui.selected=[];ui.order=[];ui.chooseIndex=0;data.round=null;save();nav("select");
+  }
+  function select(){
+    setChrome("Wer macht heute mit?");
+    app.innerHTML=`
+      <div class="section-head"><div><h2>Kinder auswählen</h2><p>${ui.selected.length} ausgewählt</p></div></div>
+      <section class="grid">${data.children.map(c=>`
+        <button class="card tap-card ${ui.selected.includes(c.id)?"selected":""}" data-child="${c.id}">
+          <span class="avatar">${c.avatar}</span><strong>${escapeHtml(c.name)}</strong>
+          <p class="muted">${ui.selected.includes(c.id)?"Ausgewählt ✓":"Zum Auswählen antippen"}</p>
+        </button>`).join("")}</section>
+      <div class="actions"><button id="drawOrder" class="primary" ${ui.selected.length?"":"disabled"}>🌻 Reihenfolge auslosen</button></div>`;
+    document.querySelectorAll("[data-child]").forEach(b=>b.onclick=()=>{const cid=b.dataset.child;ui.selected=ui.selected.includes(cid)?ui.selected.filter(x=>x!==cid):[...ui.selected,cid];select()});
+    $("#drawOrder").onclick=()=>{ui.order=[...ui.selected].sort(()=>Math.random()-.5);nav("order")};
+  }
+  function order(){
+    setChrome("Die Sonnenblume lost aus");
+    app.innerHTML=`
+      <section class="hero" style="text-align:center"><div class="mascot">🌻</div><h2>Die Reihenfolge steht!</h2><p>Alle Kinder wählen zuerst ihre Aufgabe. Danach können alle gleichzeitig loslegen.</p></section>
+      <div class="list" style="margin-top:14px">${ui.order.map((cid,i)=>{const c=childBy(cid);return`<div class="list-row"><div class="round-number">${i+1}</div><span class="tiny-avatar">${c.avatar}</span><div class="list-main"><strong>${escapeHtml(c.name)}</strong><small>${i===0?"beginnt":"wählt danach"}</small></div></div>`}).join("")}</div>
+      <div class="actions"><button id="chooseNow" class="primary">Aufgaben auswählen</button></div>`;
+    $("#chooseNow").onclick=()=>{ui.chooseIndex=0;data.round={id:id(),date:new Date().toISOString(),participants:[...ui.order],order:[...ui.order],assignments:{},results:{},teamBonus:false,finished:false};save();nav("choose")};
+  }
+  function choose(){
+    const r=data.round;if(!r)return nav("home",false);
+    const cid=r.order[ui.chooseIndex],c=childBy(cid),taken=Object.values(r.assignments);
+    let available=activeTasks().filter(t=>!taken.includes(t.id));if(!available.length)available=activeTasks();
+    setChrome(`${c.name} wählt`);
+    app.innerHTML=`
+      <section class="hero"><div class="mascot">${c.avatar}</div><h2>${escapeHtml(c.name)}, welche Aufgabe möchtest du übernehmen?</h2><p>${taken.length>=activeTasks().length?"Aufgaben dürfen jetzt mehrfach gewählt werden.":"Bereits gewählte Aufgaben werden ausgeblendet."}</p></section>
+      <section class="grid" style="margin-top:14px">${available.map(t=>`
+        <button class="card tap-card" data-task="${t.id}">
+          <div class="task-icon">${t.icon}</div><strong>${escapeHtml(t.title)}</strong><p class="muted">${escapeHtml(t.category)} · ${"⭐".repeat(t.difficulty)}</p>
+          <div class="task-meta"><span class="badge">🌱 ${t.seeds}</span><span class="badge yellow">🪙 ${t.coins}</span></div>
+        </button>`).join("")}</section>`;
+    document.querySelectorAll("[data-task]").forEach(b=>b.onclick=()=>{r.assignments[cid]=b.dataset.task;save();if(ui.chooseIndex<r.order.length-1){ui.chooseIndex++;choose()}else nav("round")});
+  }
+  function round(){
+    setChrome("Mitmach-Runde");
+    const r=data.round;
+    if(!r){app.innerHTML=`<div class="empty"><div class="emoji">🌻</div><h3>Noch keine Runde</h3><p>Starte eine neue Mitmach-Runde.</p><button id="start" class="primary">Runde starten</button></div>`;$("#start").onclick=startRound;return}
+    const done=Object.keys(r.results||{}).length,total=r.participants.length,percent=total?Math.round(done/total*100):0;
+    app.innerHTML=`
+      <div class="section-head"><div><h2>${r.finished?"Runde geschafft":"Alle können loslegen"}</h2><p>${done} von ${total} Aufgaben bestätigt</p></div></div>
+      <div class="progress-box"><div class="progress-label"><span>Gemeinsamer Tagesfortschritt</span><span>${percent}%</span></div><div class="progress"><div style="width:${percent}%"></div></div></div>
+      <div class="list" style="margin-top:14px">${r.participants.map(cid=>{const c=childBy(cid),t=taskBy(r.assignments[cid]),res=r.results[cid];return`
+        <div class="list-row"><span class="tiny-avatar">${c.avatar}</span><div class="list-main"><strong>${escapeHtml(c.name)}</strong><small>${t?t.icon+" "+escapeHtml(t.title):"Noch keine Aufgabe"}</small><div class="status ${res?"done":""}">${res?resultLabel(res.type):"Aufgabe läuft"}</div></div>
+        ${res?`<span class="badge">✓ bestätigt</span>`:`<button class="soft" style="width:auto;padding:11px 13px" data-finish="${cid}">Ich bin fertig</button>`}</div>`}).join("")}</div>
+      <div class="actions">
+        ${r.finished?`<button id="newRound" class="primary">Neue Runde starten</button>`:`<button id="cancelRound" class="secondary">Runde später fortsetzen</button>`}
+      </div>`;
+    document.querySelectorAll("[data-finish]").forEach(b=>b.onclick=()=>openConfirm(b.dataset.finish));
+    const nr=$("#newRound");if(nr)nr.onclick=startRound;
+    const cr=$("#cancelRound");if(cr)cr.onclick=()=>nav("home");
+  }
+  function resultLabel(type){return type==="super"?"🌟 Super gemacht":type==="almost"?"🌱 Fast geschafft":"🤝 Gemeinsam geschafft"}
+  function openConfirm(cid){
+    const c=childBy(cid),t=taskBy(data.round.assignments[cid]);
+    let entered="";
+    modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-head"><h2>Erzieher bestätigen</h2><button class="close">✕</button></div><p class="muted">${c.avatar} ${escapeHtml(c.name)} · ${t.icon} ${escapeHtml(t.title)}</p><div id="pinStage"><p style="text-align:center;font-weight:900">PIN eingeben</p><div id="pinDots" class="pin-dots"></div><div class="keypad">${[1,2,3,4,5,6,7,8,9,"⌫",0,"✓"].map(k=>`<button data-key="${k}">${k}</button>`).join("")}</div></div><div id="resultStage" class="hidden"><div class="actions"><button class="primary" data-result="super">🌟 Super gemacht</button><button class="secondary" data-result="almost">🌱 Fast geschafft</button><button class="secondary" data-result="together">🤝 Gemeinsam geschafft</button></div></div></section></div>`;
+    $(".close").onclick=closeModal;
+    document.querySelectorAll("[data-key]").forEach(b=>b.onclick=()=>{const k=b.dataset.key;if(k==="⌫")entered=entered.slice(0,-1);else if(k==="✓"){if(entered===data.settings.pin){$("#pinStage").classList.add("hidden");$("#resultStage").classList.remove("hidden")}else{entered="";showToast("PIN ist nicht richtig.")}}else if(entered.length<4)entered+=k;$("#pinDots").textContent="•".repeat(entered.length)});
+    document.querySelectorAll("[data-result]").forEach(b=>b.onclick=()=>approve(cid,b.dataset.result));
+  }
+  function approve(cid,type){
+    const c=childBy(cid),t=taskBy(data.round.assignments[cid]);
+    const factor=type==="super"?1:type==="almost"?.65:.85;
+    const coins=Math.max(1,Math.round(t.coins*factor)),seeds=type==="almost"?0:t.seeds;
+    c.coins+=coins;c.seeds+=seeds;c.completed+=1;if(type==="together")c.kindness+=1;
+    data.round.results[cid]={type,coins,seeds,at:new Date().toISOString()};
+    const allDone=data.round.participants.every(x=>data.round.results[x]);
+    if(allDone&&!data.round.teamBonus){
+      data.round.teamBonus=true;data.round.finished=true;data.group.completedRounds+=1;data.group.points+=5+data.round.participants.length*2;
+      data.round.participants.forEach(x=>childBy(x).coins+=2);
+    }
+    save();closeModal();showReward(c,t,type,coins,seeds,allDone);
+  }
+  function showReward(c,t,type,coins,seeds,allDone){
+    modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal celebrate"><div class="big">${allDone?"🏡":"🌻"}</div><h2>${allDone?"Ihr habt es gemeinsam geschafft!":escapeHtml(c.name)+", deine Welt ist gewachsen!"}</h2><p>${resultLabel(type)}<br>🪙 +${coins}${allDone?" + 2 Team-Bonus":""} · 🌱 +${seeds}</p><div class="actions"><button id="rewardClose" class="primary">${allDone?"Gruppenwelt ansehen":"Zur Runde"}</button></div></section></div>`;
+    $("#rewardClose").onclick=()=>{closeModal();if(allDone)nav("worlds");else round()};
+  }
+  function closeModal(){modalRoot.innerHTML=""}
+  function worlds(){
+    setChrome("Mitmach-Welten");
+    app.innerHTML=`
+      <div class="section-head"><div><h2>Eigene Welten</h2><p>Jede Welt entwickelt sich anders.</p></div></div>
+      <section class="grid">${data.children.map(c=>`<button class="card tap-card" data-world="${c.id}"><span class="avatar">${c.avatar}</span><strong>${escapeHtml(c.name)}</strong><p class="muted">🌱 ${c.seeds} · 🪙 ${c.coins} · ✅ ${c.completed}</p></button>`).join("")}</section>
+      <div class="section-head"><div><h2>Unsere Gruppenwelt</h2><p>${data.group.points} Gruppenpunkte · ${data.group.completedRounds} gemeinsame Runden</p></div></div>
+      ${worldScene(null,true)}
+      <div class="progress-box"><div class="progress-label"><span>Nächster gemeinsamer Ausbau</span><span>${data.group.points%25}/25</span></div><div class="progress"><div style="width:${Math.min(100,(data.group.points%25)/25*100)}%"></div></div></div>`;
+    document.querySelectorAll("[data-world]").forEach(b=>b.onclick=()=>{ui.worldChildId=b.dataset.world;nav("childWorld")});
+  }
+  function worldScene(c,group=false){
+    const seeds=group?data.group.points:c.seeds,coins=group?data.group.points:c.coins,completed=group?data.group.completedRounds:c.completed;
+    return `<section class="world"><div class="world-name">${group?"🏡 "+escapeHtml(data.settings.groupName):c.avatar+" "+escapeHtml(c.name)+"s Welt"}</div><div class="world-sky">${seeds>=18?"🌈":"☀️"}</div><div class="world-cloud">☁️</div>
+      <div class="object flower-a">🌼</div>${seeds>=2?`<div class="object flower-b">🌷</div>`:""}${seeds>=4?`<div class="object flower-c">🌻</div>`:""}
+      ${seeds>=6?`<div class="object tree">🌳</div>`:`<div class="object flower-b">🌱</div>`}
+      ${seeds>=9?`<div class="object animal">${group?"🐦":"🦋"}</div>`:""}${coins>=20?`<div class="object bench">🪑</div>`:""}
+      ${completed>=4||seeds>=25?`<div class="object house">${group?"🏡":"🏠"}</div>`:""}${seeds>=35?`<div class="object pond">🦆</div>`:""}</section>`;
+  }
+  function childWorld(){
+    const c=childBy(ui.worldChildId)||data.children[0];if(!c)return nav("worlds",false);
+    setChrome(`${c.name}s Welt`);
+    const memories=[
+      ["🌼","Erste Blume",c.seeds>=1],["🌳","Erster Baum",c.seeds>=6],["🦋","Schmetterling",c.seeds>=9],["🪑","Eigene Bank",c.coins>=20],
+      ["🏠","Kleines Zuhause",c.completed>=4],["🌈","Erster Regenbogen",c.seeds>=18],["❤️","Herzensblume",c.kindness>=1],["⭐","10 Aufgaben",c.completed>=10]
+    ];
+    app.innerHTML=`${worldScene(c)}<section class="grid" style="margin-top:13px"><article class="card stat"><div><small class="muted">Samen</small><strong>${c.seeds}</strong></div><span>🌱</span></article><article class="card stat"><div><small class="muted">Münzen</small><strong>${c.coins}</strong></div><span>🪙</span></article><article class="card stat"><div><small class="muted">Aufgaben</small><strong>${c.completed}</strong></div><span>✅</span></article></section>
+      <div class="section-head"><div><h2>Mitmach-Buch</h2><p>Besondere Erinnerungen aus dieser Welt.</p></div></div><section class="memory-grid">${memories.map(m=>`<article class="memory ${m[2]?"":"locked"}"><span class="tiny-avatar">${m[0]}</span><strong>${m[1]}</strong><small>${m[2]?"Entdeckt":"Noch verborgen"}</small></article>`).join("")}</section>`;
+  }
+  function educator(){
+    setChrome("Erzieherbereich");
+    if(!ui.educatorUnlocked){
+      app.innerHTML=`<section class="card"><span class="avatar">🔒</span><h2>Geschützter Bereich</h2><p class="muted">Hier werden Kinder, Aufgaben und Einstellungen verwaltet.</p><div class="field"><label for="unlockPin">Erzieher-PIN</label><input id="unlockPin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN eingeben"></div><div class="actions"><button id="unlock" class="primary">Öffnen</button></div></section>`;
+      $("#unlock").onclick=()=>{if($("#unlockPin").value===data.settings.pin){ui.educatorUnlocked=true;educator()}else showToast("PIN ist nicht richtig.")};return;
+    }
+    const tabs=[["children","Kinder"],["tasks","Aufgaben"],["settings","Einstellungen"],["data","Daten"]];
+    app.innerHTML=`<div class="tabs">${tabs.map(t=>`<button class="tab ${ui.educatorTab===t[0]?"active":""}" data-tab="${t[0]}">${t[1]}</button>`).join("")}</div><div id="adminContent"></div>`;
+    document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ui.educatorTab=b.dataset.tab;educator()});
+    renderAdminContent();
+  }
+  function renderAdminContent(){
+    const root=$("#adminContent");
+    if(ui.educatorTab==="children"){
+      root.innerHTML=`<div class="list">${data.children.map(c=>`<div class="list-row"><span class="tiny-avatar">${c.avatar}</span><div class="list-main"><strong>${escapeHtml(c.name)}</strong><small>🌱 ${c.seeds} · 🪙 ${c.coins} · ✅ ${c.completed}</small></div><button class="icon-btn" data-edit-child="${c.id}">✏️</button></div>`).join("")}</div><div class="actions"><button id="addChild" class="primary">＋ Kind anlegen</button></div>`;
+      document.querySelectorAll("[data-edit-child]").forEach(b=>b.onclick=()=>childForm(b.dataset.editChild));$("#addChild").onclick=()=>childForm();
+    }else if(ui.educatorTab==="tasks"){
+      root.innerHTML=`<div class="list">${data.tasks.map(t=>`<div class="list-row"><span class="tiny-avatar">${t.icon}</span><div class="list-main"><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.category)} · ${"⭐".repeat(t.difficulty)} · 🌱 ${t.seeds} · 🪙 ${t.coins}</small></div><button class="switch ${t.active?"on":""}" data-toggle-task="${t.id}" aria-label="Aktivieren"><i></i></button><button class="icon-btn" data-edit-task="${t.id}">✏️</button></div>`).join("")}</div><div class="actions"><button id="addTask" class="primary">＋ Aufgabe anlegen</button></div>`;
+      document.querySelectorAll("[data-toggle-task]").forEach(b=>b.onclick=()=>{const t=taskBy(b.dataset.toggleTask);t.active=!t.active;save();renderAdminContent()});
+      document.querySelectorAll("[data-edit-task]").forEach(b=>b.onclick=()=>taskForm(b.dataset.editTask));$("#addTask").onclick=()=>taskForm();
+    }else if(ui.educatorTab==="settings"){
+      root.innerHTML=`<section class="card form"><div class="field"><label>Gruppenname</label><input id="groupName" value="${escapeHtml(data.settings.groupName)}"></div><div class="field"><label>Neue 4-stellige PIN</label><input id="newPin" type="password" inputmode="numeric" maxlength="4" value="${escapeHtml(data.settings.pin)}"></div><div class="toggle-row"><div><strong>Ruhige Töne</strong><div class="muted">Für spätere Geräusche vorbereitet</div></div><button id="soundToggle" class="switch ${data.settings.sound?"on":""}"><i></i></button></div><button id="saveSettings" class="primary">Einstellungen speichern</button></section>`;
+      $("#soundToggle").onclick=()=>{data.settings.sound=!data.settings.sound;save();renderAdminContent()};
+      $("#saveSettings").onclick=()=>{const p=$("#newPin").value.trim();if(!/^\d{4}$/.test(p))return showToast("Die PIN muss aus vier Ziffern bestehen.");data.settings.pin=p;data.settings.groupName=$("#groupName").value.trim()||"Unsere Gruppe";save();showToast("Einstellungen gespeichert.")};
+    }else{
+      root.innerHTML=`<section class="card"><h2>Daten sichern</h2><p class="muted">Alle Daten bleiben lokal auf diesem Gerät. Für eine Sicherung kannst du sie exportieren und später wieder importieren.</p><div class="actions"><button id="exportData" class="secondary">⬇️ Sicherung exportieren</button><label class="secondary" style="display:grid;place-items:center">⬆️ Sicherung importieren<input id="importData" type="file" accept="application/json" hidden></label><button id="resetData" class="danger-btn">Alle App-Daten zurücksetzen</button></div></section>`;
+      $("#exportData").onclick=exportData;$("#importData").onchange=importData;$("#resetData").onclick=()=>{if(confirm("Wirklich alle Daten zurücksetzen?")){data=clone(DEFAULTS);save();ui.educatorUnlocked=false;showToast("App wurde zurückgesetzt.");nav("home")}};
+    }
+  }
+  function childForm(cid){
+    const c=cid?childBy(cid):{id:null,name:"",avatar:"🦊",color:"#77aa88",coins:0,seeds:0,completed:0,kindness:0};
+    modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-head"><h2>${cid?"Kind bearbeiten":"Kind anlegen"}</h2><button class="close">✕</button></div><div class="form"><div class="field"><label>Name oder Spitzname</label><input id="childName" maxlength="24" value="${escapeHtml(c.name)}"></div><div class="field"><label>Avatar</label><select id="childAvatar">${["🦊","🐼","🦁","🐸","🐨","🦄","🐯","🐙","🐧","🐰","🦋","🌻"].map(a=>`<option ${a===c.avatar?"selected":""}>${a}</option>`).join("")}</select></div><button id="saveChild" class="primary">Speichern</button>${cid?`<button id="deleteChild" class="danger-btn">Kind löschen</button>`:""}</div></section></div>`;
+    $(".close").onclick=closeModal;$("#saveChild").onclick=()=>{const name=$("#childName").value.trim();if(!name)return showToast("Bitte einen Namen eintragen.");if(cid){c.name=name;c.avatar=$("#childAvatar").value}else data.children.push({...c,id:id(),name,avatar:$("#childAvatar").value});save();closeModal();renderAdminContent();showToast("Kind gespeichert.")};
+    const del=$("#deleteChild");if(del)del.onclick=()=>{if(confirm(`${c.name} wirklich löschen?`)){data.children=data.children.filter(x=>x.id!==cid);save();closeModal();renderAdminContent()}};
+  }
+  function taskForm(tid){
+    const t=tid?taskBy(tid):{id:null,title:"",icon:"✅",category:"Alltag",difficulty:1,coins:5,seeds:1,active:true};
+    modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-head"><h2>${tid?"Aufgabe bearbeiten":"Aufgabe anlegen"}</h2><button class="close">✕</button></div><div class="form"><div class="field"><label>Aufgabe</label><input id="taskTitle" maxlength="40" value="${escapeHtml(t.title)}"></div><div class="field"><label>Symbol</label><select id="taskIcon">${["✅","🛏️","🍽️","🧸","🧺","🪴","🧹","🗑️","🐾","📚","🚿","👕","🍳","🧽"].map(a=>`<option ${a===t.icon?"selected":""}>${a}</option>`).join("")}</select></div><div class="field"><label>Kategorie</label><input id="taskCategory" maxlength="25" value="${escapeHtml(t.category)}"></div><div class="grid"><div class="field"><label>Schwierigkeit</label><select id="taskDifficulty">${[1,2,3].map(n=>`<option value="${n}" ${n===t.difficulty?"selected":""}>${"⭐".repeat(n)}</option>`).join("")}</select></div><div class="field"><label>Münzen</label><input id="taskCoins" type="number" min="1" max="50" value="${t.coins}"></div><div class="field"><label>Samen</label><input id="taskSeeds" type="number" min="0" max="10" value="${t.seeds}"></div></div><button id="saveTask" class="primary">Speichern</button>${tid?`<button id="deleteTask" class="danger-btn">Aufgabe löschen</button>`:""}</div></section></div>`;
+    $(".close").onclick=closeModal;$("#saveTask").onclick=()=>{const title=$("#taskTitle").value.trim();if(!title)return showToast("Bitte eine Aufgabe eintragen.");Object.assign(t,{title,icon:$("#taskIcon").value,category:$("#taskCategory").value.trim()||"Alltag",difficulty:Number($("#taskDifficulty").value),coins:Math.max(1,Number($("#taskCoins").value)||1),seeds:Math.max(0,Number($("#taskSeeds").value)||0)});if(!tid){t.id=id();data.tasks.push(t)}save();closeModal();renderAdminContent();showToast("Aufgabe gespeichert.")};
+    const del=$("#deleteTask");if(del)del.onclick=()=>{if(confirm(`${t.title} wirklich löschen?`)){data.tasks=data.tasks.filter(x=>x.id!==tid);save();closeModal();renderAdminContent()}};
+  }
+  function exportData(){
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="mitmach-welt-sicherung-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);
+  }
+  function importData(e){
+    const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const incoming=JSON.parse(r.result);if(!incoming.children||!incoming.tasks)throw new Error();data=incoming;save();showToast("Sicherung wurde importiert.");renderAdminContent()}catch(err){showToast("Die Datei ist keine gültige Sicherung.")}};r.readAsText(file);
+  }
+  render();
+  if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+})();
 </script>
-</body></html>
+</body>
+</html>
