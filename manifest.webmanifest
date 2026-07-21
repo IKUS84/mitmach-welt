@@ -1,10 +1,9 @@
 {
-  "name": "Mitmach-Welt",
-  "short_name": "Mitmach-Welt",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#fff9ea",
-  "theme_color": "#f5c542",
-  "description": "Motivations-App für Kinder in Wohngruppen",
-  "icons": []
+  "name":"Mitmach-Welt",
+  "short_name":"Mitmach-Welt",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#fff9ea",
+  "theme_color":"#f4c542",
+  "description":"Motivations-App für Kinder in Wohngruppen"
 }

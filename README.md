@@ -1,7 +1,13 @@
-# Mitmach-Welt v0.1
+# Mitmach-Welt v0.2
 
-Erste klickbare Testversion.
+Zweite klickbare Testversion.
+
+## Neu
+- Tagesfortschritt und bestätigte Aufgaben
+- Teambonus für vollständig abgeschlossene Runden
+- wachsende Gruppenwelt
+- Kinder löschen
+- Aufgaben anlegen und löschen
+- verbesserte Animationen und Oberfläche
 
 **Test-PIN:** `2468`
-
-GitHub Pages: Settings → Pages → Deploy from a branch → main / root → Save.
