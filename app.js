@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.1.2";
+  const APP_VERSION = "2.1.3";
   const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -325,22 +325,29 @@
 
   let data = loadData();
   let saveCounter = 0;
+  let lastSavedSerialized = localStorage.getItem(STORAGE_KEY) || "";
   const saveListeners = new Set();
 
   function saveData({ snapshot = false, notify = true } = {}) {
     data.schemaVersion = SCHEMA_VERSION;
     data.appVersion = APP_VERSION;
     const serialized = JSON.stringify(data);
+    const changed = serialized !== lastSavedSerialized;
     try {
+      // Immer lokal sichern. Synchronisations-Listener werden aber nur bei echten
+      // Inhaltsänderungen informiert, damit ein schließendes Zweitgerät keinen
+      // älteren unveränderten Stand erneut überträgt.
       localStorage.setItem(STORAGE_KEY, serialized);
       localStorage.setItem(BACKUP_KEY, serialized);
-      // Direkt prüfen, ob der Browser die Daten wirklich übernommen hat.
       const verified = localStorage.getItem(STORAGE_KEY);
       if (verified !== serialized) throw new Error("Speicherprüfung fehlgeschlagen");
-      saveCounter += 1;
-      if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
+      lastSavedSerialized = serialized;
+      if (changed) {
+        saveCounter += 1;
+        if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
+      }
       applyPreferences();
-      if (notify) {
+      if (notify && changed) {
         saveListeners.forEach(listener => {
           try { listener(clone(data)); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
         });
@@ -1278,9 +1285,15 @@
   }
 
   function renderTasksAdmin() {
+    const rows = data.tasks.map(task => {
+      const linked = data.claims.filter(claim => claim.taskId === task.id);
+      const open = linked.filter(claim => ["reserved","reported"].includes(claim.status)).length;
+      return `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}${open ? ` · ⚠️ ${open} offen` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Löschen</button></div></div>`;
+    }).join("");
     return `
-      <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Für jede Aufgabe kann festgelegt werden, wie viele Kinder gebraucht werden.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
-      <div class="admin-list">${data.tasks.map(task => `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+      <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Aufgaben lassen sich jetzt zuverlässig anlegen, bearbeiten, pausieren und löschen.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
+      <div class="callout success"><p><b>Tipp:</b> Nach dem Speichern erscheint eine Bestätigung. Änderungen werden anschließend an die verbundenen Geräte übertragen.</p></div>
+      <div class="admin-list" style="margin-top:14px">${rows || `<div class="empty-state"><span class="emoji">📋</span><h3>Noch keine Aufgaben vorhanden</h3><p>Lege oben die erste Aufgabe an.</p></div>`}</div>`;
   }
 
   function renderGoalsAdmin() {
@@ -1443,10 +1456,14 @@
 
   function openTaskEditor(taskId = null) {
     const task = taskId ? taskById(taskId) : null;
+    if (taskId && !task) {
+      showToast("Diese Aufgabe wurde nicht gefunden. Bitte die Ansicht neu laden.");
+      return;
+    }
     openModal(task ? "Aufgabe bearbeiten" : "Aufgabe anlegen", `
-      <form id="taskForm"><input type="hidden" name="id" value="${escapeHtml(taskId || "")}">
+      <form id="taskForm" novalidate><input type="hidden" name="id" value="${escapeHtml(taskId || "")}">
         <div class="form-grid">
-          <div class="form-field full"><label>Aufgabenname</label><input name="title" value="${escapeHtml(task?.title || "")}" required maxlength="60"></div>
+          <div class="form-field full"><label>Aufgabenname</label><input name="title" value="${escapeHtml(task?.title || "")}" required maxlength="60" autocomplete="off"></div>
           <div class="form-field"><label>Symbol</label><select name="icon">${TASK_ICONS.map(icon => `<option value="${icon}" ${task?.icon === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
           <div class="form-field"><label>Kategorie</label><input name="category" value="${escapeHtml(task?.category || "Alltag")}" maxlength="30"></div>
           <div class="form-field"><label>Förderbereich</label><select name="competence">${COMPETENCES.map(item => `<option value="${escapeHtml(item)}" ${task?.competence === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}</select></div>
@@ -1459,8 +1476,102 @@
           <div class="form-field full"><label>Kurze Hinweise</label><textarea name="instructions" maxlength="240">${escapeHtml(task?.instructions || "")}</textarea></div>
           <div class="form-field full"><label>Verfügbar an</label><div class="checkbox-grid">${DAY_NAMES.map((day,index) => `<label class="check-chip"><input type="checkbox" name="days" value="${index}" ${(task?.days || [0,1,2,3,4,5,6]).includes(index) ? "checked" : ""}><span>${day}</span></label>`).join("")}</div></div>
         </div>
-        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
+        <p id="taskFormStatus" class="tiny muted" role="status" aria-live="polite"></p>
+        <div class="modal-actions">${task ? `<button class="danger-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Aufgabe löschen</button>` : ""}<span class="modal-action-spacer"></span><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="button" data-action="save-task">Speichern</button></div>
       </form>`, { wide:true });
+  }
+
+  function setTaskFormStatus(message, isError = false) {
+    const status = document.querySelector("#taskFormStatus");
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle("form-error", Boolean(isError));
+  }
+
+  function saveTaskFromForm(form) {
+    if (!form) return false;
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    const title = String(values.title || "").trim();
+    const days = formData.getAll("days").map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6);
+    if (!title) {
+      setTaskFormStatus("Bitte einen Aufgabenname eingeben.", true);
+      form.querySelector?.('[name="title"]')?.focus?.();
+      return false;
+    }
+    if (!days.length) {
+      setTaskFormStatus("Bitte mindestens einen Wochentag auswählen.", true);
+      return false;
+    }
+
+    const id = String(values.id || "").trim();
+    const existingIndex = id ? data.tasks.findIndex(task => task.id === id) : -1;
+    if (id && existingIndex < 0) {
+      setTaskFormStatus("Die Aufgabe wurde auf einem anderen Gerät verändert oder gelöscht. Bitte schließen und erneut öffnen.", true);
+      return false;
+    }
+
+    const requiredChildren = clamp(values.requiredChildren, 1, 8);
+    const nextTask = {
+      ...(existingIndex >= 0 ? data.tasks[existingIndex] : { id:uid(), active:true }),
+      title,
+      icon:String(values.icon || "✅"),
+      category:String(values.category || "").trim() || "Alltag",
+      competence:String(values.competence || "Selbstständigkeit"),
+      requiredChildren,
+      repeatMode:requiredChildren > 1 ? "shared" : (values.repeatMode === "perChild" ? "perChild" : "shared"),
+      coins:clamp(values.coins,0,100),
+      seeds:clamp(values.seeds,0,100),
+      stars:clamp(values.stars,0,5),
+      communityPoints:clamp(values.communityPoints,0,10),
+      instructions:String(values.instructions || "").trim(),
+      days:[...new Set(days)].sort((a,b) => a-b),
+      updatedAt:Date.now()
+    };
+
+    const previousTasks = clone(data.tasks);
+    if (existingIndex >= 0) data.tasks.splice(existingIndex, 1, nextTask);
+    else data.tasks.push(nextTask);
+
+    setTaskFormStatus("Wird gespeichert …");
+    if (!saveData({ snapshot:true })) {
+      data.tasks = previousTasks;
+      setTaskFormStatus("Die Aufgabe konnte nicht gespeichert werden.", true);
+      return false;
+    }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      const verified = Array.isArray(stored.tasks) && stored.tasks.some(task => task.id === nextTask.id && task.title === nextTask.title);
+      if (!verified) throw new Error("Aufgabe fehlt nach Speicherprüfung");
+    } catch (error) {
+      data.tasks = previousTasks;
+      saveData({ snapshot:false });
+      setTaskFormStatus("Die Speicherprüfung ist fehlgeschlagen. Bitte noch einmal versuchen.", true);
+      console.error("Mitmach-Welt: Aufgabenprüfung fehlgeschlagen", error);
+      return false;
+    }
+
+    closeModal();
+    ui.educatorTab = "tasks";
+    render();
+    showToast(existingIndex >= 0 ? "Aufgabe wurde gespeichert und aktualisiert." : "Neue Aufgabe wurde gespeichert.");
+    return true;
+  }
+
+  function removeTask(taskId) {
+    const index = data.tasks.findIndex(task => task.id === taskId);
+    if (index < 0) return false;
+    const previous = clone(data);
+    const claimIds = new Set(data.claims.filter(claim => claim.taskId === taskId).map(claim => claim.id));
+    data.tasks.splice(index, 1);
+    data.claims = data.claims.filter(claim => claim.taskId !== taskId);
+    data.history = data.history.filter(entry => entry.taskId !== taskId && !claimIds.has(entry.claimId));
+    if (!saveData({ snapshot:true })) {
+      data = previous;
+      return false;
+    }
+    return true;
   }
 
   function openGoalEditor(goalId = null) {
@@ -1756,6 +1867,31 @@
       case "delete-child-confirm": { const id=actionElement.dataset.childId; const child=childById(id); if(child){ removeChildRelations(id); data.children=data.children.filter(item=>item.id!==id); saveData({snapshot:true}); closeModal(); showToast("Kinderprofil wurde endgültig gelöscht."); render(); } break; }
       case "open-group-setup": openGroupSetup(); break;
       case "open-task-editor": openTaskEditor(actionElement.dataset.taskId || null); break;
+      case "save-task": saveTaskFromForm(document.querySelector("#taskForm")); break;
+      case "delete-task-prompt": {
+        const task = taskById(actionElement.dataset.taskId);
+        if (!task) { showToast("Diese Aufgabe wurde nicht gefunden."); break; }
+        const linked = data.claims.filter(claim => claim.taskId === task.id);
+        const openCount = linked.filter(claim => ["reserved","reported"].includes(claim.status)).length;
+        confirmModal({
+          title:"Aufgabe wirklich löschen?",
+          message:`„${escapeHtml(task.title)}“ wird endgültig entfernt.${linked.length ? ` ${linked.length} zugehörige Aufgabenzuordnung${linked.length === 1 ? "" : "en"} werden ebenfalls entfernt${openCount ? `, davon ${openCount} aktuell offen` : ""}. Bereits gutgeschriebene Münzen und Samen bleiben erhalten.` : ""}`,
+          confirmText:"Aufgabe löschen",
+          confirmAction:"delete-task-confirm",
+          confirmClass:"danger-button",
+          payload:{"task-id":task.id}
+        });
+        break;
+      }
+      case "delete-task-confirm": {
+        const task = taskById(actionElement.dataset.taskId);
+        if (!task) { closeModal(); showToast("Die Aufgabe ist bereits gelöscht."); render(); break; }
+        const title = task.title;
+        if (removeTask(task.id)) {
+          closeModal(); ui.educatorTab="tasks"; render(); showToast(`„${title}“ wurde gelöscht.`);
+        } else showToast("Die Aufgabe konnte nicht gelöscht werden.");
+        break;
+      }
       case "toggle-task-active": {
         const task = taskById(actionElement.dataset.taskId); if (task) { task.active = !task.active; saveData({ snapshot:true }); render(); }
         break;
@@ -1839,17 +1975,7 @@
     }
 
     if (form.id === "taskForm") {
-      const formData = new FormData(form); const values = Object.fromEntries(formData.entries()); const days = formData.getAll("days").map(Number);
-      if (!days.length) return showToast("Bitte mindestens einen Wochentag auswählen.");
-      const existing = values.id ? taskById(values.id) : null;
-      const task = existing || { id:uid(), active:true };
-      Object.assign(task, {
-        title:values.title.trim(), icon:values.icon || "✅", category:values.category.trim() || "Alltag", competence:values.competence || "Selbstständigkeit",
-        requiredChildren:clamp(values.requiredChildren,1,8), repeatMode:clamp(values.requiredChildren,1,8) > 1 ? "shared" : (values.repeatMode === "perChild" ? "perChild" : "shared"), coins:clamp(values.coins,0,100), seeds:clamp(values.seeds,0,100), stars:clamp(values.stars,0,5),
-        communityPoints:clamp(values.communityPoints,0,10), instructions:values.instructions.trim(), days
-      });
-      if (!existing) data.tasks.push(task);
-      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Aufgabe wurde aktualisiert." : "Aufgabe wurde angelegt."); render();
+      saveTaskFromForm(form);
       return;
     }
 
@@ -1918,7 +2044,7 @@
     location.reload();
   });
 
-  window.addEventListener("beforeunload", () => saveData());
+  window.addEventListener("beforeunload", () => saveData({ notify:false }));
   applyPreferences();
   registerServiceWorker();
   render();
@@ -1942,6 +2068,8 @@
     },
     showToast,
     render,
-    goHome
+    goHome,
+    saveTaskFromForm,
+    removeTask
   };
 })();

@@ -1,3 +1,15 @@
+# Änderungsverlauf
+
+## Version 2.1.3 – Aufgabenverwaltung-Hotfix
+
+- Aufgaben können wieder zuverlässig neu angelegt und gespeichert werden.
+- Vorhandene Aufgaben können bearbeitet und dauerhaft aktualisiert werden.
+- Jede Aufgabe kann nach einer Sicherheitsabfrage endgültig gelöscht werden.
+- Zugehörige offene Aufgabenzuordnungen werden beim Löschen sauber entfernt.
+- Nach jedem Speichern wird der lokale Datenstand geprüft.
+- Unveränderte Geräte senden beim Schließen keinen alten Datenstand mehr an die Synchronisierung.
+- Der Offline-Cache wurde auf Version 2.1.3 angehoben.
+
 # Version 2.1.2 – Kinderverwaltung und Neustart
 
 - Kinder können archiviert, wiederhergestellt und in den Papierkorb verschoben werden.

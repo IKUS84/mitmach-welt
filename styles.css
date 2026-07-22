@@ -399,3 +399,11 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .active-task-card { border-left: 5px solid #f6c84d; }
 .empty-state.compact { padding: 16px; }
 .empty-state.compact .emoji { font-size: 2rem; }
+
+/* Version 2.1.3 – zuverlässige Aufgabenverwaltung */
+.modal-action-spacer { flex: 1 1 auto; }
+.form-error { color: #a22535 !important; font-weight: 700; }
+@media (max-width: 640px) {
+  .modal-actions .modal-action-spacer { display: none; }
+  .modal-actions > button { flex: 1 1 100%; }
+}
