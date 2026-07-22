@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.1.0";
+  const APP_VERSION = "2.1.1";
   const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -736,15 +736,15 @@
         <div class="profile-avatar">${child.avatar}</div>
         <div><h2>${escapeHtml(child.name)} hilft mit</h2><p>Du musst nicht auf eine Bestätigung warten. Melde Erledigtes und such dir direkt die nächste Aufgabe aus.</p><div class="balance-strip">${currencyStats(child)}</div></div>
       </section>
-      <div class="task-layout section">
-        <div>
-          <div class="section-heading"><div><h2>Aufgaben für heute</h2><p>${FULL_DAY_NAMES[dayIndex()]} · frei auswählbar</p></div></div>
+      <div class="section">
+        <div class="priority-task-block">
+          <div class="section-heading"><div><h2>Meine ausgewählten Aufgaben</h2><p>Das steht jetzt zuerst: Was noch zu tun ist und was schon auf die Abendrunde wartet.</p></div>${todaysClaims.length ? `<span class="chip pending">${todaysClaims.length} offen</span>` : ""}</div>
+          <div class="task-list">${selectedHtml}</div>
+        </div>
+        <div class="available-task-block">
+          <div class="section-heading"><div><h2>Weitere Aufgaben für heute</h2><p>${FULL_DAY_NAMES[dayIndex()]} · frei auswählbar</p></div></div>
           <div class="task-list">${availableHtml}</div>
         </div>
-        <aside>
-          <div class="section-heading"><div><h2>Meine Auswahl</h2><p>Erledigte Aufgaben warten gesammelt auf die Abendrunde.</p></div></div>
-          <div class="task-list">${selectedHtml}</div>
-        </aside>
       </div>`;
   }
 
@@ -1193,13 +1193,25 @@
 
   function renderReviewTab() {
     const reported = data.claims.filter(claim => claim.status === "reported").sort((a,b) => a.reportedAt - b.reportedAt);
+    const reserved = data.claims.filter(claim => claim.status === "reserved" && claim.date === todayKey()).sort((a,b) => a.createdAt - b.createdAt);
     const goalsToReview = activeChildren().flatMap(child => activeGoalsForChild(child.id).filter(goal => !data.goalEvaluations.some(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey())).map(goal => ({ child, goal })));
     const pendingWishes = data.wishRequests.filter(request => request.status === "pending");
     return `
-      <div class="section-heading"><div><h2>🌙 Abendrunde</h2><p>In Ruhe bestätigen, ablehnen oder gemeinsam reflektieren.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
+      <div class="section-heading"><div><h2>🌙 Abendrunde</h2><p>Offene und erledigt gemeldete Aufgaben stehen bewusst ganz oben.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
 
-      <div class="panel">
-        <h3>Erledigt gemeldete Aufgaben (${reported.length})</h3>
+      <div class="panel priority-panel">
+        <h3>📌 Aktuell ausgewählte Aufgaben (${reserved.length})</h3>
+        <p class="muted">So ist sofort sichtbar, womit die Kinder noch beschäftigt sind.</p>
+        ${reserved.length ? `<div class="task-list">${reserved.map(claim => {
+          const task = taskById(claim.taskId); const children = claim.childIds.map(childById).filter(Boolean);
+          if (!task) return "";
+          const missing = Math.max(0, task.requiredChildren - claim.childIds.length);
+          return `<article class="task-card active-task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")}${missing ? ` · noch ${missing} ${missing === 1 ? "Kind" : "Kinder"} benötigt` : " · Team vollständig"}</p><div class="task-meta"><span class="chip warning">Ausgewählt</span>${task.requiredChildren > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${task.requiredChildren}</span>` : ""}</div></div></div></article>`;
+        }).join("")}</div>` : `<div class="empty-state compact"><span class="emoji">👐</span><h3>Zurzeit ist keine Aufgabe ausgewählt.</h3></div>`}
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>✅ Erledigt gemeldete Aufgaben (${reported.length})</h3>
         ${reported.length ? `<div class="task-list">${reported.map(claim => {
           const task = taskById(claim.taskId); const children = claim.childIds.map(childById).filter(Boolean);
           if (!task) return "";

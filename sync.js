@@ -5,6 +5,7 @@
   const META_KEY = "mitmach_welt_device_sync_meta_v1";
   const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
   const PAIR_PREFIX = "MW2.";
+  const PAIR_BOOTSTRAP_COOKIE = "mitmach_welt_pair_bootstrap_v1";
   const API = window.MitmachWelt;
 
   if (!API) {
@@ -35,6 +36,38 @@
     } catch {
       return null;
     }
+  }
+
+  function cookiePath() {
+    const path = location.pathname || "/";
+    return path.endsWith("/") ? path : path.slice(0, path.lastIndexOf("/") + 1) || "/";
+  }
+
+  function setPairBootstrapCookie(code, role = "child") {
+    try {
+      const payload = encodeURIComponent(JSON.stringify({ code, role, createdAt: Date.now() }));
+      document.cookie = `${PAIR_BOOTSTRAP_COOKIE}=${payload}; Max-Age=604800; Path=${cookiePath()}; SameSite=Lax; Secure`;
+    } catch (error) {
+      console.warn("Mitmach-Welt: Kopplung konnte nicht für die Home-Screen-App vorgemerkt werden.", error);
+    }
+  }
+
+  function readPairBootstrapCookie() {
+    try {
+      const entry = document.cookie.split("; ").find(item => item.startsWith(`${PAIR_BOOTSTRAP_COOKIE}=`));
+      if (!entry) return null;
+      return JSON.parse(decodeURIComponent(entry.slice(PAIR_BOOTSTRAP_COOKIE.length + 1)));
+    } catch {
+      return null;
+    }
+  }
+
+  function clearPairBootstrapCookie() {
+    document.cookie = `${PAIR_BOOTSTRAP_COOKIE}=; Max-Age=0; Path=${cookiePath()}; SameSite=Lax; Secure`;
+  }
+
+  function isStandaloneApp() {
+    return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   }
 
   function normalizeConfig(value) {
@@ -803,7 +836,9 @@
     }
     if (action === "accept-pair") {
       try {
+        setPairBootstrapCookie(target.dataset.code, target.dataset.role || "child");
         joinGroup(target.dataset.code, target.dataset.role);
+        if (!isStandaloneApp()) API.showToast("Verbunden. Jetzt über Teilen → Zum Home-Bildschirm hinzufügen. Die Kinder-Verbindung wird übernommen.");
       } catch {
         API.showToast("Der Kopplungscode ist ungültig.");
       }
@@ -877,19 +912,37 @@
 
   function handlePairingHash() {
     const match = location.hash.match(/^#mw-pair=(.+)$/i);
-    if (!match) return;
+    if (!match) return false;
     const code = decodeURIComponent(match[1]);
+    setPairBootstrapCookie(code, "child");
     history.replaceState(null, "", `${location.pathname}${location.search}`);
     setTimeout(() => openPairConfirmation(code), 150);
+    return true;
+  }
+
+  function restorePairingInHomeScreenApp() {
+    if (config.enabled || !isStandaloneApp()) return false;
+    const bootstrap = readPairBootstrapCookie();
+    if (!bootstrap?.code) return false;
+    try {
+      joinGroup(bootstrap.code, bootstrap.role || "child");
+      clearPairBootstrapCookie();
+      API.showToast("Kinder-Tablet wurde automatisch verbunden. Die gemeinsamen Daten werden geladen …");
+      return true;
+    } catch (error) {
+      console.error("Mitmach-Welt: Automatische Home-Screen-Kopplung fehlgeschlagen", error);
+      return false;
+    }
   }
 
   applyDeviceRole();
   updateStatusButton();
-  handlePairingHash();
-  if (config.enabled) connectSync();
+  const openedPairLink = handlePairingHash();
+  const restoredHomeScreenPairing = restorePairingInHomeScreenApp();
+  if (config.enabled && !restoredHomeScreenPairing) connectSync();
 
   window.MitmachWeltSync = {
-    version: "2.1.0",
+    version: "2.1.1",
     getStatus: () => ({ status, detail: statusDetail, enabled: config.enabled, role: config.role, deviceName: config.deviceName, lastIncomingDevice, meta: { ...meta } }),
     open: openPinPrompt,
     reconnect: connectSync

@@ -386,3 +386,16 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   .topbar-actions .round-icon-button { width:42px; height:42px; }
   .sync-grid { grid-template-columns:1fr; }
 }
+
+/* Version 2.1.1: Offene Aufgaben zuerst */
+.priority-task-block, .priority-panel {
+  border: 2px solid rgba(246, 200, 77, .55);
+  border-radius: 22px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255,250,224,.92), rgba(255,255,255,.95));
+  box-shadow: 0 10px 28px rgba(90,72,18,.08);
+}
+.available-task-block { margin-top: 22px; }
+.active-task-card { border-left: 5px solid #f6c84d; }
+.empty-state.compact { padding: 16px; }
+.empty-state.compact .emoji { font-size: 2rem; }

@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## Version 2.1.1 – Home-Screen-Kopplung und Aufgaben-Priorität
+
+- Kinder-Kopplung wird beim Hinzufügen zum iOS-/iPadOS-Home-Bildschirm über eine kurzlebige, sichere SameSite-Cookie-Vormerkung übernommen.
+- Die installierte Kinder-App verbindet sich beim ersten Start automatisch mit dem gemeinsamen Datenstand.
+- Ausgewählte und erledigt gemeldete Aufgaben stehen im Kinderbereich ganz oben.
+- Im Erzieherbereich erscheinen aktuell ausgewählte Aufgaben nun ebenfalls ganz oben, noch vor der Abendbestätigung.
+- Offline-Cache auf Version 2.1.1 aktualisiert.
+
 ## Version 2.1.0 – Gerätesynchronisierung (Testbetrieb)
 
 - Diensttelefon und Kinder-Tablet können denselben Datenstand verwenden.

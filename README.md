@@ -1,10 +1,10 @@
-# Mitmach-Welt 2.1.0
+# Mitmach-Welt 2.1.1
 
 Mitmach-Welt ist eine installierbare Web-App für Aufgaben, Tagesmissionen, persönliche Welten und gemeinsame Erfolge in einer Kinder- und Jugendwohngruppe.
 
 ## Neu: Diensttelefon und Kinder-Tablet verbinden
 
-Version 2.1.0 enthält eine verschlüsselte Gerätesynchronisierung für den Testbetrieb.
+Version 2.1.1 enthält die verschlüsselte Gerätesynchronisierung für den Testbetrieb und behebt die iOS-/iPadOS-Übernahme der Kinder-Kopplung beim Speichern auf dem Home-Bildschirm.
 
 ### Erstes Gerät einrichten
 
@@ -47,3 +47,8 @@ Alle Dateien aus diesem Ordner in das Hauptverzeichnis des GitHub-Repositories h
 ## Standard-PIN
 
 Sofern noch nicht geändert: `2468`
+
+
+## Wichtig beim Update von 2.1.0 auf 2.1.1
+
+Ein bereits vorhandenes Kinder-App-Symbol wurde noch mit dem alten, getrennten Speicher angelegt. Dieses Symbol bitte einmal vom Home-Bildschirm löschen. Anschließend den Kinder-Kopplungslink erneut in Safari öffnen, **Als Kinder-Tablet verbinden** wählen und danach über **Teilen → Zum Home-Bildschirm** neu hinzufügen. Ab dann übernimmt die Home-Screen-App die Verbindung automatisch.
