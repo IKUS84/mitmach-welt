@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.1.1";
+  const APP_VERSION = "2.1.2";
   const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -224,6 +224,10 @@
       completed: Math.max(0, Number(child.completed || 0)),
       inventory: Array.isArray(child.inventory) ? child.inventory : [],
       active: child.active !== false,
+      deletedAt: child.deletedAt ? Number(child.deletedAt) : 0,
+      worldName: child.worldName || `${child.name || `Kind ${index+1}`}s Welt`,
+      companion: child.companion || "🐾",
+      onboardingPending: child.onboardingPending === true,
       createdAt: Number(child.createdAt || Date.now()),
       lastFirstAt: Number(child.lastFirstAt || 0)
     }));
@@ -366,7 +370,7 @@
   function taskById(id) { return data.tasks.find(task => task.id === id); }
   function goalById(id) { return data.personalGoals.find(goal => goal.id === id); }
   function wishById(id) { return data.wishes.find(wish => wish.id === id); }
-  function activeChildren() { return data.children.filter(child => child.active !== false); }
+  function activeChildren() { return data.children.filter(child => child.active !== false && !child.deletedAt); }
   function tasksForToday() { return data.tasks.filter(task => task.active && task.days.includes(dayIndex())); }
   function activeGoalsForChild(childId) { return data.personalGoals.filter(goal => goal.childId === childId && goal.active); }
   function claimsForChild(childId, date = null) { return data.claims.filter(claim => claim.childIds.includes(childId) && (!date || claim.date === date)); }
@@ -1262,9 +1266,15 @@
   }
 
   function renderChildrenAdmin() {
+    const active = data.children.filter(child => child.active !== false && !child.deletedAt);
+    const archived = data.children.filter(child => child.active === false && !child.deletedAt);
+    const trashed = data.children.filter(child => child.deletedAt);
+    const row = (child, mode) => `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${mode === "active" ? "Aktiv" : mode === "archived" ? "Archiviert" : `Papierkorb seit ${formatDateTime(child.deletedAt)}`} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}${child.onboardingPending ? " · Einrichtung offen" : ""}</p></div><div class="inline-actions">${mode !== "trash" ? `<button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">${child.onboardingPending ? "Gemeinsam einrichten" : "Bearbeiten"}</button>` : ""}${mode === "active" ? `<button class="ghost-button small-button" type="button" data-action="archive-child" data-child-id="${child.id}">Archivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : mode === "archived" ? `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Aktivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Wiederherstellen</button><button class="danger-button small-button" type="button" data-action="delete-child-prompt" data-child-id="${child.id}">Endgültig löschen</button>`}</div></div>`;
     return `
-      <div class="section-heading"><div><h2>Kinder verwalten</h2><p>Avatare dürfen mehrfach vergeben werden.</p></div><button class="primary-button small-button" type="button" data-action="open-child-editor">＋ Kind anlegen</button></div>
-      <div class="admin-list">${data.children.map(child => `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${child.active ? "Aktiv" : "Archiviert"} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">Bearbeiten</button><button class="${child.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-child-active" data-child-id="${child.id}">${child.active ? "Archivieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+      <div class="section-heading"><div><h2>Kinder verwalten</h2><p>Aktive Kinder, Archiv und Papierkorb an einem Ort.</p></div><div class="inline-actions"><button class="secondary-button small-button" type="button" data-action="open-group-setup">🌟 Neue Gruppe einrichten</button><button class="primary-button small-button" type="button" data-action="open-child-editor">＋ Kind anlegen</button></div></div>
+      <div class="panel"><h3>Aktive Kinder (${active.length})</h3><div class="admin-list">${active.length ? active.map(child => row(child,"active")).join("") : `<div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine aktiven Kinder</h3></div>`}</div></div>
+      <div class="panel" style="margin-top:16px"><h3>📦 Archiv (${archived.length})</h3>${archived.length ? `<div class="admin-list">${archived.map(child => row(child,"archived")).join("")}</div>` : `<p class="muted">Keine archivierten Kinder.</p>`}</div>
+      <div class="panel" style="margin-top:16px"><h3>🗑️ Papierkorb (${trashed.length})</h3><p class="muted tiny">Profile bleiben hier, bis sie bewusst endgültig gelöscht oder wiederhergestellt werden.</p>${trashed.length ? `<div class="admin-list">${trashed.map(child => row(child,"trash")).join("")}</div>` : `<p class="muted">Der Papierkorb ist leer.</p>`}</div>`;
   }
 
   function renderTasksAdmin() {
@@ -1336,6 +1346,8 @@
           <div class="form-field"><label>Start-Samen</label><input name="seeds" type="number" min="0" max="9999" value="${child?.seeds ?? 0}"></div>
           <div class="form-field"><label>Sterne</label><input name="stars" type="number" min="0" max="999" value="${child?.stars ?? 0}"></div>
           <div class="form-field"><label>Themenwelt</label><select name="theme">${WORLD_THEMES.map(theme => `<option value="${theme.id}" ${selectedTheme === theme.id ? "selected" : ""}>${theme.icon} ${escapeHtml(theme.title)}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Name der eigenen Welt</label><input name="worldName" maxlength="40" value="${escapeHtml(child?.worldName || "Meine Welt")}"></div>
+          <div class="form-field"><label>Erster Begleiter</label><select name="companion">${["🐾","🦊","🐼","🦁","🐸","🦄","🦖","🤖","🦉","🐺"].map(icon => `<option value="${icon}" ${(child?.companion || "🐾") === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
           <div class="form-field full"><label>Farbe</label><div class="color-picker">${ACCENT_COLORS.map(color => `<button type="button" class="color-option ${color === selectedAccent ? "selected" : ""}" style="background:${color}" data-action="select-child-color" data-color="${color}" aria-label="Farbe auswählen"></button>`).join("")}</div></div>
           <div class="form-field full"><label>Avatar-Kategorie</label><div class="tabbar">${Object.keys(AVATARS).map(category => `<button type="button" class="${ui.avatarCategory === category ? "active" : ""}" data-action="avatar-category" data-category="${category}">${escapeHtml(category)}</button>`).join("")}</div><div class="avatar-picker" id="avatarPicker">${renderAvatarOptions(selectedAvatar)}</div><p class="muted tiny">Derselbe Avatar darf mehreren Kindern gehören.</p></div>
         </div>
@@ -1373,6 +1385,10 @@
     child.avatar = values.avatar || "🙂";
     child.accent = values.accent || ACCENT_COLORS[0];
     child.theme = values.theme || "meadow";
+    child.worldName = String(values.worldName || "Meine Welt").trim() || "Meine Welt";
+    child.companion = values.companion || "🐾";
+    child.onboardingPending = false;
+    child.deletedAt = 0;
     child.coins = Math.max(0, Number(values.coins || 0));
     child.seeds = Math.max(0, Number(values.seeds || 0));
     child.stars = Math.max(0, Number(values.stars || 0));
@@ -1387,6 +1403,38 @@
     showToast(existing ? "Kinderprofil wurde aktualisiert." : "Kinderprofil wurde angelegt und gespeichert.");
     render();
     return true;
+  }
+
+  function removeChildRelations(childId) {
+    data.claims = data.claims.filter(claim => !claim.childIds?.includes(childId));
+    data.personalGoals = data.personalGoals.filter(goal => goal.childId !== childId);
+    data.goalEvaluations = data.goalEvaluations.filter(item => item.childId !== childId);
+    data.notifications = data.notifications.filter(item => item.childId !== childId);
+    data.wishRequests = data.wishRequests.filter(item => item.childId !== childId);
+    data.rounds = data.rounds.filter(round => !round.childIds?.includes(childId));
+  }
+
+  function openGroupSetup() {
+    openModal("Neue Gruppe einrichten", `
+      <div class="reward-reveal"><span class="main-emoji">🌟</span><h2>Mit sechs Kindern neu starten</h2><p class="muted">Alle bisherigen Kinderprofile und deren persönliche Fortschritte werden entfernt. Aufgaben und Grundeinstellungen können erhalten bleiben.</p></div>
+      <form id="groupSetupForm">
+        <div class="form-field"><label><input type="checkbox" name="keepTasks" checked style="width:auto"> Vorhandene Aufgaben behalten</label></div>
+        <div class="form-field"><label><input type="checkbox" name="keepWishes" checked style="width:auto"> Wunschladen behalten</label></div>
+        <div class="form-field"><label>Zur Sicherheit Erzieher-PIN eingeben</label><input name="pin" inputmode="numeric" required></div>
+        <p class="tiny muted">Danach entstehen sechs leere Profile „Kind 1“ bis „Kind 6“. Münzen, Samen, Sterne, Welten und Erfolge beginnen bei null. Anschließend richtet ihr jedes Profil gemeinsam ein.</p>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="danger-button" type="submit">Gruppe jetzt neu einrichten</button></div>
+      </form>`);
+  }
+
+  function setupFreshGroup({ keepTasks = true, keepWishes = true } = {}) {
+    const colors = ACCENT_COLORS.slice(0,6);
+    const avatars = ["🌟","🌱","🌈","🦊","🐼","🦁"];
+    data.children = Array.from({length:6}, (_,i) => ({ id:uid(), name:`Kind ${i+1}`, avatar:avatars[i], accent:colors[i], theme:WORLD_THEMES[i % WORLD_THEMES.length].id, worldName:"Meine Welt", companion:"🐾", coins:0, seeds:0, stars:0, completed:0, inventory:[], active:true, deletedAt:0, onboardingPending:true, createdAt:Date.now()+i, lastFirstAt:0 }));
+    data.claims=[]; data.personalGoals=[]; data.goalEvaluations=[]; data.notifications=[]; data.wishRequests=[]; data.rounds=[]; data.lastOrders=[]; data.history=[];
+    data.group = clone(DEFAULTS.group);
+    if (!keepTasks) data.tasks = clone(DEFAULTS.tasks);
+    if (!keepWishes) data.wishes = clone(DEFAULT_WISHES);
+    saveData({ snapshot:true });
   }
 
   function renderAvatarOptions(selectedAvatar) {
@@ -1701,10 +1749,12 @@
       case "approve-wish": if (reviewWish(actionElement.dataset.requestId, true)) { showToast("Wunsch wurde angenommen."); render(); } break;
       case "reject-wish": if (reviewWish(actionElement.dataset.requestId, false)) { showToast("Münzen wurden zurückerstattet."); render(); } break;
       case "open-child-editor": openChildEditor(actionElement.dataset.childId || null); break;
-      case "toggle-child-active": {
-        const child = childById(actionElement.dataset.childId); if (child) { child.active = !child.active; saveData({ snapshot:true }); render(); }
-        break;
-      }
+      case "archive-child": { const child=childById(actionElement.dataset.childId); if(child){ child.active=false; saveData({snapshot:true}); showToast("Kinderprofil wurde archiviert."); render(); } break; }
+      case "restore-child": { const child=childById(actionElement.dataset.childId); if(child){ child.active=true; child.deletedAt=0; saveData({snapshot:true}); showToast("Kinderprofil wurde wiederhergestellt."); render(); } break; }
+      case "trash-child": { const child=childById(actionElement.dataset.childId); if(child){ child.active=false; child.deletedAt=Date.now(); saveData({snapshot:true}); showToast("Kinderprofil wurde in den Papierkorb verschoben."); render(); } break; }
+      case "delete-child-prompt": { const child=childById(actionElement.dataset.childId); if(child) confirmModal({title:"Kinderprofil endgültig löschen?",message:`${child.name} und alle persönlichen Aufgaben, Fortschritte, Wünsche und Rückmeldungen werden unwiderruflich gelöscht.`,confirmText:"Endgültig löschen",confirmAction:"delete-child-confirm",confirmClass:"danger-button", payload:{"child-id":child.id}}); break; }
+      case "delete-child-confirm": { const id=actionElement.dataset.childId; const child=childById(id); if(child){ removeChildRelations(id); data.children=data.children.filter(item=>item.id!==id); saveData({snapshot:true}); closeModal(); showToast("Kinderprofil wurde endgültig gelöscht."); render(); } break; }
+      case "open-group-setup": openGroupSetup(); break;
       case "open-task-editor": openTaskEditor(actionElement.dataset.taskId || null); break;
       case "toggle-task-active": {
         const task = taskById(actionElement.dataset.taskId); if (task) { task.active = !task.active; saveData({ snapshot:true }); render(); }
@@ -1777,6 +1827,14 @@
 
     if (form.id === "childForm") {
       saveChildFromForm(form);
+      return;
+    }
+
+    if (form.id === "groupSetupForm") {
+      const fd = new FormData(form);
+      if (String(fd.get("pin")) !== String(data.settings.pin)) { showToast("PIN ist nicht richtig."); return; }
+      setupFreshGroup({ keepTasks:fd.has("keepTasks"), keepWishes:fd.has("keepWishes") });
+      closeModal(); ui.educatorTab="children"; showToast("Sechs neue Kinderprofile wurden auf null angelegt."); render();
       return;
     }
 
