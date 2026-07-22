@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.0.1";
+  const APP_VERSION = "2.1.0";
   const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -321,8 +321,9 @@
 
   let data = loadData();
   let saveCounter = 0;
+  const saveListeners = new Set();
 
-  function saveData({ snapshot = false } = {}) {
+  function saveData({ snapshot = false, notify = true } = {}) {
     data.schemaVersion = SCHEMA_VERSION;
     data.appVersion = APP_VERSION;
     const serialized = JSON.stringify(data);
@@ -335,6 +336,11 @@
       saveCounter += 1;
       if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
       applyPreferences();
+      if (notify) {
+        saveListeners.forEach(listener => {
+          try { listener(clone(data)); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
+        });
+      }
       return true;
     } catch (error) {
       console.error("Mitmach-Welt: Speichern fehlgeschlagen", error);
@@ -1850,6 +1856,22 @@
   // Kleine Diagnosehilfe für lokale Tests. Enthält keine personenbezogenen Daten.
   window.MitmachWelt = {
     version: APP_VERSION,
-    getSummary: () => ({ children:data.children.length, tasks:data.tasks.length, claims:data.claims.length, goals:data.personalGoals.length, schemaVersion:data.schemaVersion })
+    getSummary: () => ({ children:data.children.length, tasks:data.tasks.length, claims:data.claims.length, goals:data.personalGoals.length, schemaVersion:data.schemaVersion }),
+    getData: () => clone(data),
+    getPin: () => String(data.settings.pin || "2468"),
+    replaceData: (nextData, options = {}) => {
+      data = normalizeData(nextData);
+      const saved = saveData({ snapshot:Boolean(options.snapshot), notify:Boolean(options.notify) });
+      if (options.render !== false) render();
+      return saved;
+    },
+    subscribeToSaves: listener => {
+      if (typeof listener !== "function") return () => {};
+      saveListeners.add(listener);
+      return () => saveListeners.delete(listener);
+    },
+    showToast,
+    render,
+    goHome
   };
 })();

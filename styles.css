@@ -348,3 +348,41 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   .modal { border-radius:26px 26px 0 0;max-height:92vh; }
   .bottom-nav { bottom:calc(6px + var(--safe-bottom)); }
 }
+
+/* Geräte-Synchronisierung · Version 2.1 */
+.topbar { grid-template-columns: 50px minmax(0,1fr) auto; }
+.topbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+.sync-icon-button { position:relative; font-size:1.1rem; }
+.sync-icon-button::after {
+  content:""; position:absolute; right:4px; bottom:5px; width:10px; height:10px; border-radius:50%;
+  background:#9aa69f; border:2px solid white;
+}
+.sync-icon-button[data-sync-status="online"]::after { background:#55ad70; }
+.sync-icon-button[data-sync-status="connecting"]::after { background:#e2aa35; animation:syncPulse 1.2s infinite; }
+.sync-icon-button[data-sync-status="error"]::after { background:#d45d67; }
+.sync-icon-button[data-sync-status="offline"]::after { background:#9aa69f; }
+.sync-icon-button[data-sync-status="off"]::after { background:#c5cbc7; }
+@keyframes syncPulse { 50% { transform:scale(1.35); opacity:.55; } }
+.device-role-child .bottom-nav { grid-template-columns:repeat(2,1fr); }
+.sync-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.sync-grid .card { display:flex; flex-direction:column; gap:10px; }
+.sync-grid .card h3, .sync-grid .card p { margin:0; }
+.sync-status-line {
+  display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:20px;
+  background:#f1f2ee; border:1px solid var(--line);
+}
+.sync-status-line > span { width:46px; height:46px; display:grid; place-items:center; border-radius:16px; background:white; font-size:1.55rem; }
+.sync-status-line div { display:grid; gap:3px; }
+.sync-status-line small { color:var(--muted); }
+.sync-status-line.online { background:#e2f3e7; border-color:#c1e4cb; }
+.sync-status-line.connecting { background:#fff2cd; border-color:#f1dc9c; }
+.sync-status-line.error { background:#fde8e9; border-color:#f2c5ca; }
+.sync-intro-icon { font-size:3.6rem; text-align:center; margin:2px 0 8px; }
+.sync-role-buttons { display:grid; gap:10px; margin-top:18px; }
+.sync-modal-backdrop textarea { min-height:100px; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.84rem; }
+@media (max-width:720px) {
+  .topbar { grid-template-columns:44px minmax(0,1fr) auto; }
+  .topbar-actions { gap:4px; }
+  .topbar-actions .round-icon-button { width:42px; height:42px; }
+  .sync-grid { grid-template-columns:1fr; }
+}

@@ -1,27 +1,23 @@
 # Änderungsprotokoll
 
-## Version 2.0.0
+## Version 2.1.0 – Gerätesynchronisierung (Testbetrieb)
 
-- vollständig neue Startseite mit direktem Zugang zu jedem Kind
-- separate gemeinsame Mitmach-Runde mit Roulette und fairer Reihenfolge
-- unbegrenzter Aufgabenfluss ohne sofortige Erzieherbestätigung
-- Abendrunde für gesammelte Bestätigungen, Rückmeldungen und Wünsche
-- Aufgaben mit frei wählbarer Kinderanzahl von 1 bis 8
-- gemeinsames Belegen und Abschließen von Teamaufgaben
-- Münzen, Samen, Sterne und Gemeinschaftspunkte
-- persönlicher Wunschladen, Weltenladen, Sternenschatz und Münzen-Samen-Tausch
-- persönliche Tagesmissionen mit gemeinsamer Reflexion
-- zeitabhängige Rückmeldungen beim nächsten Öffnen des Kinderprofils
-- Gruppenwelt mit Meilensteinen
-- mehr als 250 mehrfach nutzbare Avatare
-- automatische Migration aus Version 1.x
-- unveränderte Sicherung des Datenstands vor Version 2.0
-- Export, Import und mehrere automatische lokale Sicherungen
-- neues responsives Design für Tablet und Smartphone
+- Diensttelefon und Kinder-Tablet können denselben Datenstand verwenden.
+- Das erste Gerät erstellt eine Sync-Gruppe und einen geschützten Kopplungslink.
+- Das zweite Gerät kann über den Link als Kinder-Tablet oder Erziehergerät verbunden werden.
+- Änderungen werden automatisch verschlüsselt übertragen.
+- Der zuletzt veröffentlichte Datenstand wird beim späteren Öffnen des anderen Geräts übernommen.
+- Bei fehlendem Internet bleiben Änderungen lokal vorgemerkt und werden nach Wiederverbindung gesendet.
+- Kinder-Tablet-Modus blendet den Erzieherbereich und die Sync-Einstellungen aus.
+- Sync-Status wird in der Kopfzeile angezeigt.
+- Vorhandene lokale Daten aus Version 2.0.1 bleiben erhalten.
 
-## Version 2.0.1 – Hotfix
-- Fehler beim Anlegen und Speichern neuer Kinder behoben.
-- Eigenständiger, iOS-tauglicher Formular-Handler ergänzt.
-- Speicherung wird nach dem Schreiben direkt geprüft.
-- Robuste ID-Erzeugung für Browser ohne `crypto.randomUUID`.
-- Offline-Cache auf Version 2.0.1 angehoben.
+### Wichtiger Hinweis
+
+Diese Version nutzt für den schnellen Testbetrieb einen öffentlichen Übertragungsdienst. Der Inhalt wird vor der Übertragung mit AES-GCM verschlüsselt; der Kopplungslink enthält den Schlüssel. Für einen dauerhaften Einsatz mit besonders sensiblen Falldaten ist später ein eigener, geschützter Server vorgesehen. Bei längerer Offline-Nutzung sollten nicht gleichzeitig auf beiden Geräten unterschiedliche Änderungen vorgenommen werden, da im Konfliktfall die zuletzt übertragene Änderung gewinnt.
+
+## Version 2.0.1
+
+- Fehler beim Anlegen und Speichern neuer Kinderprofile behoben.
+- Speichervorgang wird direkt geprüft.
+- Offline-Cache aktualisiert.
