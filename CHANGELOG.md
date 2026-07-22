@@ -1,5 +1,16 @@
 # Änderungsverlauf
 
+## Version 2.2.1 – Tagesmissionen- und Wünsche-Hotfix
+
+- Tagesmissionen können wieder zuverlässig angelegt, bearbeitet und gespeichert werden.
+- Wünsche können wieder zuverlässig angelegt, bearbeitet und gespeichert werden.
+- Nach jedem Speichern wird geprüft, ob die Änderung wirklich im lokalen App-Speicher angekommen ist.
+- Bei einem Speicherfehler bleibt das Formular geöffnet und zeigt eine verständliche Fehlermeldung.
+- Missionen und Wünsche erhalten eine große, touchfreundliche Symbolauswahl.
+- Tagesmissionen und Wünsche können nach Sicherheitsabfrage gelöscht werden.
+- Bei gelöschten Wünschen werden offene Vormerkungen aufgehoben und vorgemerkte Münzen zurückerstattet.
+- Offline-Cache und Versionsanzeige wurden auf 2.2.1 angehoben.
+
 ## Version 2.2.0 – Altersgerechte Aufgaben
 
 - Kinderprofile enthalten jetzt Geburtsmonat und Geburtsjahr.

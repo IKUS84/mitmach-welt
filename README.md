@@ -1,6 +1,11 @@
-# Mitmach-Welt 2.2.0
+# Mitmach-Welt 2.2.1
 
 Mitmach-Welt ist eine installierbare Web-App für Aufgaben, Tagesmissionen, persönliche Welten und gemeinsame Erfolge in einer Kinder- und Jugendwohngruppe.
+
+## Hotfix 2.2.1: Tagesmissionen und Wünsche
+
+Im Erzieherbereich können Tagesmissionen und Wünsche jetzt zuverlässig neu angelegt, bearbeitet, gespeichert und gelöscht werden. Die Symbolauswahl erfolgt über große Schaltflächen und ist damit auch auf iPhone und iPad einfach bedienbar. Das Formular bleibt bei einem Speicherproblem geöffnet und zeigt direkt an, was nicht gespeichert werden konnte.
+
 
 ## Neu: Diensttelefon und Kinder-Tablet verbinden
 
