@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.0.0";
+  const APP_VERSION = "2.0.1";
   const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -163,7 +163,7 @@
   const updateBanner = document.querySelector("#updateBanner");
 
   const clone = value => JSON.parse(JSON.stringify(value));
-  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id_${Date.now()}_${Math.random().toString(16).slice(2)}`);
+  const uid = () => (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function" ? globalThis.crypto.randomUUID() : `id_${Date.now()}_${Math.random().toString(16).slice(2)}`);
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
   const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
   const todayKey = () => localDateKey(new Date());
@@ -329,12 +329,19 @@
     try {
       localStorage.setItem(STORAGE_KEY, serialized);
       localStorage.setItem(BACKUP_KEY, serialized);
+      // Direkt prüfen, ob der Browser die Daten wirklich übernommen hat.
+      const verified = localStorage.getItem(STORAGE_KEY);
+      if (verified !== serialized) throw new Error("Speicherprüfung fehlgeschlagen");
       saveCounter += 1;
       if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
+      applyPreferences();
+      return true;
     } catch (error) {
-      showToast("Speichern war nicht möglich. Bitte Daten exportieren.");
+      console.error("Mitmach-Welt: Speichern fehlgeschlagen", error);
+      showToast("Speichern war nicht möglich. Bitte Browser-Speicher prüfen.");
+      applyPreferences();
+      return false;
     }
-    applyPreferences();
   }
 
   function saveSnapshot(serialized = JSON.stringify(data)) {
@@ -1316,6 +1323,52 @@
         </div>
         <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
       </form>`, { wide:true });
+
+    // Eigener Formular-Handler: funktioniert auch zuverlässig in iOS-PWAs
+    // und verhindert, dass ein übergeordneter Klick-Handler das Speichern stört.
+    const childForm = document.querySelector("#childForm");
+    if (childForm) {
+      childForm.addEventListener("submit", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        saveChildFromForm(childForm);
+      }, { once:true });
+    }
+  }
+
+  function saveChildFromForm(form) {
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    const name = String(values.name || "").trim();
+    if (!name) {
+      showToast("Bitte einen Namen oder Spitznamen eintragen.");
+      form.querySelector('[name="name"]')?.focus();
+      return false;
+    }
+
+    const existing = values.id ? childById(values.id) : null;
+    const child = existing || {
+      id:uid(), completed:0, inventory:[], active:true,
+      createdAt:Date.now(), lastFirstAt:0
+    };
+    child.name = name;
+    child.avatar = values.avatar || "🙂";
+    child.accent = values.accent || ACCENT_COLORS[0];
+    child.theme = values.theme || "meadow";
+    child.coins = Math.max(0, Number(values.coins || 0));
+    child.seeds = Math.max(0, Number(values.seeds || 0));
+    child.stars = Math.max(0, Number(values.stars || 0));
+
+    if (!existing) data.children.push(child);
+    if (!saveData({ snapshot:true })) {
+      if (!existing) data.children = data.children.filter(item => item.id !== child.id);
+      return false;
+    }
+
+    closeModal();
+    showToast(existing ? "Kinderprofil wurde aktualisiert." : "Kinderprofil wurde angelegt und gespeichert.");
+    render();
+    return true;
   }
 
   function renderAvatarOptions(selectedAvatar) {
@@ -1705,13 +1758,7 @@
     }
 
     if (form.id === "childForm") {
-      const values = Object.fromEntries(new FormData(form).entries());
-      const existing = values.id ? childById(values.id) : null;
-      const child = existing || { id:uid(), completed:0, inventory:[], active:true, createdAt:Date.now(), lastFirstAt:0 };
-      child.name = values.name.trim(); child.avatar = values.avatar || "🙂"; child.accent = values.accent || ACCENT_COLORS[0]; child.theme = values.theme || "meadow";
-      child.coins = Math.max(0, Number(values.coins || 0)); child.seeds = Math.max(0, Number(values.seeds || 0)); child.stars = Math.max(0, Number(values.stars || 0));
-      if (!existing) data.children.push(child);
-      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Kinderprofil wurde aktualisiert." : "Kinderprofil wurde angelegt."); render();
+      saveChildFromForm(form);
       return;
     }
 

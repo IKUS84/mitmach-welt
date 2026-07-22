@@ -18,3 +18,10 @@
 - unveränderte Sicherung des Datenstands vor Version 2.0
 - Export, Import und mehrere automatische lokale Sicherungen
 - neues responsives Design für Tablet und Smartphone
+
+## Version 2.0.1 – Hotfix
+- Fehler beim Anlegen und Speichern neuer Kinder behoben.
+- Eigenständiger, iOS-tauglicher Formular-Handler ergänzt.
+- Speicherung wird nach dem Schreiben direkt geprüft.
+- Robuste ID-Erzeugung für Browser ohne `crypto.randomUUID`.
+- Offline-Cache auf Version 2.0.1 angehoben.
