@@ -1,4 +1,4 @@
-const CACHE_NAME = "mitmach-welt-v2.1.3";
+const CACHE_NAME = "mitmach-welt-v2.2.0";
 const ASSETS = [
   "./",
   "./index.html",

@@ -1,10 +1,10 @@
-# Mitmach-Welt 2.1.3
+# Mitmach-Welt 2.2.0
 
 Mitmach-Welt ist eine installierbare Web-App für Aufgaben, Tagesmissionen, persönliche Welten und gemeinsame Erfolge in einer Kinder- und Jugendwohngruppe.
 
 ## Neu: Diensttelefon und Kinder-Tablet verbinden
 
-Version 2.1.3 enthält die verschlüsselte Gerätesynchronisierung für den Testbetrieb und behebt die iOS-/iPadOS-Übernahme der Kinder-Kopplung beim Speichern auf dem Home-Bildschirm.
+Version 2.2.0 erweitert die bestehende Gerätesynchronisierung um altersgerechte Aufgaben. Für jedes Kind können Geburtsmonat und Geburtsjahr gespeichert werden. Die App berechnet daraus automatisch das Alter und zeigt passende Aufgaben zuerst.
 
 ### Erstes Gerät einrichten
 
@@ -49,11 +49,32 @@ Alle Dateien aus diesem Ordner in das Hauptverzeichnis des GitHub-Repositories h
 Sofern noch nicht geändert: `2468`
 
 
-## Wichtig beim Update von 2.1.0 auf 2.1.3
+## Wichtig beim Update auf 2.2.0
 
-Ein bereits vorhandenes Kinder-App-Symbol wurde noch mit dem alten, getrennten Speicher angelegt. Dieses Symbol bitte einmal vom Home-Bildschirm löschen. Anschließend den Kinder-Kopplungslink erneut in Safari öffnen, **Als Kinder-Tablet verbinden** wählen und danach über **Teilen → Zum Home-Bildschirm** neu hinzufügen. Ab dann übernimmt die Home-Screen-App die Verbindung automatisch.
+Kinder, Aufgaben, Welten und Belohnungen bleiben erhalten. Nach dem Update sollten Diensttelefon, Tablet und Computer einmal vollständig neu geladen werden. Danach im Erzieherbereich unter **Kinder** bei jedem aktiven Kind Geburtsmonat und Geburtsjahr ergänzen. Bis diese Angaben vorhanden sind, werden nur Aufgaben ohne Altersgrenze angezeigt.
 
 
 ## Aufgaben verwalten (Version 2.1.3)
 
 Im Erzieherbereich unter **Aufgaben** können Aufgaben angelegt, bearbeitet, pausiert, aktiviert und gelöscht werden. Beim Löschen erscheint eine Sicherheitsabfrage. Offene Zuordnungen zu dieser Aufgabe werden ebenfalls entfernt; bereits gutgeschriebene Belohnungen bleiben bestehen.
+
+
+## Altersgerechte Aufgaben (Version 2.2.0)
+
+### Kinderprofil
+
+Im Erzieherbereich unter **Kinder** können Geburtsmonat und Geburtsjahr eingetragen werden. Das Alter wird automatisch berechnet und wechselt zu Beginn des jeweiligen Geburtsmonats.
+
+### Aufgabeneditor
+
+Für jede Aufgabe können folgende Regeln festgelegt werden:
+
+- keine Altersgrenze,
+- allein möglich ab einem bestimmten Alter,
+- jüngere Kinder dürfen mit einem älteren Kind helfen,
+- Mindestalter des jüngeren Kindes,
+- Mindestalter des begleitenden älteren Kindes.
+
+Beispiel: **allein ab 10 Jahren, mit älterem Kind ab 7 Jahren, Begleitkind mindestens 10 Jahre**. In diesem Fall verlangt die App automatisch mindestens zwei Kinder und lässt die Aufgabe erst als erledigt melden, wenn ein passendes älteres Kind beteiligt ist.
+
+Im Kinderbereich werden Aufgaben automatisch nach Passung sortiert. Noch nicht passende Aufgaben werden ausgeblendet. Im Erzieherbereich sind die Aufgaben nach Mindestalter sortiert und die Altersregel ist direkt sichtbar.

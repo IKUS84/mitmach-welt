@@ -1,5 +1,19 @@
 # Änderungsverlauf
 
+## Version 2.2.0 – Altersgerechte Aufgaben
+
+- Kinderprofile enthalten jetzt Geburtsmonat und Geburtsjahr.
+- Das Alter wird automatisch berechnet und in der Kinderverwaltung angezeigt.
+- Aufgaben können ohne Altersgrenze oder mit einem Mindestalter für die alleinige Durchführung angelegt werden.
+- Jüngere Kinder können optional gemeinsam mit einem älteren Kind an einer Aufgabe teilnehmen.
+- Für begleitete Aufgaben lassen sich Mindestalter des jüngeren Kindes und Mindestalter des Begleitkindes festlegen.
+- Eine begleitete Aufgabe kann erst erledigt gemeldet werden, wenn ein passendes älteres Kind beteiligt ist.
+- Im Kinderbereich werden passende Aufgaben zuerst angezeigt; nicht passende altersbegrenzte Aufgaben bleiben verborgen.
+- In der Mitmach-Runde werden ebenfalls nur altersgerechte Aufgaben angeboten.
+- Die Aufgabenverwaltung ist nach Mindestalter sortiert und zeigt jede Altersregel direkt an.
+- Bestehende Kinder, Aufgaben, Welten, Belohnungen und Synchronisierungsdaten bleiben erhalten.
+- Offline-Cache und Synchronisierungskennung wurden auf Version 2.2.0 angehoben.
+
 ## Version 2.1.3 – Aufgabenverwaltung-Hotfix
 
 - Aufgaben können wieder zuverlässig neu angelegt und gespeichert werden.

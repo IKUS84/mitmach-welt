@@ -407,3 +407,26 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   .modal-actions .modal-action-spacer { display: none; }
   .modal-actions > button { flex: 1 1 100%; }
 }
+
+/* Version 2.2.0: altersgerechte Aufgaben */
+.age-rule-box {
+  padding: 14px;
+  border: 1px solid rgba(239, 159, 70, .35);
+  border-radius: 16px;
+  background: rgba(255, 246, 226, .75);
+}
+.age-rule-box label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.age-supported-task {
+  border-color: rgba(239, 159, 70, .48);
+}
+.compact-callout {
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+.compact-callout p {
+  margin: 0;
+}

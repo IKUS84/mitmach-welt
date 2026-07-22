@@ -1,14 +1,15 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.1.3";
-  const SCHEMA_VERSION = 2;
+  const APP_VERSION = "2.2.0";
+  const SCHEMA_VERSION = 3;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
   const BACKUP_RING_KEY = "mitmach_welt_backup_ring_v2";
   const DAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const FULL_DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+  const MONTH_NAMES = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
   const GOAL_RESULTS = {
     achieved: { label: "Geschafft", icon: "🌟" },
     partial: { label: "Teilweise", icon: "🌱" },
@@ -229,7 +230,13 @@
       companion: child.companion || "🐾",
       onboardingPending: child.onboardingPending === true,
       createdAt: Number(child.createdAt || Date.now()),
-      lastFirstAt: Number(child.lastFirstAt || 0)
+      lastFirstAt: Number(child.lastFirstAt || 0),
+      birthMonth: clamp(child.birthMonth ?? 0, 0, 12),
+      birthYear: (() => {
+        const year = Number(child.birthYear || 0);
+        const currentYear = new Date().getFullYear();
+        return Number.isInteger(year) && year >= 2000 && year <= currentYear ? year : 0;
+      })()
     }));
 
     merged.tasks = merged.tasks.map(task => ({
@@ -248,7 +255,11 @@
       communityPoints: clamp(task.communityPoints ?? ((task.capacity || 1) > 1 ? 1 : 0), 0, 10),
       active: task.active !== false,
       days: Array.isArray(task.days) && task.days.length ? task.days.map(Number) : [0,1,2,3,4,5,6],
-      instructions: task.instructions || ""
+      instructions: task.instructions || "",
+      minAgeSolo: clamp(task.minAgeSolo ?? 0, 0, 18),
+      allowYoungerWithOlder: Boolean(task.allowYoungerWithOlder),
+      minAgeWithOlder: clamp(task.minAgeWithOlder ?? 0, 0, 18),
+      olderPartnerMinAge: clamp(task.olderPartnerMinAge ?? task.minAgeSolo ?? 0, 0, 18)
     }));
 
     merged.personalGoals = merged.personalGoals.map(goal => ({
@@ -276,7 +287,10 @@
       reportedAt: Number(claim.reportedAt || 0),
       reviewedAt: Number(claim.reviewedAt || 0),
       reviewNote: claim.reviewNote || "",
-      rewardsApplied: Boolean(claim.rewardsApplied)
+      rewardsApplied: Boolean(claim.rewardsApplied),
+      requiredChildrenOverride: clamp(claim.requiredChildrenOverride ?? 0, 0, 8),
+      ageSupportRequired: Boolean(claim.ageSupportRequired),
+      olderPartnerMinAge: clamp(claim.olderPartnerMinAge ?? 0, 0, 18)
     })).filter(claim => merged.tasks.some(task => task.id === claim.taskId) && claim.childIds.length);
 
     // Alte v1.1-Runde als noch offene Aufgaben übernehmen, sofern vorhanden.
@@ -383,6 +397,80 @@
   function claimsForChild(childId, date = null) { return data.claims.filter(claim => claim.childIds.includes(childId) && (!date || claim.date === date)); }
   function unseenNotifications(childId) { return data.notifications.filter(note => note.childId === childId && !note.seen); }
   function itemById(id) { return WORLD_ITEMS.find(item => item.id === id); }
+
+  function childAge(child, referenceDate = new Date()) {
+    const month = Number(child?.birthMonth || 0);
+    const year = Number(child?.birthYear || 0);
+    if (!month || !year) return null;
+    let age = referenceDate.getFullYear() - year;
+    if ((referenceDate.getMonth() + 1) < month) age -= 1;
+    return Math.max(0, age);
+  }
+
+  function childAgeLabel(child) {
+    const age = childAge(child);
+    return age === null ? "Alter noch nicht eingetragen" : `${age} Jahre`;
+  }
+
+  function childBirthLabel(child) {
+    const month = Number(child?.birthMonth || 0);
+    const year = Number(child?.birthYear || 0);
+    return month && year ? `${MONTH_NAMES[month]} ${year}` : "Geburtsmonat und -jahr fehlen";
+  }
+
+  function taskAgeRuleLabel(task) {
+    const solo = Number(task?.minAgeSolo || 0);
+    if (!solo) return "Für jedes Alter";
+    if (task.allowYoungerWithOlder) {
+      const younger = Number(task.minAgeWithOlder || 0);
+      const older = Number(task.olderPartnerMinAge || solo);
+      return `Allein ab ${solo} · mit älterem Kind ab ${younger} (Begleitkind ab ${older})`;
+    }
+    return `Allein ab ${solo} Jahren`;
+  }
+
+  function taskAgeEligibility(child, task) {
+    const minSolo = Number(task?.minAgeSolo || 0);
+    if (!minSolo) return { mode:"solo", age:childAge(child), label:"Altersgerecht" };
+    const age = childAge(child);
+    if (age === null) return { mode:"unknown", age:null, label:"Geburtsdaten fehlen" };
+    if (age >= minSolo) return { mode:"solo", age, label:`Allein möglich ab ${minSolo}` };
+    const minWithOlder = Number(task.minAgeWithOlder || 0);
+    if (task.allowYoungerWithOlder && age >= minWithOlder) {
+      return {
+        mode:"supported",
+        age,
+        label:"Mit älterem Kind möglich",
+        olderPartnerMinAge:Number(task.olderPartnerMinAge || minSolo)
+      };
+    }
+    return { mode:"blocked", age, label:`Erst ab ${minSolo} Jahren` };
+  }
+
+  function claimRequiredChildren(claim, task) {
+    return Math.max(1, Number(task?.requiredChildren || 1), Number(claim?.requiredChildrenOverride || 0));
+  }
+
+  function claimHasOlderPartner(claim, task) {
+    if (!claim?.ageSupportRequired) return true;
+    const minimum = Number(claim.olderPartnerMinAge || task?.olderPartnerMinAge || task?.minAgeSolo || 0);
+    return claim.childIds.some(id => {
+      const age = childAge(childById(id));
+      return age !== null && age >= minimum;
+    });
+  }
+
+  function claimReadiness(claim, task) {
+    const required = claimRequiredChildren(claim, task);
+    const missingChildren = Math.max(0, required - claim.childIds.length);
+    const missingOlderPartner = Boolean(claim.ageSupportRequired && !claimHasOlderPartner(claim, task));
+    return {
+      required,
+      missingChildren,
+      missingOlderPartner,
+      ready:missingChildren === 0 && !missingOlderPartner
+    };
+  }
 
   saveData();
 
@@ -553,7 +641,7 @@
               ${unseen ? `<span class="notification-dot">${unseen}</span>` : ""}
               <span class="child-avatar">${child.avatar}</span>
               <h3>${escapeHtml(child.name)}</h3>
-              <small>${waiting ? `${waiting} Aufgabe${waiting === 1 ? "" : "n"} wartet${waiting === 1 ? "" : "en"}` : "Meine Mitmach-Welt"}</small>
+              <small>${waiting ? `${waiting} Aufgabe${waiting === 1 ? "" : "n"} wartet${waiting === 1 ? "" : "en"}` : `${childAge(child) === null ? "Alter offen" : childAgeLabel(child)} · Meine Welt`}</small>
             </button>`;
         }).join("")}</div>` : `
           <div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine Kinder angelegt</h3><p>Im Erzieherbereich können Kinder mit eigenen Avataren angelegt werden.</p></div>`}
@@ -583,7 +671,7 @@
         <div class="profile-avatar">${child.avatar}</div>
         <div>
           <h2>${escapeHtml(greetingText())} ${escapeHtml(child.name)}</h2>
-          <p>Was möchtest du machen?</p>
+          <p>${childAge(child) === null ? "Was möchtest du machen?" : `${childAgeLabel(child)} · Was möchtest du machen?`}</p>
           <div class="balance-strip">${currencyStats(child)}</div>
         </div>
       </section>
@@ -612,12 +700,29 @@
     return `<div class="empty-state"><span class="emoji">🌻</span><h3>Dieses Kinderprofil ist nicht mehr vorhanden.</h3><button class="primary-button" data-action="go-home">Zur Startseite</button></div>`;
   }
 
-  function findJoinableClaim(task, childId, date = todayKey()) {
-    return data.claims.find(claim => claim.taskId === task.id
-      && claim.date === date
-      && claim.status === "reserved"
-      && !claim.childIds.includes(childId)
-      && claim.childIds.length < task.requiredChildren);
+  function findJoinableClaim(task, childId, date = todayKey(), eligibility = taskAgeEligibility(childById(childId), task)) {
+    const child = childById(childId);
+    const childAgeValue = childAge(child);
+    return data.claims.find(claim => {
+      if (claim.taskId !== task.id || claim.date !== date || claim.status !== "reserved" || claim.childIds.includes(childId)) return false;
+      const readiness = claimReadiness(claim, task);
+
+      if (eligibility.mode === "supported") {
+        const olderMinimum = Number(eligibility.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo || 0);
+        const hasOlder = claim.childIds.some(id => {
+          const age = childAge(childById(id));
+          return age !== null && age >= olderMinimum;
+        });
+        return hasOlder || readiness.missingChildren > 0 || claim.ageSupportRequired;
+      }
+
+      if (claim.ageSupportRequired) {
+        const olderMinimum = Number(claim.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo || 0);
+        if (childAgeValue !== null && childAgeValue >= olderMinimum && !claimHasOlderPartner(claim, task)) return true;
+      }
+
+      return readiness.missingChildren > 0;
+    });
   }
 
   function hasChildDoneOrJoinedTaskToday(childId, taskId) {
@@ -625,14 +730,33 @@
   }
 
   function taskReservationState(childId, task, date = todayKey()) {
-    if (hasChildDoneOrJoinedTaskToday(childId, task.id)) return { canReserve:false, label:"Heute gewählt", joinable:null };
+    const child = childById(childId);
+    const eligibility = taskAgeEligibility(child, task);
+    if (eligibility.mode === "unknown") return { canReserve:false, label:"Geburtsdaten fehlen", joinable:null, eligibility };
+    if (eligibility.mode === "blocked") return { canReserve:false, label:eligibility.label, joinable:null, eligibility };
+    if (hasChildDoneOrJoinedTaskToday(childId, task.id)) return { canReserve:false, label:"Heute gewählt", joinable:null, eligibility };
+
+    const joinable = findJoinableClaim(task, childId, date, eligibility);
+    if (joinable) {
+      return {
+        canReserve:true,
+        label:eligibility.mode === "supported" ? "Mit älterem Kind mitmachen" : "Team beitreten",
+        joinable,
+        eligibility
+      };
+    }
+
     if (task.repeatMode === "shared") {
       const activeClaims = data.claims.filter(claim => claim.date === date && claim.taskId === task.id && ["reserved","reported","approved"].includes(claim.status));
-      const joinable = task.requiredChildren > 1 ? findJoinableClaim(task, childId, date) : null;
-      if (joinable) return { canReserve:true, label:"Team beitreten", joinable };
-      if (activeClaims.length) return { canReserve:false, label:"Bereits vergeben", joinable:null };
+      if (activeClaims.length) return { canReserve:false, label:"Bereits vergeben", joinable:null, eligibility };
     }
-    return { canReserve:true, label:"Auswählen", joinable:null };
+
+    return {
+      canReserve:true,
+      label:eligibility.mode === "supported" ? "Mit älterem Kind auswählen" : "Auswählen",
+      joinable:null,
+      eligibility
+    };
   }
 
   function reserveTask(childId, taskId, source = "solo") {
@@ -640,29 +764,59 @@
     const task = taskById(taskId);
     if (!child || !task || !task.active) return { ok:false, message:"Aufgabe nicht gefunden." };
     const reservation = taskReservationState(childId, task);
-    if (!reservation.canReserve) return { ok:false, message:reservation.label === "Bereits vergeben" ? "Diese Gruppenaufgabe wurde heute bereits vergeben." : "Diese Aufgabe hast du heute schon ausgewählt." };
+    if (!reservation.canReserve) {
+      if (reservation.eligibility?.mode === "unknown") return { ok:false, message:"Bitte zuerst im Erzieherbereich Geburtsmonat und Geburtsjahr eintragen." };
+      if (reservation.eligibility?.mode === "blocked") return { ok:false, message:"Diese Aufgabe ist für dein Alter noch nicht freigeschaltet." };
+      return { ok:false, message:reservation.label === "Bereits vergeben" ? "Diese Gruppenaufgabe wurde heute bereits vergeben." : "Diese Aufgabe hast du heute schon ausgewählt." };
+    }
 
-    let claim = task.requiredChildren > 1 && task.repeatMode === "shared" ? reservation.joinable : null;
+    const eligibility = reservation.eligibility;
+    let claim = reservation.joinable;
     if (claim) {
       claim.childIds.push(childId);
       claim.source = claim.source === "round" || source === "round" ? "round" : "solo";
+      if (eligibility.mode === "supported") {
+        claim.ageSupportRequired = true;
+        claim.olderPartnerMinAge = Number(eligibility.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo || 0);
+        claim.requiredChildrenOverride = Math.max(claimRequiredChildren(claim, task), 2, claim.childIds.length);
+      }
     } else {
+      const needsOlder = eligibility.mode === "supported";
       claim = {
         id:uid(), taskId, childIds:[childId], date:todayKey(), source, status:"reserved",
-        createdAt:Date.now(), reportedAt:0, reviewedAt:0, reviewNote:"", rewardsApplied:false
+        createdAt:Date.now(), reportedAt:0, reviewedAt:0, reviewNote:"", rewardsApplied:false,
+        requiredChildrenOverride:needsOlder ? Math.max(2, task.requiredChildren) : 0,
+        ageSupportRequired:needsOlder,
+        olderPartnerMinAge:needsOlder ? Number(eligibility.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo || 0) : 0
       };
       data.claims.push(claim);
     }
     data.history.push({ id:uid(), type:"task_reserved", childId, taskId, claimId:claim.id, timestamp:Date.now() });
     saveData();
-    return { ok:true, claim, message:task.requiredChildren > 1 ? "Du bist bei der Teamaufgabe dabei!" : "Aufgabe wurde ausgewählt." };
+    return {
+      ok:true,
+      claim,
+      message:eligibility.mode === "supported"
+        ? "Aufgabe ausgewählt. Jetzt wird noch ein älteres Kind gebraucht."
+        : claimRequiredChildren(claim, task) > 1 ? "Du bist bei der Teamaufgabe dabei!" : "Aufgabe wurde ausgewählt."
+    };
   }
 
   function leaveClaim(childId, claimId) {
     const claim = data.claims.find(item => item.id === claimId);
     if (!claim || claim.status !== "reserved" || !claim.childIds.includes(childId)) return;
     claim.childIds = claim.childIds.filter(id => id !== childId);
-    if (!claim.childIds.length) data.claims = data.claims.filter(item => item.id !== claimId);
+    if (!claim.childIds.length) {
+      data.claims = data.claims.filter(item => item.id !== claimId);
+    } else if (claim.ageSupportRequired) {
+      const task = taskById(claim.taskId);
+      const supportedStillPresent = claim.childIds.some(id => taskAgeEligibility(childById(id), task).mode === "supported");
+      if (!supportedStillPresent) {
+        claim.ageSupportRequired = false;
+        claim.olderPartnerMinAge = 0;
+        claim.requiredChildrenOverride = 0;
+      }
+    }
     saveData();
   }
 
@@ -670,7 +824,9 @@
     const claim = data.claims.find(item => item.id === claimId);
     const task = claim ? taskById(claim.taskId) : null;
     if (!claim || !task || claim.status !== "reserved" || !claim.childIds.includes(childId)) return { ok:false, message:"Aufgabe konnte nicht gemeldet werden." };
-    if (claim.childIds.length < task.requiredChildren) return { ok:false, message:`Für diese Aufgabe werden noch ${task.requiredChildren - claim.childIds.length} Kind${task.requiredChildren - claim.childIds.length === 1 ? "" : "er"} gebraucht.` };
+    const readiness = claimReadiness(claim, task);
+    if (readiness.missingOlderPartner) return { ok:false, message:`Für diese Aufgabe wird noch ein älteres Kind ab ${claim.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo} Jahren gebraucht.` };
+    if (readiness.missingChildren) return { ok:false, message:`Für diese Aufgabe werden noch ${readiness.missingChildren} Kind${readiness.missingChildren === 1 ? "" : "er"} gebraucht.` };
     claim.status = "reported";
     claim.reportedAt = Date.now();
     data.history.push({ id:uid(), type:"task_reported", claimId, taskId:task.id, childIds:[...claim.childIds], timestamp:Date.now() });
@@ -682,12 +838,28 @@
     const child = childById(ui.childId);
     if (!child) return renderMissingChild();
     const todaysClaims = claimsForChild(child.id, todayKey()).filter(claim => ["reserved","reported"].includes(claim.status));
-    const available = tasksForToday();
+    const allToday = tasksForToday();
+    const visibleTasks = allToday
+      .map(task => ({ task, eligibility:taskAgeEligibility(child, task) }))
+      .filter(item => ["solo","supported"].includes(item.eligibility.mode))
+      .sort((a,b) => {
+        const rank = { solo:0, supported:1 };
+        return rank[a.eligibility.mode] - rank[b.eligibility.mode]
+          || Number(a.task.minAgeSolo || 0) - Number(b.task.minAgeSolo || 0)
+          || a.task.title.localeCompare(b.task.title, "de");
+      });
+    const hiddenAgeCount = allToday.length - visibleTasks.length;
+
     const selectedHtml = todaysClaims.length ? todaysClaims.map(claim => {
       const task = taskById(claim.taskId);
       if (!task) return "";
       const joined = claim.childIds.map(childById).filter(Boolean);
-      const remaining = Math.max(0, task.requiredChildren - claim.childIds.length);
+      const readiness = claimReadiness(claim, task);
+      const waitingLabel = readiness.missingOlderPartner
+        ? `Noch ein älteres Kind ab ${claim.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo} Jahren`
+        : readiness.missingChildren
+          ? `Noch ${readiness.missingChildren} ${readiness.missingChildren === 1 ? "Kind" : "Kinder"}`
+          : "Team vollständig";
       return `
         <article class="task-card">
           <div class="task-card-head">
@@ -695,34 +867,35 @@
             <div>
               <h3>${escapeHtml(task.title)}</h3>
               <div class="task-meta">
-                ${task.requiredChildren > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${task.requiredChildren}</span>` : ""}
+                ${readiness.required > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${readiness.required}</span>` : ""}
+                ${claim.ageSupportRequired ? `<span class="chip warning">🧒 + 🧑 älteres Kind</span>` : ""}
                 <span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.stars ? `<span class="chip">⭐ ${task.stars}</span>` : ""}
               </div>
             </div>
             <span class="chip ${claim.status === "reported" ? "pending" : "warning"}">${claim.status === "reported" ? "Wartet auf Abendrunde" : "Ausgewählt"}</span>
           </div>
-          ${task.requiredChildren > 1 ? `
+          ${readiness.required > 1 || claim.ageSupportRequired ? `
             <div style="margin-top:12px">
-              <div class="progress-track"><div class="progress-fill" style="width:${Math.round(claim.childIds.length/task.requiredChildren*100)}%"></div></div>
-              <p class="tiny muted">Dabei: ${joined.map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ")}${remaining ? ` · Noch ${remaining} ${remaining === 1 ? "Platz" : "Plätze"}` : " · Team vollständig"}</p>
+              <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, Math.round(claim.childIds.length/readiness.required*100))}%"></div></div>
+              <p class="tiny muted">Dabei: ${joined.map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ")} · ${waitingLabel}</p>
             </div>` : ""}
           ${task.instructions ? `<p class="muted tiny">${escapeHtml(task.instructions)}</p>` : ""}
           <div class="task-card-actions">
             ${claim.status === "reserved" ? `
-              <button class="success-button small-button" type="button" data-action="report-claim" data-child-id="${child.id}" data-claim-id="${claim.id}" ${remaining ? "disabled" : ""}>✅ ${remaining ? "Warten auf Team" : "Erledigt melden"}</button>
+              <button class="success-button small-button" type="button" data-action="report-claim" data-child-id="${child.id}" data-claim-id="${claim.id}" ${readiness.ready ? "" : "disabled"}>✅ ${readiness.ready ? "Erledigt melden" : waitingLabel}</button>
               <button class="ghost-button small-button" type="button" data-action="leave-claim" data-child-id="${child.id}" data-claim-id="${claim.id}">Doch nicht</button>` : `
               <span class="callout success"><p>Die Aufgabe ist gemeldet. Ein Erzieher schaut später in Ruhe darauf.</p></span>`}
           </div>
         </article>`;
     }).join("") : `<div class="empty-state"><span class="emoji">👐</span><h3>Noch keine Aufgabe ausgewählt</h3><p>Du kannst heute mehrere kleine Aufgaben nacheinander übernehmen.</p></div>`;
 
-    const availableHtml = available.length ? available.map(task => {
+    const availableHtml = visibleTasks.length ? visibleTasks.map(({ task, eligibility }) => {
       const reservation = taskReservationState(child.id, task);
       const already = !reservation.canReserve;
       const joinable = reservation.joinable;
       const activeTeamNames = joinable ? joinable.childIds.map(childById).filter(Boolean).map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ") : "";
       return `
-        <article class="task-card">
+        <article class="task-card ${eligibility.mode === "supported" ? "age-supported-task" : ""}">
           <div class="task-card-head">
             <span class="task-icon">${task.icon}</span>
             <div>
@@ -731,21 +904,23 @@
                 <span class="chip">${escapeHtml(task.category)}</span>
                 ${task.requiredChildren > 1 ? `<span class="chip team">👥 ${task.requiredChildren} Kinder</span>` : `<span class="chip">👤 Einzelaufgabe</span>`}
                 <span class="chip">${task.repeatMode === "shared" ? "🏠 einmal für die Gruppe" : "👧 pro Kind"}</span>
+                <span class="chip ${eligibility.mode === "supported" ? "warning" : ""}">🎂 ${escapeHtml(taskAgeRuleLabel(task))}</span>
                 <span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>
                 ${task.communityPoints ? `<span class="chip team">🤝 +${task.communityPoints} Gemeinschaft</span>` : ""}
               </div>
             </div>
             <button class="primary-button small-button" type="button" data-action="reserve-task" data-child-id="${child.id}" data-task-id="${task.id}" ${already ? "disabled" : ""}>${reservation.label}</button>
           </div>
+          ${eligibility.mode === "supported" ? `<div class="callout warning compact-callout"><p>Diese Aufgabe darfst du gemeinsam mit einem älteren Kind machen.</p></div>` : ""}
           ${joinable ? `<p class="tiny muted">Schon dabei: ${activeTeamNames}</p>` : ""}
           ${task.instructions ? `<p class="tiny muted">${escapeHtml(task.instructions)}</p>` : ""}
         </article>`;
-    }).join("") : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine Aufgaben freigeschaltet.</h3></div>`;
+    }).join("") : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine passenden Aufgaben freigeschaltet.</h3><p>Ein Erzieher kann Aufgaben oder Altersregeln anpassen.</p></div>`;
 
     return `
       <section class="profile-banner" style="--accent:${child.accent}">
         <div class="profile-avatar">${child.avatar}</div>
-        <div><h2>${escapeHtml(child.name)} hilft mit</h2><p>Du musst nicht auf eine Bestätigung warten. Melde Erledigtes und such dir direkt die nächste Aufgabe aus.</p><div class="balance-strip">${currencyStats(child)}</div></div>
+        <div><h2>${escapeHtml(child.name)} hilft mit</h2><p>${childAge(child) === null ? "Dein Alter ist noch nicht eingetragen. Aufgaben mit Altersgrenze bleiben deshalb verborgen." : `${childAgeLabel(child)} · Die App zeigt dir passende Aufgaben zuerst.`}</p><div class="balance-strip">${currencyStats(child)}</div></div>
       </section>
       <div class="section">
         <div class="priority-task-block">
@@ -753,7 +928,7 @@
           <div class="task-list">${selectedHtml}</div>
         </div>
         <div class="available-task-block">
-          <div class="section-heading"><div><h2>Weitere Aufgaben für heute</h2><p>${FULL_DAY_NAMES[dayIndex()]} · frei auswählbar</p></div></div>
+          <div class="section-heading"><div><h2>Weitere passende Aufgaben</h2><p>${FULL_DAY_NAMES[dayIndex()]} · nach Alter passend sortiert${hiddenAgeCount ? ` · ${hiddenAgeCount} noch nicht passende Aufgabe${hiddenAgeCount === 1 ? "" : "n"} ausgeblendet` : ""}</p></div></div>
           <div class="task-list">${availableHtml}</div>
         </div>
       </div>`;
@@ -949,7 +1124,7 @@
       <section class="section">
         <div class="child-grid">${children.map(child => {
           const isSelected = selected.includes(child.id);
-          return `<button class="child-card" type="button" style="--accent:${child.accent};${isSelected ? "box-shadow:0 0 0 5px rgba(246,200,77,.45),var(--shadow-soft)" : ""}" data-action="toggle-round-child" data-child-id="${child.id}"><span class="child-avatar">${child.avatar}</span><h3>${escapeHtml(child.name)}</h3><small>${isSelected ? "✅ Dabei" : "Antippen zum Auswählen"}</small></button>`;
+          return `<button class="child-card" type="button" style="--accent:${child.accent};${isSelected ? "box-shadow:0 0 0 5px rgba(246,200,77,.45),var(--shadow-soft)" : ""}" data-action="toggle-round-child" data-child-id="${child.id}"><span class="child-avatar">${child.avatar}</span><h3>${escapeHtml(child.name)}</h3><small>${isSelected ? `✅ Dabei · ${childAgeLabel(child)}` : `${childAgeLabel(child)} · Antippen`}</small></button>`;
         }).join("")}</div>
       </section>
       <section class="section panel">
@@ -995,21 +1170,29 @@
     const currentChild = childById(round.order[round.index]);
     if (!currentChild) return `<div class="empty-state"><h3>Kind nicht gefunden</h3></div>`;
     const firstStep = round.index === 0 && round.assignments.length === 0;
-    const tasks = tasksForToday();
+    const tasks = tasksForToday()
+      .map(task => ({ task, eligibility:taskAgeEligibility(currentChild, task) }))
+      .filter(item => ["solo","supported"].includes(item.eligibility.mode))
+      .sort((a,b) => {
+        const rank = { solo:0, supported:1 };
+        return rank[a.eligibility.mode] - rank[b.eligibility.mode]
+          || Number(a.task.minAgeSolo || 0) - Number(b.task.minAgeSolo || 0)
+          || a.task.title.localeCompare(b.task.title, "de");
+      });
     return `
       <section class="round-stage panel">
         ${firstStep ? `<div class="roulette"><div class="roulette-inner">${currentChild.avatar}</div></div>` : `<div class="profile-avatar" style="margin:0 auto;background:${currentChild.accent}22">${currentChild.avatar}</div>`}
         <p class="hero-kicker">Platz ${round.index + 1} von ${round.order.length}</p>
         <h2>${escapeHtml(currentChild.name)} darf jetzt auswählen</h2>
-        <p class="muted">Eine Aufgabe auswählen. Danach ist automatisch das nächste Kind an der Reihe.</p>
+        <p class="muted">${childAge(currentChild) === null ? "Altersbegrenzte Aufgaben sind verborgen, bis Geburtsmonat und Geburtsjahr eingetragen sind." : `${childAgeLabel(currentChild)} · Passende Aufgaben stehen zuerst.`}</p>
       </section>
       <section class="section">
-        <div class="task-list">${tasks.map(task => {
+        ${tasks.length ? `<div class="task-list">${tasks.map(({task, eligibility}) => {
           const reservation = taskReservationState(currentChild.id, task);
           const available = roundTaskAvailability(task, currentChild.id);
           const joinable = reservation.joinable;
-          return `<article class="task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><div class="task-meta">${task.requiredChildren > 1 ? `<span class="chip team">👥 ${task.requiredChildren} Kinder</span>` : `<span class="chip">👤 Alleine</span>`}<span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.communityPoints ? `<span class="chip team">🤝 ${task.communityPoints}</span>` : ""}</div>${joinable ? `<p class="tiny muted">Team begonnen von ${joinable.childIds.map(childById).filter(Boolean).map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")}</p>` : ""}</div><button class="primary-button small-button" type="button" data-action="round-choose-task" data-task-id="${task.id}" ${available ? "" : "disabled"}>Auswählen</button></div></article>`;
-        }).join("")}</div>
+          return `<article class="task-card ${eligibility.mode === "supported" ? "age-supported-task" : ""}"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><div class="task-meta">${task.requiredChildren > 1 ? `<span class="chip team">👥 ${task.requiredChildren} Kinder</span>` : `<span class="chip">👤 Alleine</span>`}<span class="chip ${eligibility.mode === "supported" ? "warning" : ""}">🎂 ${escapeHtml(taskAgeRuleLabel(task))}</span><span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.communityPoints ? `<span class="chip team">🤝 ${task.communityPoints}</span>` : ""}</div>${joinable ? `<p class="tiny muted">Team begonnen von ${joinable.childIds.map(childById).filter(Boolean).map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")}</p>` : ""}${eligibility.mode === "supported" ? `<p class="tiny muted">Diese Aufgabe geht nur zusammen mit einem älteren Kind.</p>` : ""}</div><button class="primary-button small-button" type="button" data-action="round-choose-task" data-task-id="${task.id}" ${available ? "" : "disabled"}>${reservation.label}</button></div></article>`;
+        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌱</span><h3>Keine passende Aufgabe verfügbar</h3><p>Ein Erzieher kann später eine Altersregel anpassen oder eine neue Aufgabe anlegen.</p></div>`}
       </section>`;
   }
 
@@ -1103,7 +1286,7 @@
         thresholdPoints += applyChildReward(childId, { coins:task.coins, seeds:task.seeds, stars:task.stars }, "task");
         addNotification(childId, {
           type:"task-approved", title:"Deine Hilfe wurde gesehen", message:`${task.icon} ${task.title} wurde bestätigt.`,
-          detail:task.requiredChildren > 1 ? "Ihr habt diese Aufgabe gemeinsam geschafft." : "Deine Welt ist dadurch ein Stück weiter gewachsen.",
+          detail:claim.childIds.length > 1 ? "Ihr habt diese Aufgabe gemeinsam geschafft." : "Deine Welt ist dadurch ein Stück weiter gewachsen.",
           coins:task.coins, seeds:task.seeds, stars:task.stars, positive:true
         });
       });
@@ -1216,8 +1399,13 @@
         ${reserved.length ? `<div class="task-list">${reserved.map(claim => {
           const task = taskById(claim.taskId); const children = claim.childIds.map(childById).filter(Boolean);
           if (!task) return "";
-          const missing = Math.max(0, task.requiredChildren - claim.childIds.length);
-          return `<article class="task-card active-task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")}${missing ? ` · noch ${missing} ${missing === 1 ? "Kind" : "Kinder"} benötigt` : " · Team vollständig"}</p><div class="task-meta"><span class="chip warning">Ausgewählt</span>${task.requiredChildren > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${task.requiredChildren}</span>` : ""}</div></div></div></article>`;
+          const readiness = claimReadiness(claim, task);
+          const waiting = readiness.missingOlderPartner
+            ? `noch ein älteres Kind ab ${claim.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo} Jahren benötigt`
+            : readiness.missingChildren
+              ? `noch ${readiness.missingChildren} ${readiness.missingChildren === 1 ? "Kind" : "Kinder"} benötigt`
+              : "Team vollständig";
+          return `<article class="task-card active-task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)} (${childAgeLabel(child)})`).join(", ")} · ${waiting}</p><div class="task-meta"><span class="chip warning">Ausgewählt</span>${readiness.required > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${readiness.required}</span>` : ""}${claim.ageSupportRequired ? `<span class="chip warning">🧒 + 🧑 Altersbegleitung</span>` : ""}</div></div></div></article>`;
         }).join("")}</div>` : `<div class="empty-state compact"><span class="emoji">👐</span><h3>Zurzeit ist keine Aufgabe ausgewählt.</h3></div>`}
       </div>
 
@@ -1226,7 +1414,7 @@
         ${reported.length ? `<div class="task-list">${reported.map(claim => {
           const task = taskById(claim.taskId); const children = claim.childIds.map(childById).filter(Boolean);
           if (!task) return "";
-          return `<article class="task-card review-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")} · gemeldet ${formatDateTime(claim.reportedAt)}</p><div class="task-meta"><span class="chip">pro Kind: 🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.stars ? `<span class="chip">⭐ ${task.stars}</span>` : ""}${claim.childIds.length > 1 ? `<span class="chip team">🤝 Teamaufgabe</span>` : ""}</div></div><div class="inline-actions"><button class="success-button small-button" type="button" data-action="approve-claim" data-claim-id="${claim.id}">Bestätigen</button><button class="danger-button small-button" type="button" data-action="decline-claim-prompt" data-claim-id="${claim.id}">Noch nicht</button></div></div></article>`;
+          return `<article class="task-card review-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)} (${childAgeLabel(child)})`).join(", ")} · gemeldet ${formatDateTime(claim.reportedAt)}</p><div class="task-meta"><span class="chip">pro Kind: 🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.stars ? `<span class="chip">⭐ ${task.stars}</span>` : ""}${claim.childIds.length > 1 ? `<span class="chip team">🤝 Teamaufgabe</span>` : ""}${claim.ageSupportRequired ? `<span class="chip warning">🎂 mit Altersbegleitung</span>` : ""}</div></div><div class="inline-actions"><button class="success-button small-button" type="button" data-action="approve-claim" data-claim-id="${claim.id}">Bestätigen</button><button class="danger-button small-button" type="button" data-action="decline-claim-prompt" data-claim-id="${claim.id}">Noch nicht</button></div></div></article>`;
         }).join("")}</div>` : `<div class="empty-state"><span class="emoji">✅</span><h3>Keine offenen Aufgaben</h3><p>Die Kinder können tagsüber weiter Aufgaben erledigt melden.</p></div>`}
       </div>
 
@@ -1276,23 +1464,33 @@
     const active = data.children.filter(child => child.active !== false && !child.deletedAt);
     const archived = data.children.filter(child => child.active === false && !child.deletedAt);
     const trashed = data.children.filter(child => child.deletedAt);
-    const row = (child, mode) => `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${mode === "active" ? "Aktiv" : mode === "archived" ? "Archiviert" : `Papierkorb seit ${formatDateTime(child.deletedAt)}`} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}${child.onboardingPending ? " · Einrichtung offen" : ""}</p></div><div class="inline-actions">${mode !== "trash" ? `<button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">${child.onboardingPending ? "Gemeinsam einrichten" : "Bearbeiten"}</button>` : ""}${mode === "active" ? `<button class="ghost-button small-button" type="button" data-action="archive-child" data-child-id="${child.id}">Archivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : mode === "archived" ? `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Aktivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Wiederherstellen</button><button class="danger-button small-button" type="button" data-action="delete-child-prompt" data-child-id="${child.id}">Endgültig löschen</button>`}</div></div>`;
+    const row = (child, mode) => {
+      const age = childAge(child);
+      return `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${mode === "active" ? "Aktiv" : mode === "archived" ? "Archiviert" : `Papierkorb seit ${formatDateTime(child.deletedAt)}`} · 🎂 ${escapeHtml(childBirthLabel(child))}${age === null ? " · Alter fehlt" : ` · ${age} Jahre`} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}${child.onboardingPending ? " · Einrichtung offen" : ""}</p></div><div class="inline-actions">${mode !== "trash" ? `<button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">${child.onboardingPending ? "Gemeinsam einrichten" : "Bearbeiten"}</button>` : ""}${mode === "active" ? `<button class="ghost-button small-button" type="button" data-action="archive-child" data-child-id="${child.id}">Archivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : mode === "archived" ? `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Aktivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Wiederherstellen</button><button class="danger-button small-button" type="button" data-action="delete-child-prompt" data-child-id="${child.id}">Endgültig löschen</button>`}</div></div>`;
+    };
+    const missingAges = active.filter(child => childAge(child) === null).length;
     return `
-      <div class="section-heading"><div><h2>Kinder verwalten</h2><p>Aktive Kinder, Archiv und Papierkorb an einem Ort.</p></div><div class="inline-actions"><button class="secondary-button small-button" type="button" data-action="open-group-setup">🌟 Neue Gruppe einrichten</button><button class="primary-button small-button" type="button" data-action="open-child-editor">＋ Kind anlegen</button></div></div>
-      <div class="panel"><h3>Aktive Kinder (${active.length})</h3><div class="admin-list">${active.length ? active.map(child => row(child,"active")).join("") : `<div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine aktiven Kinder</h3></div>`}</div></div>
+      <div class="section-heading"><div><h2>Kinder verwalten</h2><p>Geburtsmonat und Geburtsjahr steuern jetzt die altersgerechten Aufgaben.</p></div><div class="inline-actions"><button class="secondary-button small-button" type="button" data-action="open-group-setup">🌟 Neue Gruppe einrichten</button><button class="primary-button small-button" type="button" data-action="open-child-editor">＋ Kind anlegen</button></div></div>
+      ${missingAges ? `<div class="callout warning"><p><b>${missingAges} aktive${missingAges === 1 ? "s Kind hat" : " Kinder haben"} noch kein Alter.</b> Altersbegrenzte Aufgaben werden dort ausgeblendet, bis Monat und Jahr eingetragen sind.</p></div>` : `<div class="callout success"><p>Für alle aktiven Kinder sind Geburtsmonat und Geburtsjahr eingetragen.</p></div>`}
+      <div class="panel" style="margin-top:14px"><h3>Aktive Kinder (${active.length})</h3><div class="admin-list">${active.length ? active.map(child => row(child,"active")).join("") : `<div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine aktiven Kinder</h3></div>`}</div></div>
       <div class="panel" style="margin-top:16px"><h3>📦 Archiv (${archived.length})</h3>${archived.length ? `<div class="admin-list">${archived.map(child => row(child,"archived")).join("")}</div>` : `<p class="muted">Keine archivierten Kinder.</p>`}</div>
       <div class="panel" style="margin-top:16px"><h3>🗑️ Papierkorb (${trashed.length})</h3><p class="muted tiny">Profile bleiben hier, bis sie bewusst endgültig gelöscht oder wiederhergestellt werden.</p>${trashed.length ? `<div class="admin-list">${trashed.map(child => row(child,"trash")).join("")}</div>` : `<p class="muted">Der Papierkorb ist leer.</p>`}</div>`;
   }
 
   function renderTasksAdmin() {
-    const rows = data.tasks.map(task => {
+    const sortedTasks = [...data.tasks].sort((a,b) => {
+      const ageA = Number(a.minAgeSolo || 0);
+      const ageB = Number(b.minAgeSolo || 0);
+      return ageA - ageB || a.title.localeCompare(b.title, "de");
+    });
+    const rows = sortedTasks.map(task => {
       const linked = data.claims.filter(claim => claim.taskId === task.id);
       const open = linked.filter(claim => ["reserved","reported"].includes(claim.status)).length;
-      return `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}${open ? ` · ⚠️ ${open} offen` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Löschen</button></div></div>`;
+      return `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 🎂 ${escapeHtml(taskAgeRuleLabel(task))} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}${open ? ` · ⚠️ ${open} offen` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Löschen</button></div></div>`;
     }).join("");
     return `
-      <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Aufgaben lassen sich jetzt zuverlässig anlegen, bearbeiten, pausieren und löschen.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
-      <div class="callout success"><p><b>Tipp:</b> Nach dem Speichern erscheint eine Bestätigung. Änderungen werden anschließend an die verbundenen Geräte übertragen.</p></div>
+      <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Nach Mindestalter sortiert. Jede Aufgabe kann allein oder mit einem älteren Kind freigegeben werden.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
+      <div class="callout success"><p><b>Beispiel:</b> „Allein ab 10 Jahren, mit älterem Kind ab 7 Jahren, Begleitkind ab 10 Jahren.“</p></div>
       <div class="admin-list" style="margin-top:14px">${rows || `<div class="empty-state"><span class="emoji">📋</span><h3>Noch keine Aufgaben vorhanden</h3><p>Lege oben die erste Aufgabe an.</p></div>`}</div>`;
   }
 
@@ -1348,6 +1546,7 @@
     const selectedAvatar = child?.avatar || "🦄";
     const selectedAccent = child?.accent || ACCENT_COLORS[0];
     const selectedTheme = child?.theme || "meadow";
+    const currentYear = new Date().getFullYear();
     openModal(child ? "Kind bearbeiten" : "Kind anlegen", `
       <form id="childForm">
         <input type="hidden" name="id" value="${escapeHtml(childId || "")}">
@@ -1355,6 +1554,9 @@
         <input type="hidden" name="accent" id="childAccentValue" value="${escapeHtml(selectedAccent)}">
         <div class="form-grid">
           <div class="form-field full"><label>Name oder Spitzname</label><input name="name" value="${escapeHtml(child?.name || "")}" required maxlength="30"></div>
+          <div class="form-field"><label>Geburtsmonat</label><select name="birthMonth"><option value="0">Noch nicht eingetragen</option>${MONTH_NAMES.slice(1).map((month,index) => `<option value="${index+1}" ${Number(child?.birthMonth || 0) === index+1 ? "selected" : ""}>${month}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Geburtsjahr</label><select name="birthYear"><option value="0">Noch nicht eingetragen</option>${Array.from({length:currentYear-1999},(_,index)=>currentYear-index).map(year => `<option value="${year}" ${Number(child?.birthYear || 0) === year ? "selected" : ""}>${year}</option>`).join("")}</select></div>
+          <div class="form-field full"><p class="tiny muted">Das Alter wird automatisch aus Monat und Jahr berechnet. Es wechselt jeweils zu Beginn des Geburtsmonats.</p></div>
           <div class="form-field"><label>Start-Münzen</label><input name="coins" type="number" min="0" max="9999" value="${child?.coins ?? 0}"></div>
           <div class="form-field"><label>Start-Samen</label><input name="seeds" type="number" min="0" max="9999" value="${child?.seeds ?? 0}"></div>
           <div class="form-field"><label>Sterne</label><input name="stars" type="number" min="0" max="999" value="${child?.stars ?? 0}"></div>
@@ -1389,6 +1591,18 @@
       return false;
     }
 
+    const birthMonth = clamp(values.birthMonth, 0, 12);
+    const birthYear = Number(values.birthYear || 0);
+    if ((birthMonth && !birthYear) || (!birthMonth && birthYear)) {
+      showToast("Bitte Geburtsmonat und Geburtsjahr zusammen eintragen.");
+      return false;
+    }
+    const currentYear = new Date().getFullYear();
+    if (birthYear && (birthYear < 2000 || birthYear > currentYear)) {
+      showToast("Bitte ein gültiges Geburtsjahr auswählen.");
+      return false;
+    }
+
     const existing = values.id ? childById(values.id) : null;
     const child = existing || {
       id:uid(), completed:0, inventory:[], active:true,
@@ -1405,6 +1619,8 @@
     child.coins = Math.max(0, Number(values.coins || 0));
     child.seeds = Math.max(0, Number(values.seeds || 0));
     child.stars = Math.max(0, Number(values.stars || 0));
+    child.birthMonth = birthMonth;
+    child.birthYear = birthYear || 0;
 
     if (!existing) data.children.push(child);
     if (!saveData({ snapshot:true })) {
@@ -1434,7 +1650,7 @@
         <div class="form-field"><label><input type="checkbox" name="keepTasks" checked style="width:auto"> Vorhandene Aufgaben behalten</label></div>
         <div class="form-field"><label><input type="checkbox" name="keepWishes" checked style="width:auto"> Wunschladen behalten</label></div>
         <div class="form-field"><label>Zur Sicherheit Erzieher-PIN eingeben</label><input name="pin" inputmode="numeric" required></div>
-        <p class="tiny muted">Danach entstehen sechs leere Profile „Kind 1“ bis „Kind 6“. Münzen, Samen, Sterne, Welten und Erfolge beginnen bei null. Anschließend richtet ihr jedes Profil gemeinsam ein.</p>
+        <p class="tiny muted">Danach entstehen sechs leere Profile „Kind 1“ bis „Kind 6“. Münzen, Samen, Sterne, Welten und Erfolge beginnen bei null. Anschließend tragt ihr gemeinsam Name, Avatar, Welt sowie Geburtsmonat und Geburtsjahr ein.</p>
         <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="danger-button" type="submit">Gruppe jetzt neu einrichten</button></div>
       </form>`);
   }
@@ -1442,7 +1658,7 @@
   function setupFreshGroup({ keepTasks = true, keepWishes = true } = {}) {
     const colors = ACCENT_COLORS.slice(0,6);
     const avatars = ["🌟","🌱","🌈","🦊","🐼","🦁"];
-    data.children = Array.from({length:6}, (_,i) => ({ id:uid(), name:`Kind ${i+1}`, avatar:avatars[i], accent:colors[i], theme:WORLD_THEMES[i % WORLD_THEMES.length].id, worldName:"Meine Welt", companion:"🐾", coins:0, seeds:0, stars:0, completed:0, inventory:[], active:true, deletedAt:0, onboardingPending:true, createdAt:Date.now()+i, lastFirstAt:0 }));
+    data.children = Array.from({length:6}, (_,i) => ({ id:uid(), name:`Kind ${i+1}`, avatar:avatars[i], accent:colors[i], theme:WORLD_THEMES[i % WORLD_THEMES.length].id, worldName:"Meine Welt", companion:"🐾", coins:0, seeds:0, stars:0, completed:0, inventory:[], active:true, deletedAt:0, onboardingPending:true, birthMonth:0, birthYear:0, createdAt:Date.now()+i, lastFirstAt:0 }));
     data.claims=[]; data.personalGoals=[]; data.goalEvaluations=[]; data.notifications=[]; data.wishRequests=[]; data.rounds=[]; data.lastOrders=[]; data.history=[];
     data.group = clone(DEFAULTS.group);
     if (!keepTasks) data.tasks = clone(DEFAULTS.tasks);
@@ -1469,6 +1685,11 @@
           <div class="form-field"><label>Förderbereich</label><select name="competence">${COMPETENCES.map(item => `<option value="${escapeHtml(item)}" ${task?.competence === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}</select></div>
           <div class="form-field"><label>Benötigte Kinder</label><select name="requiredChildren">${Array.from({length:8},(_,index)=>index+1).map(number => `<option value="${number}" ${(task?.requiredChildren || 1) === number ? "selected" : ""}>${number} ${number === 1 ? "Kind" : "Kinder"}</option>`).join("")}</select></div>
           <div class="form-field"><label>Wie oft pro Tag?</label><select name="repeatMode"><option value="shared" ${(task?.repeatMode || "shared") === "shared" ? "selected" : ""}>Einmal für die ganze Gruppe</option><option value="perChild" ${task?.repeatMode === "perChild" ? "selected" : ""}>Jedes Kind einmal</option></select></div>
+          <div class="form-field"><label>Allein möglich ab</label><select name="minAgeSolo">${Array.from({length:19},(_,age)=>`<option value="${age}" ${Number(task?.minAgeSolo || 0) === age ? "selected" : ""}>${age === 0 ? "Keine Altersgrenze" : `${age} Jahren`}</option>`).join("")}</select></div>
+          <div class="form-field full age-rule-box"><label><input name="allowYoungerWithOlder" type="checkbox" ${task?.allowYoungerWithOlder ? "checked" : ""} style="width:auto"> Jüngere Kinder dürfen die Aufgabe gemeinsam mit einem älteren Kind machen</label></div>
+          <div class="form-field"><label>Mit älterem Kind ab</label><select name="minAgeWithOlder">${Array.from({length:19},(_,age)=>`<option value="${age}" ${Number(task?.minAgeWithOlder || 0) === age ? "selected" : ""}>${age === 0 ? "0 Jahren" : `${age} Jahren`}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Begleitkind mindestens</label><select name="olderPartnerMinAge">${Array.from({length:19},(_,age)=>`<option value="${age}" ${Number(task?.olderPartnerMinAge || task?.minAgeSolo || 0) === age ? "selected" : ""}>${age === 0 ? "0 Jahre" : `${age} Jahre`}</option>`).join("")}</select></div>
+          <div class="form-field full"><p class="tiny muted">Beispiel: allein ab 10, mit älterem Kind ab 7, Begleitkind mindestens 10. Für eine begleitete Aufgabe werden automatisch mindestens zwei Kinder verlangt.</p></div>
           <div class="form-field"><label>Münzen pro Kind</label><input name="coins" type="number" min="0" max="100" value="${task?.coins ?? 5}"></div>
           <div class="form-field"><label>Samen pro Kind</label><input name="seeds" type="number" min="0" max="100" value="${task?.seeds ?? 2}"></div>
           <div class="form-field"><label>Sterne pro Kind</label><input name="stars" type="number" min="0" max="5" value="${task?.stars ?? 0}"></div>
@@ -1512,6 +1733,24 @@
     }
 
     const requiredChildren = clamp(values.requiredChildren, 1, 8);
+    const minAgeSolo = clamp(values.minAgeSolo, 0, 18);
+    const requestedAgeSupport = formData.has("allowYoungerWithOlder");
+    if (requestedAgeSupport && minAgeSolo === 0) {
+      setTaskFormStatus("Bitte zuerst festlegen, ab welchem Alter die Aufgabe allein möglich ist.", true);
+      return false;
+    }
+    const allowYoungerWithOlder = requestedAgeSupport && minAgeSolo > 0;
+    const minAgeWithOlder = allowYoungerWithOlder ? clamp(values.minAgeWithOlder, 0, 18) : 0;
+    const olderPartnerMinAge = allowYoungerWithOlder ? clamp(values.olderPartnerMinAge, 0, 18) : 0;
+    if (allowYoungerWithOlder && minAgeWithOlder >= minAgeSolo) {
+      setTaskFormStatus("Das Alter mit Begleitung muss unter dem Alter für die alleinige Durchführung liegen.", true);
+      return false;
+    }
+    if (allowYoungerWithOlder && olderPartnerMinAge < minAgeSolo) {
+      setTaskFormStatus("Das Begleitkind sollte mindestens das Alter für die alleinige Durchführung haben.", true);
+      return false;
+    }
+
     const nextTask = {
       ...(existingIndex >= 0 ? data.tasks[existingIndex] : { id:uid(), active:true }),
       title,
@@ -1525,6 +1764,10 @@
       stars:clamp(values.stars,0,5),
       communityPoints:clamp(values.communityPoints,0,10),
       instructions:String(values.instructions || "").trim(),
+      minAgeSolo,
+      allowYoungerWithOlder,
+      minAgeWithOlder,
+      olderPartnerMinAge,
       days:[...new Set(days)].sort((a,b) => a-b),
       updatedAt:Date.now()
     };
@@ -2069,7 +2312,12 @@
     showToast,
     render,
     goHome,
+    saveChildFromForm,
     saveTaskFromForm,
-    removeTask
+    removeTask,
+    getChildAge: childId => childAge(childById(childId)),
+    getTaskAgeEligibility: (childId, taskId) => clone(taskAgeEligibility(childById(childId), taskById(taskId))),
+    reserveTask,
+    reportClaim
   };
 })();
