@@ -1,10 +1,24 @@
-# Mitmach-Welt 2.2.1
+# Mitmach-Welt 2.2.2
 
 Mitmach-Welt ist eine installierbare Web-App für Aufgaben, Tagesmissionen, persönliche Welten und gemeinsame Erfolge in einer Kinder- und Jugendwohngruppe.
 
+
+## Neu in Version 2.2.2: Symbole für Wünsche
+
+Beim Anlegen und Bearbeiten eines Wunsches gibt es jetzt eine sichtbare Symbolauswahl mit sechs Bereichen:
+
+- Beliebt
+- Spiel, Medien & Kreatives
+- Essen & Trinken
+- Freizeit & Bewegung
+- Zeit & besondere Erlebnisse
+- Tiere, Natur & Ausflüge
+
+Das ausgewählte Symbol wird sofort groß angezeigt. Ein eigenes Emoji kann weiterhin eingetragen und übernommen werden. Vorhandene Wünsche und deren bisherige Symbole bleiben unverändert.
+
 ## Neu: Diensttelefon und Kinder-Tablet verbinden
 
-Version 2.2.1 erweitert die bestehende Gerätesynchronisierung um altersgerechte Aufgaben. Für jedes Kind können Geburtsmonat und Geburtsjahr gespeichert werden. Die App berechnet daraus automatisch das Alter und zeigt passende Aufgaben zuerst.
+Version 2.2.2 ergänzt den Wunschladen um eine große, kindgerechte Symbolauswahl. Beim Anlegen oder Bearbeiten eines Wunsches kann direkt aus sechs Bereichen mit insgesamt 96 Emojis gewählt werden. Zusätzlich bleibt ein eigenes Emoji möglich.
 
 ### Erstes Gerät einrichten
 
@@ -49,9 +63,9 @@ Alle Dateien aus diesem Ordner in das Hauptverzeichnis des GitHub-Repositories h
 Sofern noch nicht geändert: `2468`
 
 
-## Wichtig beim Update auf 2.2.1
+## Wichtig beim Update auf 2.2.2
 
-Dieses Hotfix behebt das Speichern von Tagesmissionen und Wünschen. Beide Formulare verwenden jetzt einen eigenen, direkten Speichervorgang und prüfen anschließend, ob der Eintrag wirklich im Gerätespeicher vorhanden ist. Vorhandene Tagesmissionen und Wünsche können außerdem bearbeitet oder nach einer Sicherheitsabfrage endgültig gelöscht werden. Eine vollständig geleerte Wunschliste bleibt auch nach einem Neustart leer.
+Dieses Update baut auf dem Speicher-Hotfix für Tagesmissionen und Wünsche auf und ergänzt die visuelle Symbolauswahl. Bereits gespeicherte Wünsche lassen sich öffnen, mit einem neuen Symbol versehen und wieder speichern. Die Löschfunktion bleibt erhalten.
 
 Kinder, Aufgaben, Welten und Belohnungen bleiben erhalten. Diensttelefon, Tablet und Computer müssen nach dem Hochladen einmal vollständig neu geladen werden.
 

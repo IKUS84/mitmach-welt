@@ -1,3 +1,15 @@
+# Änderungsverlauf
+
+## Version 2.2.2 – Symbole für Wünsche
+
+- 96 auswählbare Emojis für Wünsche ergänzt.
+- Symbole in sechs übersichtliche Bereiche sortiert.
+- Große Vorschau des aktuell gewählten Symbols eingebaut.
+- Eigenes Emoji kann weiterhin eingegeben und übernommen werden.
+- Vorhandene Wünsche können nachträglich mit einem anderen Symbol gespeichert werden.
+- Speicher- und Löschfunktionen aus Version 2.2.1 bleiben unverändert erhalten.
+- Offline-Cache und Versionskennung wurden auf 2.2.2 angehoben.
+
 # Änderungsprotokoll
 
 ## Version 2.2.1 – Tagesmissionen und Wünsche Hotfix

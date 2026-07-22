@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.2.1";
+  const APP_VERSION = "2.2.2";
   const SCHEMA_VERSION = 3;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -34,6 +34,15 @@
   ];
   const TASK_ICONS = ["✅","🛏️","🍽️","🧸","🧺","🪴","🧹","🗑️","🐾","📚","🚿","👕","🍳","🧽","🪥","🥤","🧼","🧻","🪣","🌿","🥕","🛒","📦","🎒","👟","🪟","🧑‍🍳","🧑‍🤝‍🧑","🧤","🪥","🧯","🧰","🧺","🫧","🪴","🚲","🏡","🧑‍🌾"];
   const GOAL_ICONS = ["🌱","🌟","❤️","🤝","😌","👂","💬","🧠","🎒","🪥","🧸","📚","🧹","😊","🫶","⏰","🌈","🪴","🧘","🎯"];
+  const WISH_ICON_GROUPS = [
+    { title:"Beliebt", icons:["🎁","⭐","🌟","🎉","🥳","👑","🏆","💎","❤️","🌈","✨","🎈","🎂","🪄","🏅","🥇"] },
+    { title:"Spiel, Medien & Kreatives", icons:["🎮","🕹️","🎲","🧩","♟️","🎯","🎳","🎬","🍿","📺","🎧","🎵","🎤","📚","📖","🖍️"] },
+    { title:"Essen & Trinken", icons:["🍕","🍔","🍟","🌭","🍝","🍜","🥞","🧇","🍦","🍨","🧁","🍪","🍫","🍓","🍉","🥤"] },
+    { title:"Freizeit & Bewegung", icons:["⚽","🏀","🏓","🏸","🚲","🛴","🛼","🛝","🏊","🎨","🎸","🥁","🏕️","⛺","🎪","🪁"] },
+    { title:"Zeit & besondere Erlebnisse", icons:["🌙","⏰","🕒","🛏️","🛋️","🚗","🚌","🛍️","🛒","👨‍🍳","🧑‍🤝‍🧑","🤝","🫶","🥰","😄","☀️"] },
+    { title:"Tiere, Natur & Ausflüge", icons:["🐶","🐱","🐴","🦄","🦖","🐬","🦋","🌳","🌻","🏖️","🏞️","🚂","✈️","🚀","⛵","🏰"] }
+  ];
+  const WISH_ICONS = WISH_ICON_GROUPS.flatMap(group => group.icons);
   const COMPETENCES = ["Selbstständigkeit","Zusammenarbeit","Ordnung","Hilfsbereitschaft","Verantwortung","Konzentration","Kommunikation","Kreativität","Selbstregulation","Rücksichtnahme"];
 
   const WORLD_ITEMS = [
@@ -167,6 +176,17 @@
   const uid = () => (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function" ? globalThis.crypto.randomUUID() : `id_${Date.now()}_${Math.random().toString(16).slice(2)}`);
   const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
   const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
+  const normalizeWishIcon = value => {
+    const text = String(value ?? "").replace(/[<>&"'`]/g, "").trim();
+    if (!text) return "🎁";
+    try {
+      if (typeof Intl?.Segmenter === "function") {
+        const first = Array.from(new Intl.Segmenter("de", { granularity:"grapheme" }).segment(text))[0];
+        if (first?.segment) return first.segment;
+      }
+    } catch {}
+    return Array.from(text).slice(0,4).join("") || "🎁";
+  };
   const todayKey = () => localDateKey(new Date());
   const localDateKey = date => {
     const year = date.getFullYear();
@@ -1882,7 +1902,7 @@
       ...(existingIndex >= 0 ? data.wishes[existingIndex] : {}),
       id: existingIndex >= 0 ? data.wishes[existingIndex].id : uid(),
       active: existingIndex >= 0 ? data.wishes[existingIndex].active !== false : true,
-      icon: String(values.icon || "").trim() || "🎁", title, cost: clamp(values.cost,1,999), note: String(values.note || "").trim()
+      icon: normalizeWishIcon(values.icon), title, cost: clamp(values.cost,1,999), note: String(values.note || "").trim()
     };
     if (existingIndex >= 0) data.wishes[existingIndex] = wish; else data.wishes.push(wish);
     if (!saveData({ snapshot:true })) { data.wishes = previous; setSimpleFormStatus("wishForm", "Der Wunsch konnte nicht gespeichert werden.", true); return false; }
@@ -1953,23 +1973,55 @@
     }
   }
 
+  function renderWishIconPicker(selectedIcon) {
+    return WISH_ICON_GROUPS.map(group => `
+      <section class="wish-symbol-group">
+        <h4>${escapeHtml(group.title)}</h4>
+        <div class="wish-symbol-grid">
+          ${group.icons.map(icon => `<button class="wish-symbol-option ${icon === selectedIcon ? "selected" : ""}" type="button" data-action="select-wish-icon" data-wish-icon="${escapeHtml(icon)}" aria-label="Symbol ${escapeHtml(icon)} auswählen" title="${escapeHtml(group.title)}">${icon}</button>`).join("")}
+        </div>
+      </section>`).join("");
+  }
+
+  function setWishEditorIcon(value, { keepCustomText = false } = {}) {
+    const icon = normalizeWishIcon(value);
+    const input = document.querySelector("#wishIconValue");
+    const preview = document.querySelector("#wishIconPreview");
+    const customInput = document.querySelector("#wishCustomIcon");
+    if (input) input.value = icon;
+    if (preview) preview.textContent = icon;
+    document.querySelectorAll(".wish-symbol-option").forEach(button => button.classList.toggle("selected", button.dataset.wishIcon === icon));
+    if (customInput && !keepCustomText) customInput.value = WISH_ICONS.includes(icon) ? "" : icon;
+    setSimpleFormStatus("wishForm", "");
+    return icon;
+  }
+
   function openWishEditor(wishId = null) {
     const wish = wishId ? wishById(wishId) : null;
     if (wishId && !wish) {
       showToast("Dieser Wunsch wurde nicht gefunden. Bitte die Ansicht neu laden.");
       return;
     }
+    const selectedIcon = normalizeWishIcon(wish?.icon || "🎁");
     openModal(wish ? "Wunsch bearbeiten" : "Wunsch anlegen", `
-      <form id="wishForm" novalidate><input type="hidden" name="id" value="${escapeHtml(wishId || "")}">
+      <form id="wishForm" novalidate><input type="hidden" name="id" value="${escapeHtml(wishId || "")}"><input type="hidden" name="icon" id="wishIconValue" value="${escapeHtml(selectedIcon)}">
         <div class="form-grid">
-          <div class="form-field"><label>Symbol</label><input name="icon" value="${escapeHtml(wish?.icon || "🎁")}" maxlength="4"></div>
+          <div class="form-field full">
+            <label>Symbol oder Emoji auswählen</label>
+            <div class="wish-symbol-current"><span id="wishIconPreview" class="wish-symbol-preview" aria-hidden="true">${escapeHtml(selectedIcon)}</span><div><strong>Gewähltes Symbol</strong><p class="muted tiny">Tippe unten auf ein Symbol. Es erscheint später im Wunschladen und bei der Freigabe.</p></div></div>
+            <div class="wish-symbol-picker">${renderWishIconPicker(selectedIcon)}</div>
+            <div class="wish-custom-symbol">
+              <input id="wishCustomIcon" type="text" inputmode="text" maxlength="16" value="${WISH_ICONS.includes(selectedIcon) ? "" : escapeHtml(selectedIcon)}" placeholder="Eigenes Emoji, z. B. 🐉" aria-label="Eigenes Emoji eingeben">
+              <button class="ghost-button small-button" type="button" data-action="use-custom-wish-icon">Eigenes Emoji übernehmen</button>
+            </div>
+          </div>
           <div class="form-field"><label>Kosten in Münzen</label><input name="cost" type="number" min="1" max="999" value="${wish?.cost ?? 20}"></div>
           <div class="form-field full"><label>Wunsch</label><input name="title" value="${escapeHtml(wish?.title || "")}" required maxlength="80"></div>
           <div class="form-field full"><label>Hinweis für Kind und Team</label><textarea name="note" maxlength="240">${escapeHtml(wish?.note || "")}</textarea></div>
         </div>
         <p class="form-save-status" role="status" aria-live="polite"></p>
         <div class="modal-actions">${wish ? `<button class="danger-button" type="button" data-action="delete-wish-prompt" data-wish-id="${wish.id}">Wunsch löschen</button>` : ""}<span class="modal-action-spacer"></span><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="button" data-action="save-wish">Speichern</button></div>
-      </form>`);
+      </form>`, { wide:true });
 
     const wishForm = document.querySelector("#wishForm");
     if (wishForm) {
@@ -1978,6 +2030,14 @@
         event.stopPropagation();
         saveWishFromForm(wishForm);
       }, { once:true });
+    }
+    const customInput = document.querySelector("#wishCustomIcon");
+    if (customInput) {
+      customInput.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        setWishEditorIcon(customInput.value, { keepCustomText:true });
+      });
     }
   }
 
@@ -2288,6 +2348,13 @@
         break;
       }
       case "open-wish-editor": openWishEditor(actionElement.dataset.wishId || null); break;
+      case "select-wish-icon": setWishEditorIcon(actionElement.dataset.wishIcon); break;
+      case "use-custom-wish-icon": {
+        const customInput = document.querySelector("#wishCustomIcon");
+        if (!customInput?.value.trim()) { setSimpleFormStatus("wishForm", "Bitte zuerst ein eigenes Emoji eingeben.", true); break; }
+        setWishEditorIcon(customInput.value, { keepCustomText:true });
+        break;
+      }
       case "save-wish": saveWishFromForm(document.querySelector("#wishForm")); break;
       case "toggle-wish-active": {
         const wish = wishById(actionElement.dataset.wishId); if (wish) { wish.active = !wish.active; saveData({ snapshot:true }); render(); }

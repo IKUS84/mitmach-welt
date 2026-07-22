@@ -436,3 +436,24 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .form-save-status:empty { display:none; }
 .form-save-status.error { background:#fff0f0; color:#8d1f1f; }
 .form-save-status.success { background:#eefaf0; color:#276b36; }
+
+/* Version 2.2.2 – Symbolauswahl im Wunschladen */
+.wish-symbol-current { display:flex;align-items:center;gap:13px;margin-top:8px;padding:12px 14px;border:1px solid var(--line);border-radius:18px;background:#fff; }
+.wish-symbol-current p { margin:3px 0 0; }
+.wish-symbol-preview { flex:0 0 auto;width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:#fff1b8;border:1px solid #e9c752;font-size:2.25rem;box-shadow:var(--shadow-soft); }
+.wish-symbol-picker { margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.64);max-height:330px;overflow:auto; }
+.wish-symbol-group + .wish-symbol-group { margin-top:14px; }
+.wish-symbol-group h4 { margin:0 0 7px;font-size:.88rem;color:var(--muted); }
+.wish-symbol-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:7px; }
+.wish-symbol-option { min-width:0;aspect-ratio:1;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:1.55rem;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease; }
+.wish-symbol-option:hover { transform:translateY(-1px);box-shadow:var(--shadow-soft); }
+.wish-symbol-option.selected { background:#fff0b8;border-color:#dbae22;box-shadow:0 0 0 3px rgba(238,197,64,.22); }
+.wish-custom-symbol { display:flex;gap:9px;align-items:stretch;margin-top:10px; }
+.wish-custom-symbol input { flex:1;min-width:0; }
+.wish-custom-symbol button { white-space:nowrap; }
+@media (max-width:560px) {
+  .wish-symbol-picker { max-height:290px; }
+  .wish-symbol-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .wish-custom-symbol { flex-direction:column; }
+  .wish-custom-symbol button { width:100%; }
+}
