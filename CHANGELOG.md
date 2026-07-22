@@ -1,6 +1,23 @@
 # Änderungsverlauf
 
-## Version 2.2.2 – Symbole für Wünsche
+## Version 2.4.0 – Alltagspaket und Belohnungskatalog
+
+- 23 vorgefertigte Aufgaben mit passenden Symbolen ergänzt.
+- Aufgaben in Haushalt, Zimmer & Ordnung, Außenbereich, Schule & Lernen und Sonstiges geordnet.
+- Außenstreifen reinigen und Spieleschuppen aufräumen als höher belohnte Aufgaben ergänzt.
+- Münz- und Samenwerte insgesamt reduziert.
+- Kein Tageslimit eingebaut; jede verfügbare und bestätigte Aufgabe wird belohnt.
+- 21 vorgefertigte Belohnungen ergänzt.
+- Belohnungen in kleine, mittlere und große Belohnungen gegliedert.
+- Belohnungen können Münzen, Samen oder beide Währungen kosten.
+- Vormerkung, Ablehnung und Erstattung berücksichtigen jetzt beide Währungen.
+- Kategorien werden im Kinder- und Erzieherbereich sichtbar gruppiert.
+- Versehendlich bestätigte Aufgaben können vollständig zurückgenommen werden.
+- Beim Update wird der neue Katalog automatisch ergänzt, ohne eigene Daten zu überschreiben.
+- Wetter, Symbolbibliotheken, Kontokorrektur, Verlauf, Synchronisierung und Altersregeln aus Version 2.3.0 bleiben erhalten.
+- Offline-Cache und Versionskennung auf 2.4.0 angehoben.
+
+## Version 2.3.0 – Symbole für Wünsche
 
 - 96 auswählbare Emojis für Wünsche ergänzt.
 - Symbole in sechs übersichtliche Bereiche sortiert.
@@ -8,7 +25,7 @@
 - Eigenes Emoji kann weiterhin eingegeben und übernommen werden.
 - Vorhandene Wünsche können nachträglich mit einem anderen Symbol gespeichert werden.
 - Speicher- und Löschfunktionen aus Version 2.2.1 bleiben unverändert erhalten.
-- Offline-Cache und Versionskennung wurden auf 2.2.2 angehoben.
+- Offline-Cache und Versionskennung wurden auf 2.3.0 angehoben.
 
 # Änderungsprotokoll
 
@@ -89,3 +106,10 @@ Diese Version nutzt für den schnellen Testbetrieb einen öffentlichen Übertrag
 - Fehler beim Anlegen und Speichern neuer Kinderprofile behoben.
 - Speichervorgang wird direkt geprüft.
 - Offline-Cache aktualisiert.
+
+## 2.3.0
+- Wettervorschau für Lübben: heute, morgen und übermorgen
+- Grafische Symbolauswahl für Tagesmissionen
+- Kontoverwaltung für Münzen, Samen und Sterne
+- Manuelle Plus-/Minus-Korrekturen mit Begründung und Verlauf
+- Sicherheitsabfrage vor Abzügen
