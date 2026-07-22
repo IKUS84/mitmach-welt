@@ -1,19 +1,28 @@
 (() => {
   "use strict";
 
+  const APP_VERSION = "2.0.0";
+  const SCHEMA_VERSION = 2;
   const STORAGE_KEY = "mitmach_welt_state_v1";
-  const APP_VERSION = "1.1.0";
+  const BACKUP_KEY = "mitmach_welt_state_backup_v1";
+  const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
+  const BACKUP_RING_KEY = "mitmach_welt_backup_ring_v2";
   const DAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const FULL_DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
-
-  const AVATARS = {
-    Tiere: ["🦊","🐼","🦁","🐸","🐨","🐯","🐰","🐧","🐙","🦋","🐬","🦈","🐳","🦖","🦕","🐲","🐉","🦜","🦉","🐝","🐞","🐢","🦔","🦦","🦥","🐿️","🐘","🦒","🦓","🦘","🐆","🐺","🐻‍❄️","🐵","🐴","🦭"],
-    Fantasie: ["🦄","🧚‍♀️","🧚‍♂️","🧜‍♀️","🧜‍♂️","🧙‍♀️","🧙‍♂️","🦸‍♀️","🦸‍♂️","👸","🤴","👑","🌈","⭐","🌙","☀️","🌻","🍄","🔮","🏰","🪄","🐈‍⬛","🪽","🌟"],
-    Menschen: ["👧","👦","🧒","👩‍🚀","👨‍🚀","👩‍🎨","👨‍🎨","👩‍🚒","👨‍🚒","👩‍🔬","👨‍🔬","👩‍🍳","👨‍🍳","👩‍🌾","👨‍🌾","🥷","🤠","🧑‍🎤","🧑‍🔧","🧑‍🏫","🧑‍⚕️","🧑‍🚀","🧑‍🎨","🧑‍🍳"],
-    Spaß: ["🤖","👻","👽","🎃","⛄","🌵","🍓","🍉","🍭","⚽","🏀","🎸","🎨","🚲","🚀","🛸","⛵","🎠","🧸","🎈","🎮","🛹","🎪","🎁"]
+  const GOAL_RESULTS = {
+    achieved: { label: "Geschafft", icon: "🌟" },
+    partial: { label: "Teilweise", icon: "🌱" },
+    notYet: { label: "Heute noch nicht", icon: "🌤️" }
   };
 
-  const ACCENT_COLORS = ["#e96f82","#ef9f46","#f1c64d","#72ad67","#4fae98","#55a5d5","#7088dc","#9872d4","#d070ba","#a78061","#6e927d","#ef7d61"];
+  const AVATARS = {
+    "Tiere": ["🦄","🦊","🐼","🦁","🐸","🐨","🐯","🐰","🐧","🐙","🦋","🐬","🦈","🐳","🦖","🦕","🐲","🐉","🦜","🦉","🐝","🐞","🐢","🦔","🦦","🦥","🐿️","🐘","🦒","🦓","🦘","🐆","🐺","🐻‍❄️","🐵","🐴","🦭","🐶","🐱","🐭","🐹","🐻","🐮","🐷","🐽","🐗","🐔","🐣","🐤","🐦","🦆","🦅","🦇","🐴","🫎","🫏","🐝","🪲","🦗","🕷️","🦂","🐌","🐛","🪱","🐠","🐟","🐡","🦀","🦞","🦐","🦑","🐊","🐍","🦎","🐇","🦝","🦨","🦡","🦫","🦙","🐐","🦌","🐕","🐈","🐓","🦃","🦚","🦩","🕊️","🐏","🐑","🐃","🐂","🐄","🐎","🐖","🐒","🦍","🦧"],
+    "Fantasie": ["🧚‍♀️","🧚‍♂️","🧜‍♀️","🧜‍♂️","🧙‍♀️","🧙‍♂️","🦸‍♀️","🦸‍♂️","👸","🤴","👑","🌈","⭐","🌙","☀️","🌻","🍄","🔮","🏰","🪄","🐈‍⬛","🪽","🌟","✨","🌠","🌌","☄️","🧞‍♀️","🧞‍♂️","🧝‍♀️","🧝‍♂️","🧛‍♀️","🧛‍♂️","🧟‍♀️","🧟‍♂️","🧌","👼","🎅","🤶","🧑‍🎄","🪅","🧿","🪬","🗿","🪐","🌛","🌜","🌝","🌞","💫","⚡","🔥","❄️","🌊","💎","🪩","🎇","🎆","🏯","🕌","⛩️","🛕","🗼","🗽","🎪","🎠","🎡","🎢"],
+    "Menschen": ["👧","👦","🧒","👩‍🚀","👨‍🚀","👩‍🎨","👨‍🎨","👩‍🚒","👨‍🚒","👩‍🔬","👨‍🔬","👩‍🍳","👨‍🍳","👩‍🌾","👨‍🌾","🥷","🤠","🧑‍🎤","🧑‍🔧","🧑‍🏫","🧑‍⚕️","🧑‍🚀","🧑‍🎨","🧑‍🍳","🧑‍🌾","🧑‍🚒","🧑‍🔬","🧑‍💻","🧑‍🎓","🧑‍⚖️","🧑‍✈️","🧑‍🚀","🧑‍🎨","🧑‍🦰","🧑‍🦱","🧑‍🦳","🧑‍🦲","👱‍♀️","👱‍♂️","🙋‍♀️","🙋‍♂️","💁‍♀️","💁‍♂️","🙆‍♀️","🙆‍♂️","🧘‍♀️","🧘‍♂️","🏃‍♀️","🏃‍♂️","🚴‍♀️","🚴‍♂️","🏊‍♀️","🏊‍♂️","🤸‍♀️","🤸‍♂️","⛹️‍♀️","⛹️‍♂️","🤾‍♀️","🤾‍♂️","🧗‍♀️","🧗‍♂️","🏄‍♀️","🏄‍♂️","⛷️","🏂","🏋️‍♀️","🏋️‍♂️","🤹‍♀️","🤹‍♂️"],
+    "Spaß": ["🤖","👻","👽","🎃","⛄","🌵","🍓","🍉","🍭","⚽","🏀","🎸","🎨","🚲","🚀","🛸","⛵","🎠","🧸","🎈","🎮","🛹","🎪","🎁","🚒","🚑","🚜","🏎️","🚂","🚁","🛶","🏝️","🏕️","🗺️","🧭","🎯","🎳","🪁","🛝","🛼","🛷","🥁","🎺","🎷","🎻","🪕","🎹","🎧","📚","🔭","🔬","🧪","🧩","♟️","🎲","🪄","🧙","🍕","🍔","🍟","🌮","🍦","🧁","🍪","🍩","🍫","🍿","🥨","🥞","🍎","🍒","🍍","🥕","🌽","🥦","🫐","🥝","🥥"]
+  };
+
+  const ACCENT_COLORS = ["#e96f82","#ef9f46","#f1c64d","#72ad67","#4fae98","#55a5d5","#7088dc","#9872d4","#d070ba","#a78061","#6e927d","#ef7d61","#66b4c2","#b189d1","#d58e63","#86a75c"];
   const WORLD_THEMES = [
     { id: "meadow", icon: "🌻", title: "Blumenwiese", description: "Wiese, Bäume und Tiere" },
     { id: "magic", icon: "🦄", title: "Zauberwald", description: "Pilze, Sterne und Magie" },
@@ -22,123 +31,201 @@
     { id: "dino", icon: "🦕", title: "Dinotal", description: "Dinos, Urwald und Vulkan" },
     { id: "farm", icon: "🚜", title: "Bauernhof", description: "Tiere, Felder und Scheune" }
   ];
+  const TASK_ICONS = ["✅","🛏️","🍽️","🧸","🧺","🪴","🧹","🗑️","🐾","📚","🚿","👕","🍳","🧽","🪥","🥤","🧼","🧻","🪣","🌿","🥕","🛒","📦","🎒","👟","🪟","🧑‍🍳","🧑‍🤝‍🧑","🧤","🪥","🧯","🧰","🧺","🫧","🪴","🚲","🏡","🧑‍🌾"];
+  const GOAL_ICONS = ["🌱","🌟","❤️","🤝","😌","👂","💬","🧠","🎒","🪥","🧸","📚","🧹","😊","🫶","⏰","🌈","🪴","🧘","🎯"];
+  const COMPETENCES = ["Selbstständigkeit","Zusammenarbeit","Ordnung","Hilfsbereitschaft","Verantwortung","Konzentration","Kommunikation","Kreativität","Selbstregulation","Rücksichtnahme"];
 
-  const TASK_ICONS = ["✅","🛏️","🍽️","🧸","🧺","🪴","🧹","🗑️","🐾","📚","🚿","👕","🍳","🧽","🪥","🥤","🧼","🧻","🪣","🌿","🥕","🛒","📦","🎒","👟","🪟","🧑‍🍳","🧑‍🤝‍🧑"];
-  const COMPETENCES = ["Selbstständigkeit","Zusammenarbeit","Ordnung","Hilfsbereitschaft","Verantwortung","Konzentration","Kommunikation","Kreativität"];
+  const WORLD_ITEMS = [
+    { id:"daisy", icon:"🌼", title:"Gänseblümchen", seedCost:5, category:"Pflanzen", description:"Eine kleine helle Blüte." },
+    { id:"tulip", icon:"🌷", title:"Tulpenbeet", seedCost:9, category:"Pflanzen", description:"Bunte Blumen für die Wiese." },
+    { id:"sunflower", icon:"🌻", title:"Sonnenblume", seedCost:12, category:"Pflanzen", description:"Das Zeichen der Mitmach-Welt." },
+    { id:"rose", icon:"🌹", title:"Rosenbusch", seedCost:16, category:"Pflanzen", description:"Duftet in der ganzen Welt." },
+    { id:"tree", icon:"🌳", title:"Großer Baum", seedCost:24, category:"Natur", description:"Spendet Schatten und wächst mit." },
+    { id:"pine", icon:"🌲", title:"Tannenbaum", seedCost:22, category:"Natur", description:"Bleibt das ganze Jahr grün." },
+    { id:"mushroom", icon:"🍄", title:"Pilzecke", seedCost:14, category:"Natur", description:"Ein geheimnisvoller Platz." },
+    { id:"butterfly", icon:"🦋", title:"Schmetterling", seedCost:18, category:"Tiere", description:"Fliegt von Blüte zu Blüte." },
+    { id:"squirrel", icon:"🐿️", title:"Eichhörnchen", seedCost:28, category:"Tiere", description:"Sammelt Vorräte im Baum." },
+    { id:"bird", icon:"🐦", title:"Kleiner Vogel", seedCost:20, category:"Tiere", description:"Singt morgens in der Welt." },
+    { id:"rabbit", icon:"🐇", title:"Häschen", seedCost:30, category:"Tiere", description:"Hoppelt über die Wiese." },
+    { id:"fox", icon:"🦊", title:"Welt-Fuchs", seedCost:38, category:"Tiere", description:"Ein neugieriger Besucher." },
+    { id:"bench", icon:"🪑", title:"Gartenbank", seedCost:20, category:"Deko", description:"Ein ruhiger Platz zum Ausruhen." },
+    { id:"birdhouse", icon:"🏠", title:"Vogelhaus", seedCost:24, category:"Deko", description:"Ein Zuhause für kleine Vögel." },
+    { id:"swing", icon:"🎠", title:"Schaukel", seedCost:32, category:"Deko", description:"Bewegung für die Welt." },
+    { id:"lantern", icon:"🏮", title:"Laterne", seedCost:18, category:"Deko", description:"Leuchtet am Abend." },
+    { id:"windmill", icon:"🎡", title:"Windrad", seedCost:25, category:"Deko", description:"Dreht sich im Wind." },
+    { id:"fountain", icon:"⛲", title:"Brunnen", seedCost:42, category:"Bauwerke", description:"Plätschert leise vor sich hin." },
+    { id:"tent", icon:"⛺", title:"Abenteuerzelt", seedCost:34, category:"Bauwerke", description:"Für besondere Geschichten." },
+    { id:"telescope", icon:"🔭", title:"Fernrohr", seedCost:36, category:"Deko", description:"Damit lässt sich viel entdecken." },
+    { id:"kite", icon:"🪁", title:"Drachen", seedCost:22, category:"Deko", description:"Fliegt hoch über der Welt." },
+    { id:"boat", icon:"⛵", title:"Kleines Boot", seedCost:38, category:"Bauwerke", description:"Bereit für neue Abenteuer." },
+    { id:"house", icon:"🏡", title:"Kleines Haus", seedCost:58, category:"Bauwerke", description:"Ein gemütlicher Mittelpunkt." },
+    { id:"treehouse", icon:"🌳", title:"Baumhaus", seedCost:80, category:"Bauwerke", description:"Ein großer Meilenstein." },
+    { id:"rainbow", icon:"🌈", title:"Regenbogen", starCost:2, category:"Sternenschatz", description:"Nur mit besonderen Sternen erhältlich." },
+    { id:"unicorn", icon:"🦄", title:"Zauber-Einhorn", starCost:3, category:"Sternenschatz", description:"Ein sehr seltener Gast." },
+    { id:"dragon", icon:"🐉", title:"Kleiner Drache", starCost:4, category:"Sternenschatz", description:"Bewacht die persönliche Welt." },
+    { id:"castle", icon:"🏰", title:"Sternenschloss", starCost:5, category:"Sternenschatz", description:"Eine besondere Auszeichnung." }
+  ];
 
-  const SHOP_ITEMS = [
-    { id: "bench", icon: "🪑", title: "Gartenbank", cost: 18, description: "Ein ruhiger Platz zum Ausruhen." },
-    { id: "birdhouse", icon: "🏠", title: "Vogelhaus", cost: 22, description: "Lockt kleine Vögel an." },
-    { id: "swing", icon: "🎠", title: "Schaukel", cost: 28, description: "Bewegung für die Welt." },
-    { id: "lantern", icon: "🏮", title: "Laterne", cost: 16, description: "Leuchtet am Abend." },
-    { id: "windmill", icon: "🎡", title: "Windrad", cost: 24, description: "Dreht sich im Wind." },
-    { id: "fountain", icon: "⛲", title: "Brunnen", cost: 36, description: "Plätschert leise vor sich hin." },
-    { id: "tent", icon: "⛺", title: "Abenteuerzelt", cost: 30, description: "Für besondere Geschichten." },
-    { id: "telescope", icon: "🔭", title: "Fernrohr", cost: 34, description: "Damit lässt sich viel entdecken." },
-    { id: "kite", icon: "🪁", title: "Drachen", cost: 20, description: "Fliegt hoch über der Welt." },
-    { id: "boat", icon: "⛵", title: "Kleines Boot", cost: 32, description: "Bereit für neue Inseln." },
-    { id: "rainbow", icon: "🌈", title: "Regenbogenzauber", cost: 45, description: "Ein seltenes Leuchten am Himmel." },
-    { id: "treehouse", icon: "🏡", title: "Baumhaus", cost: 55, description: "Ein großer Meilenstein." }
+  const GROUP_MILESTONES = [
+    { points:3, icon:"🌼", title:"Gemeinschaftsbeet" },
+    { points:6, icon:"🪑", title:"Gemeinsame Gartenbank" },
+    { points:10, icon:"🌳", title:"Großer Gruppenbaum" },
+    { points:16, icon:"⛲", title:"Brunnenplatz" },
+    { points:24, icon:"🎠", title:"Gruppenschaukel" },
+    { points:35, icon:"🏡", title:"Gemeinschaftshaus" },
+    { points:50, icon:"🌈", title:"Regenbogen über der Gruppe" }
+  ];
+
+  const DEFAULT_WISHES = [
+    { id:"story", icon:"📖", title:"Gute-Nacht-Geschichte aussuchen", cost:15, active:true, note:"Gemeinsam mit einem Erzieher einlösen." },
+    { id:"game", icon:"🎲", title:"Ein Spiel aussuchen", cost:20, active:true, note:"Für eine gemeinsame Spielzeit." },
+    { id:"awake", icon:"🌙", title:"15 Minuten länger wach bleiben", cost:40, active:true, note:"Nur wenn es an diesem Tag pädagogisch und organisatorisch passt." },
+    { id:"movie", icon:"🍿", title:"Film mitbestimmen", cost:50, active:true, note:"Für den nächsten passenden Filmabend." },
+    { id:"food", icon:"🍝", title:"Wunschessen mitbestimmen", cost:70, active:true, note:"Im Rahmen des Speiseplans gemeinsam abstimmen." }
   ];
 
   const DEFAULTS = {
-    version: APP_VERSION,
+    schemaVersion: SCHEMA_VERSION,
+    appVersion: APP_VERSION,
     settings: {
       groupName: "Unsere Gruppe",
       pin: "2468",
       sound: true,
       haptics: true,
       reduceMotion: false,
-      teamBonus: true,
-      showStories: true,
-      weatherMode: "auto"
+      allowCoinSeedExchange: true,
+      exchangeCoins: 10,
+      exchangeSeeds: 5,
+      communitySeedThreshold: 100,
+      communityCoinThreshold: 250
     },
     children: [
-      { id: "lucy", name: "Lucy", avatar: "🦄", accent: "#d070ba", theme: "magic", coins: 24, seeds: 7, completed: 4, kindness: 1, inventory: ["lantern"], createdAt: Date.now() - 86400000 * 10 },
-      { id: "noah", name: "Noah", avatar: "🐼", accent: "#55a5d5", theme: "meadow", coins: 18, seeds: 5, completed: 3, kindness: 0, inventory: [], createdAt: Date.now() - 86400000 * 9 },
-      { id: "tius", name: "Tius", avatar: "🦁", accent: "#ef9f46", theme: "dino", coins: 13, seeds: 4, completed: 2, kindness: 0, inventory: [], createdAt: Date.now() - 86400000 * 8 },
-      { id: "jari", name: "Jari", avatar: "🐸", accent: "#72ad67", theme: "farm", coins: 16, seeds: 6, completed: 3, kindness: 1, inventory: [], createdAt: Date.now() - 86400000 * 7 }
+      { id:"lucy", name:"Lucy", avatar:"🦄", accent:"#d070ba", theme:"magic", coins:24, seeds:7, stars:0, completed:4, inventory:["lantern"], active:true, createdAt:Date.now()-86400000*10 },
+      { id:"noah", name:"Noah", avatar:"🐼", accent:"#55a5d5", theme:"meadow", coins:18, seeds:5, stars:0, completed:3, inventory:[], active:true, createdAt:Date.now()-86400000*9 },
+      { id:"tius", name:"Tius", avatar:"🦁", accent:"#ef9f46", theme:"dino", coins:13, seeds:4, stars:0, completed:2, inventory:[], active:true, createdAt:Date.now()-86400000*8 },
+      { id:"jari", name:"Jari", avatar:"🐸", accent:"#72ad67", theme:"farm", coins:16, seeds:6, stars:0, completed:3, inventory:[], active:true, createdAt:Date.now()-86400000*7 }
     ],
     tasks: [
-      { id: "bed", title: "Bett machen", icon: "🛏️", category: "Zimmer", competence: "Selbstständigkeit", difficulty: 1, coins: 5, seeds: 1, capacity: 1, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "table", title: "Tisch decken", icon: "🍽️", category: "Gemeinschaft", competence: "Verantwortung", difficulty: 2, coins: 6, seeds: 1, capacity: 2, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "toys", title: "Spielsachen aufräumen", icon: "🧸", category: "Ordnung", competence: "Ordnung", difficulty: 1, coins: 5, seeds: 1, capacity: 1, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "laundry", title: "Wäsche einsammeln", icon: "🧺", category: "Zimmer", competence: "Selbstständigkeit", difficulty: 2, coins: 6, seeds: 1, capacity: 1, active: true, days: [1,3,5] },
-      { id: "plants", title: "Blumen gießen", icon: "🪴", category: "Natur", competence: "Verantwortung", difficulty: 1, coins: 4, seeds: 1, capacity: 1, active: true, days: [1,3,5,0] },
-      { id: "room", title: "Zimmer aufräumen", icon: "🧹", category: "Ordnung", competence: "Ordnung", difficulty: 3, coins: 8, seeds: 2, capacity: 1, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "trash", title: "Müll rausbringen", icon: "🗑️", category: "Gemeinschaft", competence: "Hilfsbereitschaft", difficulty: 2, coins: 6, seeds: 1, capacity: 1, active: true, days: [1,3,5,0] },
-      { id: "animals", title: "Tiere versorgen", icon: "🐾", category: "Verantwortung", competence: "Verantwortung", difficulty: 3, coins: 8, seeds: 2, capacity: 2, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "dishes", title: "Geschirr wegräumen", icon: "🧽", category: "Gemeinschaft", competence: "Zusammenarbeit", difficulty: 2, coins: 6, seeds: 1, capacity: 2, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "schoolbag", title: "Schulranzen vorbereiten", icon: "🎒", category: "Schule", competence: "Selbstständigkeit", difficulty: 2, coins: 6, seeds: 1, capacity: 1, active: true, days: [0,1,2,3,4] },
-      { id: "shoes", title: "Schuhe ordentlich hinstellen", icon: "👟", category: "Ordnung", competence: "Ordnung", difficulty: 1, coins: 4, seeds: 1, capacity: 2, active: true, days: [0,1,2,3,4,5,6] },
-      { id: "teamroom", title: "Gemeinschaftsraum gemeinsam aufräumen", icon: "🧑‍🤝‍🧑", category: "Teamaufgabe", competence: "Zusammenarbeit", difficulty: 3, coins: 9, seeds: 2, capacity: 3, active: true, days: [0,3,6] }
+      { id:"bed", title:"Bett machen", icon:"🛏️", category:"Zimmer", competence:"Selbstständigkeit", coins:5, seeds:2, stars:0, requiredChildren:1, repeatMode:"perChild", communityPoints:0, active:true, days:[0,1,2,3,4,5,6], instructions:"" },
+      { id:"table", title:"Tisch decken", icon:"🍽️", category:"Gemeinschaft", competence:"Verantwortung", coins:6, seeds:2, stars:0, requiredChildren:1, repeatMode:"shared", communityPoints:0, active:true, days:[0,1,2,3,4,5,6], instructions:"" },
+      { id:"toys", title:"Spielsachen aufräumen", icon:"🧸", category:"Ordnung", competence:"Ordnung", coins:5, seeds:2, stars:0, requiredChildren:1, repeatMode:"perChild", communityPoints:0, active:true, days:[0,1,2,3,4,5,6], instructions:"" },
+      { id:"plants", title:"Blumen gießen", icon:"🪴", category:"Natur", competence:"Verantwortung", coins:4, seeds:3, stars:0, requiredChildren:1, repeatMode:"shared", communityPoints:0, active:true, days:[0,1,3,5], instructions:"" },
+      { id:"room", title:"Zimmer aufräumen", icon:"🧹", category:"Ordnung", competence:"Ordnung", coins:8, seeds:3, stars:0, requiredChildren:1, repeatMode:"perChild", communityPoints:0, active:true, days:[0,1,2,3,4,5,6], instructions:"" },
+      { id:"trash", title:"Müll rausbringen", icon:"🗑️", category:"Gemeinschaft", competence:"Hilfsbereitschaft", coins:6, seeds:2, stars:0, requiredChildren:1, repeatMode:"shared", communityPoints:0, active:true, days:[0,1,2,3,4,5,6], instructions:"" },
+      { id:"animals", title:"Tiere versorgen", icon:"🐾", category:"Verantwortung", competence:"Verantwortung", coins:8, seeds:4, stars:0, requiredChildren:2, repeatMode:"shared", communityPoints:1, active:true, days:[0,1,2,3,4,5,6], instructions:"Gemeinsam schauen, was die Tiere brauchen." },
+      { id:"yard", title:"Hof sauber machen", icon:"🧤", category:"Teamaufgabe", competence:"Zusammenarbeit", coins:10, seeds:5, stars:0, requiredChildren:3, repeatMode:"shared", communityPoints:2, active:true, days:[0,3,6], instructions:"Aufgaben untereinander fair aufteilen." },
+      { id:"commonroom", title:"Gemeinschaftsraum aufräumen", icon:"🧑‍🤝‍🧑", category:"Teamaufgabe", competence:"Zusammenarbeit", coins:9, seeds:4, stars:0, requiredChildren:2, repeatMode:"shared", communityPoints:1, active:true, days:[0,2,4,6], instructions:"Gemeinsam beginnen und gemeinsam fertig werden." }
     ],
-    group: { points: 12, completedRounds: 1, kindnessFlowers: 2, inventory: [] },
-    round: null,
-    history: [],
-    lastOrders: []
+    personalGoals: [
+      { id:"goal_lucy_friendly", childId:"lucy", icon:"❤️", title:"Ich achte auf einen freundlichen Umgang.", active:true, achievedCoins:5, achievedSeeds:4, achievedStars:0, partialCoins:2, partialSeeds:1, createdAt:Date.now() },
+      { id:"goal_lucy_calm", childId:"lucy", icon:"😌", title:"Ich versuche ruhig zu bleiben, wenn etwas nicht klappt.", active:true, achievedCoins:5, achievedSeeds:4, achievedStars:1, partialCoins:2, partialSeeds:1, createdAt:Date.now() }
+    ],
+    claims: [],
+    goalEvaluations: [],
+    notifications: [],
+    wishRequests: [],
+    wishes: DEFAULT_WISHES,
+    group: {
+      communityPoints: 0,
+      seedProgress: 0,
+      coinProgress: 0,
+      totalSeedsEarned: 0,
+      totalCoinsEarned: 0,
+      inventory: []
+    },
+    rounds: [],
+    lastOrders: [],
+    history: []
   };
 
   const ui = {
     screen: "home",
-    history: [],
-    selectedChildren: [],
-    orderPreview: [],
+    navStack: [],
+    childId: null,
+    shopTab: "world",
     educatorUnlocked: false,
-    educatorTab: "children",
-    worldChildId: null,
-    worldTab: "scene",
+    educatorTab: "review",
     avatarCategory: "Tiere",
-    suggestedTaskId: null,
-    pendingServiceWorker: null
+    editingChildId: null,
+    editingTaskId: null,
+    editingGoalId: null,
+    editingWishId: null,
+    roundDraft: null
   };
 
-  const $ = selector => document.querySelector(selector);
-  const $$ = selector => [...document.querySelectorAll(selector)];
-  const app = $("#app");
-  const screenTitle = $("#screenTitle");
-  const backButton = $("#backButton");
-  const homeButton = $("#homeButton");
-  const modalRoot = $("#modalRoot");
-  const toast = $("#toast");
-  const confettiRoot = $("#confettiRoot");
-  const updateBanner = $("#updateBanner");
+  const app = document.querySelector("#app");
+  const screenTitle = document.querySelector("#screenTitle");
+  const backButton = document.querySelector("#backButton");
+  const homeButton = document.querySelector("#homeButton");
+  const modalRoot = document.querySelector("#modalRoot");
+  const toast = document.querySelector("#toast");
+  const confettiRoot = document.querySelector("#confettiRoot");
+  const updateBanner = document.querySelector("#updateBanner");
 
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id_${Date.now()}_${Math.random().toString(16).slice(2)}`);
-  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const todayKey = () => new Date().toISOString().slice(0, 10);
-  const formatDateTime = timestamp => new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
+  const todayKey = () => localDateKey(new Date());
+  const localDateKey = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth()+1).padStart(2,"0");
+    const day = String(date.getDate()).padStart(2,"0");
+    return `${year}-${month}-${day}`;
+  };
+  const formatDate = key => new Intl.DateTimeFormat("de-DE", { weekday:"long", day:"2-digit", month:"2-digit", year:"numeric" }).format(new Date(`${key}T12:00:00`));
+  const formatDateTime = timestamp => new Intl.DateTimeFormat("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }).format(new Date(timestamp));
   const dayIndex = () => new Date().getDay();
+
+  function readJson(key) {
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
+    catch { return null; }
+  }
 
   function normalizeData(raw) {
     const base = clone(DEFAULTS);
     if (!raw || typeof raw !== "object") return base;
 
+    const migratedGroup = raw.group || {};
     const merged = {
       ...base,
       ...raw,
+      schemaVersion: SCHEMA_VERSION,
+      appVersion: APP_VERSION,
       settings: { ...base.settings, ...(raw.settings || {}) },
-      group: { ...base.group, ...(raw.group || {}) },
+      group: {
+        ...base.group,
+        ...migratedGroup,
+        communityPoints: Number(migratedGroup.communityPoints ?? migratedGroup.points ?? 0),
+        inventory: Array.isArray(migratedGroup.inventory) ? migratedGroup.inventory : []
+      },
       children: Array.isArray(raw.children) ? raw.children : base.children,
       tasks: Array.isArray(raw.tasks) ? raw.tasks : base.tasks,
-      history: Array.isArray(raw.history) ? raw.history : [],
-      lastOrders: Array.isArray(raw.lastOrders) ? raw.lastOrders : []
+      personalGoals: Array.isArray(raw.personalGoals) ? raw.personalGoals : [],
+      claims: Array.isArray(raw.claims) ? raw.claims : [],
+      goalEvaluations: Array.isArray(raw.goalEvaluations) ? raw.goalEvaluations : [],
+      notifications: Array.isArray(raw.notifications) ? raw.notifications : [],
+      wishRequests: Array.isArray(raw.wishRequests) ? raw.wishRequests : [],
+      wishes: Array.isArray(raw.wishes) && raw.wishes.length ? raw.wishes : clone(DEFAULT_WISHES),
+      rounds: Array.isArray(raw.rounds) ? raw.rounds : [],
+      lastOrders: Array.isArray(raw.lastOrders) ? raw.lastOrders : [],
+      history: Array.isArray(raw.history) ? raw.history : []
     };
 
     merged.children = merged.children.map((child, index) => ({
       id: child.id || uid(),
-      name: child.name || `Kind ${index + 1}`,
+      name: child.name || `Kind ${index+1}`,
       avatar: child.avatar || "🙂",
       accent: child.accent || child.color || ACCENT_COLORS[index % ACCENT_COLORS.length],
       theme: WORLD_THEMES.some(theme => theme.id === child.theme) ? child.theme : WORLD_THEMES[index % WORLD_THEMES.length].id,
-      coins: Number(child.coins || 0),
-      seeds: Number(child.seeds || 0),
-      completed: Number(child.completed || 0),
-      kindness: Number(child.kindness || 0),
+      coins: Math.max(0, Number(child.coins || 0)),
+      seeds: Math.max(0, Number(child.seeds || 0)),
+      stars: Math.max(0, Number(child.stars || 0)),
+      completed: Math.max(0, Number(child.completed || 0)),
       inventory: Array.isArray(child.inventory) ? child.inventory : [],
-      createdAt: Number(child.createdAt || Date.now())
+      active: child.active !== false,
+      createdAt: Number(child.createdAt || Date.now()),
+      lastFirstAt: Number(child.lastFirstAt || 0)
     }));
 
     merged.tasks = merged.tasks.map(task => ({
@@ -147,78 +234,115 @@
       icon: task.icon || "✅",
       category: task.category || "Alltag",
       competence: task.competence || "Selbstständigkeit",
-      difficulty: clamp(Number(task.difficulty || 1), 1, 3),
-      coins: clamp(Number(task.coins ?? task.reward ?? 5), 1, 50),
-      seeds: clamp(Number(task.seeds ?? 1), 0, 10),
-      capacity: clamp(Number(task.capacity || 1), 1, 4),
+      coins: clamp(task.coins ?? task.reward ?? 5, 0, 100),
+      seeds: clamp(task.seeds ?? 1, 0, 100),
+      stars: clamp(task.stars ?? 0, 0, 5),
+      requiredChildren: clamp(task.requiredChildren ?? task.capacity ?? 1, 1, 8),
+      repeatMode: ["perChild","shared"].includes(task.repeatMode)
+        ? task.repeatMode
+        : (((task.requiredChildren ?? task.capacity ?? 1) > 1 || /tisch|müll|blumen|tiere|gemeinschaft|hof|geschirr|wäsche/i.test(task.title || "")) ? "shared" : "perChild"),
+      communityPoints: clamp(task.communityPoints ?? ((task.capacity || 1) > 1 ? 1 : 0), 0, 10),
       active: task.active !== false,
-      days: Array.isArray(task.days) && task.days.length ? task.days.map(Number) : [0,1,2,3,4,5,6]
+      days: Array.isArray(task.days) && task.days.length ? task.days.map(Number) : [0,1,2,3,4,5,6],
+      instructions: task.instructions || ""
     }));
 
-    if (merged.round && merged.round.assignments) {
-      const oldRound = merged.round;
-      const participants = Array.isArray(oldRound.participants) ? oldRound.participants : (Array.isArray(oldRound.order) ? oldRound.order : []);
-      const assignments = {};
-      participants.forEach(childId => {
-        const rawAssignment = oldRound.assignments[childId];
-        if (!rawAssignment) return;
-        const oldResult = oldRound.results?.[childId];
-        if (typeof rawAssignment === "string") {
-          assignments[childId] = {
-            childId,
-            taskId: rawAssignment,
-            status: oldResult ? "done" : "chosen",
-            outcome: oldResult?.type || null,
-            kindness: false,
-            coinsAwarded: Number(oldResult?.coins || 0),
-            seedsAwarded: Number(oldResult?.seeds || 0)
-          };
-        } else {
-          assignments[childId] = {
-            childId,
-            taskId: rawAssignment.taskId,
-            status: rawAssignment.status || "chosen",
-            outcome: rawAssignment.outcome || null,
-            kindness: Boolean(rawAssignment.kindness),
-            coinsAwarded: Number(rawAssignment.coinsAwarded || 0),
-            seedsAwarded: Number(rawAssignment.seedsAwarded || 0)
-          };
-        }
+    merged.personalGoals = merged.personalGoals.map(goal => ({
+      id: goal.id || uid(),
+      childId: goal.childId,
+      icon: goal.icon || "🌱",
+      title: goal.title || "Mein persönliches Tagesziel",
+      active: goal.active !== false,
+      achievedCoins: clamp(goal.achievedCoins ?? 5, 0, 100),
+      achievedSeeds: clamp(goal.achievedSeeds ?? 3, 0, 100),
+      achievedStars: clamp(goal.achievedStars ?? 0, 0, 5),
+      partialCoins: clamp(goal.partialCoins ?? 2, 0, 100),
+      partialSeeds: clamp(goal.partialSeeds ?? 1, 0, 100),
+      createdAt: Number(goal.createdAt || Date.now())
+    })).filter(goal => merged.children.some(child => child.id === goal.childId));
+
+    merged.claims = merged.claims.map(claim => ({
+      id: claim.id || uid(),
+      taskId: claim.taskId,
+      childIds: Array.isArray(claim.childIds) ? claim.childIds : (claim.childId ? [claim.childId] : []),
+      date: claim.date || todayKey(),
+      source: claim.source || "solo",
+      status: ["reserved","reported","approved","declined"].includes(claim.status) ? claim.status : "reserved",
+      createdAt: Number(claim.createdAt || Date.now()),
+      reportedAt: Number(claim.reportedAt || 0),
+      reviewedAt: Number(claim.reviewedAt || 0),
+      reviewNote: claim.reviewNote || "",
+      rewardsApplied: Boolean(claim.rewardsApplied)
+    })).filter(claim => merged.tasks.some(task => task.id === claim.taskId) && claim.childIds.length);
+
+    // Alte v1.1-Runde als noch offene Aufgaben übernehmen, sofern vorhanden.
+    if (raw.round && raw.round.assignments) {
+      Object.values(raw.round.assignments).forEach(assignment => {
+        const childId = assignment.childId;
+        const taskId = assignment.taskId;
+        if (!childId || !taskId) return;
+        if (merged.claims.some(claim => claim.taskId === taskId && claim.childIds.includes(childId) && claim.date === (raw.round.day || todayKey()))) return;
+        merged.claims.push({
+          id: uid(), taskId, childIds:[childId], date:raw.round.day || todayKey(), source:"round",
+          status:assignment.status === "done" ? "reported" : "reserved", createdAt:raw.round.date || Date.now(),
+          reportedAt:assignment.status === "done" ? Date.now() : 0, reviewedAt:0, reviewNote:"", rewardsApplied:false
+        });
       });
-      merged.round = {
-        id: oldRound.id || uid(),
-        date: oldRound.date || Date.now(),
-        day: oldRound.day || todayKey(),
-        participants,
-        order: Array.isArray(oldRound.order) ? oldRound.order : participants,
-        chooseIndex: Number(oldRound.chooseIndex ?? Object.keys(assignments).length),
-        assignments,
-        finished: Boolean(oldRound.finished),
-        teamBonusAwarded: Boolean(oldRound.teamBonusAwarded ?? oldRound.teamBonus)
-      };
-    } else if (merged.round) {
-      merged.round = null;
     }
-    merged.version = APP_VERSION;
+
+    merged.wishes = merged.wishes.map(wish => ({
+      id: wish.id || uid(), icon:wish.icon || "🎁", title:wish.title || "Wunsch", cost:clamp(wish.cost ?? 20,1,999), active:wish.active !== false, note:wish.note || ""
+    }));
+
     return merged;
   }
 
+  function migrateLegacyData() {
+    const oldChildren = readJson("mw_children");
+    const oldTasks = readJson("mw_tasks");
+    const oldPin = localStorage.getItem("mw_pin");
+    if (!Array.isArray(oldChildren) && !Array.isArray(oldTasks) && !oldPin) return null;
+    const migrated = clone(DEFAULTS);
+    if (Array.isArray(oldChildren)) migrated.children = oldChildren;
+    if (Array.isArray(oldTasks)) migrated.tasks = oldTasks;
+    if (oldPin) migrated.settings.pin = oldPin;
+    return migrated;
+  }
+
   function loadData() {
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      return normalizeData(stored);
-    } catch (error) {
-      return clone(DEFAULTS);
+    let stored = readJson(STORAGE_KEY);
+    if (!stored) stored = readJson(BACKUP_KEY);
+    if (!stored) stored = migrateLegacyData();
+    if (stored && Number(stored.schemaVersion || 1) < 2 && !localStorage.getItem(PRE_V2_BACKUP_KEY)) {
+      try { localStorage.setItem(PRE_V2_BACKUP_KEY, JSON.stringify(stored)); } catch {}
     }
+    return normalizeData(stored || DEFAULTS);
   }
 
   let data = loadData();
-  saveData();
+  let saveCounter = 0;
 
-  function saveData() {
-    data.version = APP_VERSION;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  function saveData({ snapshot = false } = {}) {
+    data.schemaVersion = SCHEMA_VERSION;
+    data.appVersion = APP_VERSION;
+    const serialized = JSON.stringify(data);
+    try {
+      localStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(BACKUP_KEY, serialized);
+      saveCounter += 1;
+      if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
+    } catch (error) {
+      showToast("Speichern war nicht möglich. Bitte Daten exportieren.");
+    }
     applyPreferences();
+  }
+
+  function saveSnapshot(serialized = JSON.stringify(data)) {
+    try {
+      const ring = readJson(BACKUP_RING_KEY) || [];
+      ring.unshift({ createdAt:Date.now(), appVersion:APP_VERSION, data:JSON.parse(serialized) });
+      localStorage.setItem(BACKUP_RING_KEY, JSON.stringify(ring.slice(0,5)));
+    } catch {}
   }
 
   function applyPreferences() {
@@ -227,1194 +351,1458 @@
 
   function childById(id) { return data.children.find(child => child.id === id); }
   function taskById(id) { return data.tasks.find(task => task.id === id); }
-  function currentRound() { return data.round && !data.round.finished ? data.round : null; }
+  function goalById(id) { return data.personalGoals.find(goal => goal.id === id); }
+  function wishById(id) { return data.wishes.find(wish => wish.id === id); }
+  function activeChildren() { return data.children.filter(child => child.active !== false); }
   function tasksForToday() { return data.tasks.filter(task => task.active && task.days.includes(dayIndex())); }
-  function assignmentsArray() { return currentRound() ? Object.values(currentRound().assignments) : []; }
+  function activeGoalsForChild(childId) { return data.personalGoals.filter(goal => goal.childId === childId && goal.active); }
+  function claimsForChild(childId, date = null) { return data.claims.filter(claim => claim.childIds.includes(childId) && (!date || claim.date === date)); }
+  function unseenNotifications(childId) { return data.notifications.filter(note => note.childId === childId && !note.seen); }
+  function itemById(id) { return WORLD_ITEMS.find(item => item.id === id); }
+
+  saveData();
 
   function showToast(message) {
     toast.textContent = message;
     toast.classList.add("show");
     clearTimeout(showToast.timer);
-    showToast.timer = setTimeout(() => toast.classList.remove("show"), 2300);
+    showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
   }
 
-  function haptic(pattern = 35) {
-    if (data.settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
-  }
-
-  function playTone(type = "soft") {
-    if (!data.settings.sound) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const context = new AudioContext();
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      const settings = {
-        soft: [523, .06],
-        select: [659, .07],
-        success: [784, .12],
-        sparkle: [988, .1],
-        error: [220, .1]
-      }[type] || [523, .06];
-      oscillator.frequency.value = settings[0];
-      oscillator.type = type === "error" ? "sawtooth" : "sine";
-      gain.gain.setValueAtTime(.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(.12, context.currentTime + .01);
-      gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + settings[1]);
-      oscillator.connect(gain).connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + settings[1] + .02);
-    } catch (error) {
-      // Töne sind optional.
-    }
-  }
-
-  function celebrate(kind = "flowers") {
-    const pieces = kind === "stars" ? ["⭐","✨","🌟"] : ["🌻","🌼","🌷","✨"];
-    confettiRoot.innerHTML = "";
-    const amount = data.settings.reduceMotion ? 8 : 25;
-    for (let index = 0; index < amount; index += 1) {
+  function celebrate(count = 20) {
+    if (data.settings.reduceMotion) return;
+    const pieces = ["🌻","✨","🌱","⭐","🪙","🌈"];
+    for (let i = 0; i < count; i += 1) {
       const piece = document.createElement("span");
-      piece.className = "confetti-piece";
-      piece.textContent = pieces[index % pieces.length];
+      piece.className = "confetti";
+      piece.textContent = pieces[Math.floor(Math.random() * pieces.length)];
       piece.style.left = `${Math.random() * 100}%`;
-      piece.style.animationDelay = `${Math.random() * .7}s`;
-      piece.style.animationDuration = `${2 + Math.random() * 1.3}s`;
+      piece.style.animationDelay = `${Math.random() * .6}s`;
+      piece.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
       confettiRoot.appendChild(piece);
+      setTimeout(() => piece.remove(), 3400);
     }
-    setTimeout(() => { confettiRoot.innerHTML = ""; }, 3800);
+    if (data.settings.haptics && navigator.vibrate) navigator.vibrate([35,40,35]);
   }
 
-  function navigate(screen, pushHistory = true) {
-    if (pushHistory && ui.screen !== screen) ui.history.push(ui.screen);
-    ui.screen = screen;
-    render();
-    window.scrollTo({ top: 0, behavior: data.settings.reduceMotion ? "auto" : "smooth" });
-  }
-
-  function goBack() {
-    ui.screen = ui.history.pop() || "home";
-    render();
-  }
-
-  function setChrome(title) {
-    screenTitle.textContent = title;
-    backButton.hidden = ui.screen === "home";
-    $$("[data-nav]").forEach(button => {
-      const route = button.dataset.nav;
-      const roundScreens = ["select", "order", "choose", "round"];
-      const active = route === ui.screen || (route === "round" && roundScreens.includes(ui.screen));
-      button.classList.toggle("active", active);
-    });
-  }
-
-  backButton.addEventListener("click", goBack);
-  homeButton.addEventListener("click", () => { ui.history = []; navigate("home", false); });
-  $$("[data-nav]").forEach(button => button.addEventListener("click", () => {
-    const target = button.dataset.nav;
-    if (target === "round" && !currentRound()) {
-      startNewRound();
-      return;
-    }
-    navigate(target);
-  }));
-
-  function greeting() {
-    const hour = new Date().getHours();
-    if (hour < 11) return "Guten Morgen";
-    if (hour < 18) return "Hallo";
-    return "Guten Abend";
-  }
-
-  function weatherForWorld() {
-    if (data.settings.weatherMode !== "auto") {
-      return { sun: "sun", rain: "rain", snow: "snow", night: "night" }[data.settings.weatherMode] || "sun";
-    }
-    const now = new Date();
-    const hour = now.getHours();
-    const month = now.getMonth();
-    if (hour >= 21 || hour < 6) return "night";
-    if ([11,0,1].includes(month) && (now.getDate() + now.getDay()) % 3 === 0) return "snow";
-    if ((now.getDate() + month) % 5 === 0) return "rain";
-    return "sun";
-  }
-
-  function weatherEmoji() {
-    return { sun: "☀️", rain: "🌦️", snow: "❄️", night: "🌙" }[weatherForWorld()];
-  }
-
-  function dailyVisitor() {
-    const visitors = [
-      ["🦔", "Igel Ida", "Ich habe heute schon eine ruhige Ecke in euren Welten entdeckt."],
-      ["🐿️", "Eichhörnchen Elli", "Gemeinsam geht vieles leichter. Ich bin gespannt, was heute wächst."],
-      ["🦉", "Eule Oskar", "Auch kleine Schritte sind echte Fortschritte."],
-      ["🐇", "Hase Hoppel", "Heute steckt bestimmt eine Überraschung in einer Aufgabe."],
-      ["🦊", "Fuchs Fina", "Freundlichkeit macht jede Welt ein bisschen heller."],
-      ["🐦", "Rotkehlchen Rudi", "Ich suche schon einen schönen Platz für mein Nest."],
-      ["🐢", "Schildkröte Tilda", "Es muss nicht schnell gehen. Hauptsache, ihr bleibt dran."]
-    ];
-    const dayNumber = Math.floor(Date.now() / 86400000);
-    return visitors[dayNumber % visitors.length];
-  }
-
-  function render() {
-    const routes = {
-      home: renderHome,
-      select: renderSelectChildren,
-      order: renderOrder,
-      choose: renderTaskChoice,
-      round: renderRound,
-      worlds: renderWorlds,
-      childWorld: renderChildWorld,
-      groupWorld: renderGroupWorld,
-      educator: renderEducator
-    };
-    (routes[ui.screen] || renderHome)();
-  }
-
-  function renderHome() {
-    setChrome("Mitmach-Welt");
-    const round = currentRound();
-    const totalCompleted = data.children.reduce((sum, child) => sum + child.completed, 0);
-    const visitor = dailyVisitor();
-    const doneToday = data.history.filter(entry => entry.date?.startsWith(todayKey())).length;
-
-    app.innerHTML = `
-      <section class="hero">
-        <div class="hero-content">
-          <div class="mascot" aria-hidden="true">🌻</div>
-          <h2>${greeting()}, ${escapeHtml(data.settings.groupName)}!</h2>
-          <p>Jede übernommene Aufgabe lässt eine persönliche Welt wachsen. Wenn alle mitmachen, entwickelt sich auch eure gemeinsame Welt weiter.</p>
-          <div class="hero-chips">
-            <span class="weather-chip">${weatherEmoji()} Weltwetter</span>
-            <span class="version-chip">✨ Reifere Testversion 1.1</span>
-            <span class="pill">✅ Heute ${doneToday}</span>
-          </div>
-          <div class="hero-actions">
-            <button class="primary" id="mainRoundAction" type="button">${round ? "🌻 Laufende Runde öffnen" : "🌻 Mitmach-Runde starten"}</button>
-            <button class="secondary" id="homeWorlds" type="button">🌍 Welten entdecken</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="grid three" style="margin-top:14px">
-        <article class="card stat"><div><small>Kinder</small><strong>${data.children.length}</strong></div><span class="stat-icon">🧒</span></article>
-        <article class="card stat"><div><small>Geschaffte Aufgaben</small><strong>${totalCompleted}</strong></div><span class="stat-icon">✅</span></article>
-        <article class="card stat"><div><small>Gruppenpunkte</small><strong>${data.group.points}</strong></div><span class="stat-icon">🏡</span></article>
-      </section>
-
-      <div class="section-head"><div><h2>Besuch in der Mitmach-Welt</h2><p>Jeden Tag kommt jemand anderes vorbei.</p></div></div>
-      <article class="card visitor-card">
-        <div class="visitor-avatar">${visitor[0]}</div>
-        <div><h3>${visitor[1]}</h3><p>„${visitor[2]}“</p></div>
-      </article>
-
-      <div class="section-head"><div><h2>Direkt loslegen</h2><p>Die wichtigsten Bereiche auf einen Blick.</p></div></div>
-      <section class="grid">
-        <button class="card tap-card" id="homePersonalWorlds" type="button"><span class="avatar-large">🌱</span><strong>Persönliche Welten</strong><p class="muted">Tiere, Pflanzen, Erinnerungen und gekaufte Extras.</p></button>
-        <button class="card tap-card" id="homeGroupWorld" type="button"><span class="avatar-large">🏡</span><strong>Unsere Gruppenwelt</strong><p class="muted">Sie wächst, wenn eine Runde gemeinsam geschafft wurde.</p></button>
-        <button class="card tap-card" id="homeEducator" type="button"><span class="avatar-large">🔒</span><strong>Erzieherbereich</strong><p class="muted">Kinder, Aufgaben, Auswertung und Einstellungen.</p></button>
-      </section>
-    `;
-
-    $("#mainRoundAction").addEventListener("click", () => round ? navigate("round") : startNewRound());
-    $("#homeWorlds").addEventListener("click", () => navigate("worlds"));
-    $("#homePersonalWorlds").addEventListener("click", () => navigate("worlds"));
-    $("#homeGroupWorld").addEventListener("click", () => navigate("groupWorld"));
-    $("#homeEducator").addEventListener("click", () => navigate("educator"));
-  }
-
-  function startNewRound() {
-    if (!data.children.length) {
-      showToast("Lege zuerst mindestens ein Kind an.");
-      return;
-    }
-    if (!tasksForToday().length) {
-      showToast("Für heute ist keine Aufgabe aktiviert.");
-      return;
-    }
-    ui.selectedChildren = [];
-    ui.orderPreview = [];
-    ui.suggestedTaskId = null;
-    data.round = null;
-    saveData();
-    navigate("select");
-  }
-
-  function renderSelectChildren() {
-    setChrome("Wer macht heute mit?");
-    app.innerHTML = `
-      <div class="section-head"><div><h2>Kinder auswählen</h2><p>Mehrere Kinder können mitmachen. Avatare dürfen bewusst mehrfach vergeben werden.</p></div><div class="right-note">${ui.selectedChildren.length} ausgewählt</div></div>
-      <section class="grid">
-        ${data.children.map(child => `
-          <button class="card tap-card child-card ${ui.selectedChildren.includes(child.id) ? "selected" : ""}" data-child-select="${child.id}" type="button">
-            <span class="avatar-bubble" style="--accent:${child.accent}">${child.avatar}</span>
-            <strong>${escapeHtml(child.name)}</strong>
-            <small>${ui.selectedChildren.includes(child.id) ? "Ausgewählt ✓" : "Zum Auswählen antippen"}</small>
-          </button>
-        `).join("")}
-      </section>
-      <div class="actions"><button class="primary" id="drawOrder" type="button" ${ui.selectedChildren.length ? "" : "disabled"}>🌻 Faire Reihenfolge auslosen</button></div>
-    `;
-
-    $$('[data-child-select]').forEach(button => button.addEventListener("click", () => {
-      const childId = button.dataset.childSelect;
-      ui.selectedChildren = ui.selectedChildren.includes(childId)
-        ? ui.selectedChildren.filter(id => id !== childId)
-        : [...ui.selectedChildren, childId];
-      playTone("select");
-      haptic(20);
-      renderSelectChildren();
-    }));
-
-    $("#drawOrder").addEventListener("click", () => {
-      const availableSlots = tasksForToday().reduce((sum, task) => sum + task.capacity, 0);
-      if (ui.selectedChildren.length > availableSlots) {
-        showToast(`Für ${ui.selectedChildren.length} Kinder werden mindestens ${ui.selectedChildren.length} Aufgabenplätze benötigt.`);
-        return;
-      }
-      ui.orderPreview = fairOrder(ui.selectedChildren);
-      createRound(ui.orderPreview);
-      playTone("sparkle");
-      navigate("order");
-    });
-  }
-
-  function fairOrder(selectedIds) {
-    const selected = [...selectedIds];
-    if (selected.length < 2) return selected;
-    const recent = data.lastOrders.slice(-10);
-    const firstCounts = Object.fromEntries(selected.map(id => [id, 0]));
-    recent.forEach(order => {
-      if (order[0] in firstCounts) firstCounts[order[0]] += 1;
-    });
-    const minimum = Math.min(...Object.values(firstCounts));
-    const candidates = selected.filter(id => firstCounts[id] === minimum);
-    const first = candidates[Math.floor(Math.random() * candidates.length)];
-    const rest = selected.filter(id => id !== first);
-    for (let index = rest.length - 1; index > 0; index -= 1) {
-      const randomIndex = Math.floor(Math.random() * (index + 1));
-      [rest[index], rest[randomIndex]] = [rest[randomIndex], rest[index]];
-    }
-    return [first, ...rest];
-  }
-
-  function createRound(order) {
-    data.round = {
-      id: uid(),
-      date: Date.now(),
-      day: todayKey(),
-      participants: [...order],
-      order: [...order],
-      chooseIndex: 0,
-      assignments: {},
-      finished: false,
-      teamBonusAwarded: false
-    };
-    data.lastOrders.push([...order]);
-    data.lastOrders = data.lastOrders.slice(-20);
-    saveData();
-  }
-
-  function renderOrder() {
-    const round = currentRound();
-    if (!round) { navigate("home", false); return; }
-    setChrome("Die Sonnenblume lost aus");
-    app.innerHTML = `
-      <section class="card sunflower-stage">
-        <div class="shuffle-flower">🌻</div>
-        <h2>Die faire Reihenfolge steht!</h2>
-        <p class="muted">Die App merkt sich, wer zuletzt zuerst dran war. So beginnt nicht immer dasselbe Kind.</p>
-      </section>
-      <div class="section-head"><div><h2>Heute wählen in dieser Reihenfolge</h2><p>Alle Kinder wählen zuerst. Danach erledigen alle gleichzeitig ihre Aufgaben.</p></div></div>
-      <div class="list reveal-list">
-        ${round.order.map((childId, index) => {
-          const child = childById(childId);
-          return `<div class="list-row" style="animation-delay:${.12 * index}s"><div class="order-number">${index + 1}</div><span class="avatar-bubble" style="--accent:${child.accent};width:52px;height:52px;border-radius:18px;font-size:2rem">${child.avatar}</span><div class="list-main"><strong>${escapeHtml(child.name)}</strong><small>${index === 0 ? "Darf zuerst wählen" : "Wählt danach"}</small></div></div>`;
-        }).join("")}
-      </div>
-      <div class="actions"><button class="primary" id="beginTaskChoice" type="button">Aufgaben auswählen</button></div>
-    `;
-    $("#beginTaskChoice").addEventListener("click", () => navigate("choose"));
-  }
-
-  function taskUsage(taskId) {
-    const round = currentRound();
-    if (!round) return 0;
-    return Object.values(round.assignments).filter(assignment => assignment.taskId === taskId).length;
-  }
-
-  function availableTasks() {
-    return tasksForToday().filter(task => taskUsage(task.id) < task.capacity);
-  }
-
-  function renderTaskChoice() {
-    const round = currentRound();
-    if (!round) { navigate("home", false); return; }
-    if (round.chooseIndex >= round.order.length) { navigate("round", false); return; }
-    const childId = round.order[round.chooseIndex];
-    const child = childById(childId);
-    const tasks = availableTasks();
-    if (!tasks.length) {
-      showToast("Es sind nicht genügend freie Aufgaben vorhanden.");
-      navigate("round", false);
-      return;
-    }
-
-    if (!ui.suggestedTaskId || !tasks.some(task => task.id === ui.suggestedTaskId)) {
-      ui.suggestedTaskId = tasks[Math.floor(Math.random() * tasks.length)]?.id || null;
-    }
-
-    setChrome(`${child.name} wählt`);
-    app.innerHTML = `
-      <section class="hero" style="min-height:230px">
-        <div class="hero-content">
-          <span class="avatar-bubble" style="--accent:${child.accent};width:82px;height:82px;border-radius:27px;font-size:3.2rem">${child.avatar}</span>
-          <h2>${escapeHtml(child.name)}, was möchtest du heute übernehmen?</h2>
-          <p>Du kannst selbst wählen. Die Sonnenblume hat nur einen unverbindlichen Vorschlag markiert.</p>
-          <div class="hero-chips"><span class="pill">${round.chooseIndex + 1} von ${round.order.length}</span><span class="pill">🌻 Vorschlag ist freiwillig</span></div>
-        </div>
-      </section>
-      <div class="section-head"><div><h2>Aufgaben für ${FULL_DAY_NAMES[dayIndex()]}</h2><p>Aufgaben mit mehreren Plätzen können gemeinsam übernommen werden.</p></div></div>
-      <section class="grid">
-        ${tasks.map(task => {
-          const used = taskUsage(task.id);
-          const suggested = task.id === ui.suggestedTaskId;
-          return `
-            <button class="card tap-card task-card ${suggested ? "suggested" : ""}" data-task-choice="${task.id}" type="button">
-              ${suggested ? '<span class="suggest-ribbon">Sonnenblumen-Idee</span>' : ""}
-              <span class="capacity badge ${task.capacity > 1 ? "violet" : "blue"}">${used}/${task.capacity} Plätze</span>
-              <div class="task-icon">${task.icon}</div>
-              <h3>${escapeHtml(task.title)}</h3>
-              <p class="muted">${escapeHtml(task.category)} · ${escapeHtml(task.competence)}</p>
-              <div class="task-meta"><span class="badge yellow">${"⭐".repeat(task.difficulty)}</span><span class="badge">🌱 ${task.seeds}</span><span class="badge blue">🪙 ${task.coins}</span></div>
-            </button>
-          `;
-        }).join("")}
-      </section>
-    `;
-
-    $$('[data-task-choice]').forEach(button => button.addEventListener("click", () => {
-      const taskId = button.dataset.taskChoice;
-      round.assignments[childId] = { childId, taskId, status: "chosen", outcome: null, kindness: false, coinsAwarded: 0, seedsAwarded: 0 };
-      round.chooseIndex += 1;
-      ui.suggestedTaskId = null;
-      saveData();
-      playTone("select");
-      haptic(25);
-      if (round.chooseIndex >= round.order.length) navigate("round", false);
-      else renderTaskChoice();
-    }));
-  }
-
-  function roundProgress() {
-    const round = currentRound();
-    if (!round) return { done: 0, total: 0, percent: 0 };
-    const assignments = Object.values(round.assignments);
-    const done = assignments.filter(assignment => assignment.status === "done").length;
-    const total = round.participants.length;
-    return { done, total, percent: total ? Math.round(done / total * 100) : 0 };
-  }
-
-  function renderRound() {
-    const round = currentRound();
-    if (!round) {
-      setChrome("Mitmach-Runde");
-      app.innerHTML = `<section class="card empty-state"><div class="empty-icon">🌻</div><h2>Noch keine Runde gestartet</h2><p>Wählt aus, welche Kinder heute mitmachen.</p><button class="primary" id="emptyStartRound" type="button">Mitmach-Runde starten</button></section>`;
-      $("#emptyStartRound").addEventListener("click", startNewRound);
-      return;
-    }
-    if (Object.keys(round.assignments).length < round.participants.length) {
-      navigate(round.chooseIndex === 0 ? "order" : "choose", false);
-      return;
-    }
-
-    setChrome("Mitmach-Runde");
-    const progress = roundProgress();
-    app.innerHTML = `
-      <section class="card card-highlight">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div class="progress-ring" style="--progress:${progress.percent}"><strong>${progress.done}/${progress.total}</strong></div>
-          <div><h2 style="margin:0 0 5px">Alle können jetzt loslegen</h2><p class="muted" style="margin:0">Ein Kind kann „Ich bin fertig“ drücken, ohne auf die anderen zu warten.</p></div>
-        </div>
-        <div class="progress-card"><div class="progress-label"><span>Tagesfortschritt</span><span>${progress.percent}%</span></div><div class="progress"><div style="width:${progress.percent}%"></div></div></div>
-      </section>
-
-      <div class="section-head"><div><h2>Heute übernimmt</h2><p>Gelb bedeutet: wartet auf eine Bestätigung.</p></div></div>
-      <div class="round-overview">
-        ${round.order.map(childId => {
-          const child = childById(childId);
-          const assignment = round.assignments[childId];
-          const task = taskById(assignment.taskId);
-          const statusText = assignment.status === "done" ? `Bestätigt · ${resultLabel(assignment.outcome)}` : assignment.status === "pending" ? "Wartet auf Erzieherbestätigung" : "Aufgabe wird erledigt";
-          return `
-            <article class="card assignment-card" style="--accent:${child.accent}">
-              <div class="assignment-row">
-                <span class="avatar-bubble" style="--accent:${child.accent};width:56px;height:56px;border-radius:19px;font-size:2.1rem">${child.avatar}</span>
-                <div class="assignment-details"><strong>${escapeHtml(child.name)}</strong><div class="assignment-task">${task.icon} ${escapeHtml(task.title)}</div><span class="status ${assignment.status}">${statusText}</span></div>
-              </div>
-              <div class="assignment-actions">
-                ${assignment.status === "done"
-                  ? `<button class="soft-button" type="button" data-open-child-world="${child.id}">🌍 Welt ansehen</button>`
-                  : `<button class="${assignment.status === "pending" ? "secondary" : "primary"}" type="button" data-finish-child="${child.id}">${assignment.status === "pending" ? "🔒 Jetzt bestätigen" : "✅ Ich bin fertig"}</button>`}
-              </div>
-            </article>
-          `;
-        }).join("")}
-      </div>
-      <div class="actions">${progress.done === progress.total ? '<button class="primary" id="completeRound" type="button">🏡 Gemeinsamen Abschluss anzeigen</button>' : ''}<button class="secondary" id="roundHome" type="button">Zwischenspeichern und zur Startseite</button></div>
-    `;
-
-    $$('[data-finish-child]').forEach(button => button.addEventListener("click", () => {
-      const childId = button.dataset.finishChild;
-      const assignment = round.assignments[childId];
-      if (assignment.status === "chosen") {
-        assignment.status = "pending";
-        saveData();
-        playTone("soft");
-        haptic([20, 40, 20]);
-      }
-      openPinModal(() => openConfirmationModal(childId));
-      renderRound();
-    }));
-    $$('[data-open-child-world]').forEach(button => button.addEventListener("click", () => { ui.worldChildId = button.dataset.openChildWorld; ui.worldTab = "scene"; navigate("childWorld"); }));
-    const completeRoundButton = $("#completeRound");
-    if (completeRoundButton) completeRoundButton.addEventListener("click", finishRound);
-    $("#roundHome").addEventListener("click", () => navigate("home"));
-  }
-
-  function openPinModal(onSuccess) {
-    let pin = "";
-    const draw = () => {
-      modalRoot.innerHTML = `
-        <div class="modal-backdrop">
-          <section class="modal" aria-modal="true" role="dialog">
-            <div class="modal-head"><h2>Erzieher-PIN</h2><button class="close-button" type="button">✕</button></div>
-            <p class="muted">Die Bestätigung ist geschützt, damit Kinder ihre Belohnung nicht selbst vergeben.</p>
-            <div class="pin-dots">${"•".repeat(pin.length)}</div>
-            <div class="keypad">${[1,2,3,4,5,6,7,8,9,"⌫",0,"✓"].map(key => `<button type="button" data-pin-key="${key}">${key}</button>`).join("")}</div>
-          </section>
-        </div>
-      `;
-      $(".close-button").addEventListener("click", closeModal);
-      $$('[data-pin-key]').forEach(button => button.addEventListener("click", () => {
-        const key = button.dataset.pinKey;
-        if (key === "⌫") pin = pin.slice(0, -1);
-        else if (key === "✓") {
-          if (pin === data.settings.pin) {
-            closeModal();
-            onSuccess();
-            return;
-          }
-          playTone("error");
-          haptic([60,40,60]);
-          pin = "";
-          showToast("PIN ist nicht richtig.");
-        } else if (pin.length < 4) pin += key;
-        draw();
-      }));
-    };
-    draw();
-  }
-
-  function resultLabel(result) {
-    return result === "super" ? "Super gemacht" : result === "almost" ? "Fast geschafft" : result === "together" ? "Gemeinsam geschafft" : "Bestätigt";
-  }
-
-  function openConfirmationModal(childId) {
-    const child = childById(childId);
-    const assignment = currentRound().assignments[childId];
-    const task = taskById(assignment.taskId);
-    let selectedResult = "super";
-    let kindness = false;
-
-    const draw = () => {
-      modalRoot.innerHTML = `
-        <div class="modal-backdrop">
-          <section class="modal" aria-modal="true" role="dialog">
-            <div class="modal-head"><h2>Leistung bestätigen</h2><button class="close-button" type="button">✕</button></div>
-            <div class="list-row"><span class="avatar-bubble" style="--accent:${child.accent};width:54px;height:54px;border-radius:18px;font-size:2rem">${child.avatar}</span><div class="list-main"><strong>${escapeHtml(child.name)}</strong><small>${task.icon} ${escapeHtml(task.title)}</small></div></div>
-            <div class="section-head"><div><h2>Wie ist es gelaufen?</h2><p>Alle drei Rückmeldungen bleiben wertschätzend.</p></div></div>
-            <div class="confirm-options">
-              <button class="confirm-card ${selectedResult === "super" ? "selected" : ""}" type="button" data-result="super"><span>🌟</span><div><strong>Super gemacht</strong><small>Volle Belohnung für selbstständiges Erledigen.</small></div></button>
-              <button class="confirm-card ${selectedResult === "almost" ? "selected" : ""}" type="button" data-result="almost"><span>🌱</span><div><strong>Fast geschafft</strong><small>Weniger Münzen, aber die Anstrengung wird gesehen.</small></div></button>
-              <button class="confirm-card ${selectedResult === "together" ? "selected" : ""}" type="button" data-result="together"><span>🤝</span><div><strong>Gemeinsam geschafft</strong><small>Belohnung für eine Aufgabe mit Unterstützung.</small></div></button>
-            </div>
-            <div class="separator"></div>
-            <div class="toggle-row"><div><strong>❤️ Herzensblume vergeben</strong><div class="muted">Für freiwillige Hilfe oder besonders freundliches Verhalten.</div></div><button class="switch ${kindness ? "on" : ""}" id="kindnessToggle" type="button"><i></i></button></div>
-            <div class="actions"><button class="primary" id="approveResult" type="button">Bestätigen und Welt wachsen lassen</button></div>
-          </section>
-        </div>
-      `;
-      $(".close-button").addEventListener("click", closeModal);
-      $$('[data-result]').forEach(button => button.addEventListener("click", () => { selectedResult = button.dataset.result; playTone("select"); draw(); }));
-      $("#kindnessToggle").addEventListener("click", () => { kindness = !kindness; draw(); });
-      $("#approveResult").addEventListener("click", () => approveAssignment(childId, selectedResult, kindness));
-    };
-    draw();
-  }
-
-  function achievementIds(child) {
-    const ids = [];
-    if (child.completed >= 1) ids.push("first-task");
-    if (child.completed >= 5) ids.push("five-tasks");
-    if (child.completed >= 10) ids.push("ten-tasks");
-    if (child.completed >= 25) ids.push("twentyfive-tasks");
-    if (child.seeds >= 5) ids.push("first-tree");
-    if (child.seeds >= 10) ids.push("butterfly");
-    if (child.seeds >= 18) ids.push("home");
-    if (child.kindness >= 1) ids.push("kindness");
-    if (child.inventory.length >= 1) ids.push("first-shop");
-    return ids;
-  }
-
-  function approveAssignment(childId, result, kindness) {
-    const round = currentRound();
-    const assignment = round.assignments[childId];
-    const child = childById(childId);
-    const task = taskById(assignment.taskId);
-    const beforeAchievements = achievementIds(child);
-    const multiplier = result === "super" ? 1 : result === "together" ? .85 : .6;
-    const coins = Math.max(1, Math.round(task.coins * multiplier));
-    const seeds = result === "almost" ? 0 : task.seeds;
-
-    child.coins += coins;
-    child.seeds += seeds;
-    child.completed += 1;
-    if (kindness) {
-      child.kindness += 1;
-      data.group.kindnessFlowers += 1;
-    }
-
-    assignment.status = "done";
-    assignment.outcome = result;
-    assignment.kindness = kindness;
-    assignment.coinsAwarded = coins;
-    assignment.seedsAwarded = seeds;
-
-    data.group.points += result === "together" ? 3 : 2;
-    data.history.unshift({
-      id: uid(),
-      date: new Date().toISOString(),
-      childId,
-      childName: child.name,
-      taskId: task.id,
-      taskTitle: task.title,
-      taskIcon: task.icon,
-      category: task.category,
-      competence: task.competence,
-      outcome: result,
-      kindness,
-      coins,
-      seeds
-    });
-    data.history = data.history.slice(0, 600);
-
-    const afterAchievements = achievementIds(child);
-    const newAchievements = afterAchievements.filter(id => !beforeAchievements.includes(id));
-    saveData();
-    closeModal();
-    playTone("success");
-    haptic([30,40,30]);
-    celebrate(kindness ? "stars" : "flowers");
-    showRewardModal(child, task, result, coins, seeds, kindness, newAchievements, roundProgress().done === roundProgress().total);
-  }
-
-  function achievementTitle(id) {
-    return {
-      "first-task": "Erste Aufgabe geschafft",
-      "five-tasks": "Fünf Aufgaben geschafft",
-      "ten-tasks": "Zehn Aufgaben geschafft",
-      "twentyfive-tasks": "25 Aufgaben geschafft",
-      "first-tree": "Erster großer Baum",
-      butterfly: "Ein Schmetterling zieht ein",
-      home: "Ein besonderer Ort entsteht",
-      kindness: "Erste Herzensblume",
-      "first-shop": "Erstes Extra für die Welt"
-    }[id] || "Neue Erinnerung";
-  }
-
-  function showRewardModal(child, task, result, coins, seeds, kindness, newAchievements, allDone) {
+  function openModal(title, body, { wide = false } = {}) {
     modalRoot.innerHTML = `
-      <div class="modal-backdrop">
-        <section class="modal celebration" aria-modal="true" role="dialog">
-          <div class="big">${kindness ? "❤️🌸" : result === "super" ? "🌻" : "🌱"}</div>
-          <h2>${escapeHtml(child.name)}, deine Welt ist gewachsen!</h2>
-          <p>${task.icon} ${escapeHtml(task.title)} wurde als „${resultLabel(result)}“ bestätigt.</p>
-          <div class="reward-row"><span class="reward-chip">🪙 +${coins}</span><span class="reward-chip">🌱 +${seeds}</span>${kindness ? '<span class="reward-chip">❤️ Herzensblume</span>' : ""}</div>
-          ${newAchievements.length ? `<div class="note success-note"><strong>Neue Erinnerung:</strong><br>${newAchievements.map(id => `✨ ${achievementTitle(id)}`).join("<br>")}</div>` : ""}
-          <div class="actions"><button class="primary" id="rewardContinue" type="button">${allDone ? "Gemeinsamen Abschluss ansehen" : "Zur Aufgabenübersicht"}</button><button class="secondary" id="rewardWorld" type="button">${escapeHtml(child.name)}s Welt ansehen</button></div>
+      <div class="modal-backdrop" data-action="close-modal">
+        <section class="modal${wide ? " modal-wide" : ""}" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}" data-modal-stop>
+          <div class="modal-head">
+            <h2>${escapeHtml(title)}</h2>
+            <button class="modal-close" type="button" data-action="close-modal" aria-label="Schließen">×</button>
+          </div>
+          <div class="modal-body">${body}</div>
         </section>
-      </div>
-    `;
-    $("#rewardWorld").addEventListener("click", () => { closeModal(); ui.worldChildId = child.id; ui.worldTab = "scene"; navigate("childWorld"); });
-    $("#rewardContinue").addEventListener("click", () => {
-      closeModal();
-      if (allDone) finishRound();
-      else renderRound();
-    });
-  }
-
-  function finishRound() {
-    const round = currentRound();
-    if (!round) return;
-    const participants = round.participants.map(childById).filter(Boolean);
-    let teamCoins = 0;
-    if (data.settings.teamBonus && !round.teamBonusAwarded) {
-      teamCoins = 3;
-      participants.forEach(child => { child.coins += teamCoins; });
-      data.group.points += participants.length * 3;
-      data.group.completedRounds += 1;
-      round.teamBonusAwarded = true;
-    }
-    round.finished = true;
-    saveData();
-    celebrate("stars");
-    playTone("sparkle");
-    modalRoot.innerHTML = `
-      <div class="modal-backdrop">
-        <section class="modal celebration" aria-modal="true" role="dialog">
-          <div class="big">🏡🌈</div>
-          <h2>Ihr habt die Runde gemeinsam geschafft!</h2>
-          <p>Die Gruppenwelt ist weitergewachsen. Dabei zählt nicht, wer zuerst fertig war, sondern dass jede Aufgabe ihren Platz hatte.</p>
-          ${teamCoins ? `<div class="reward-row"><span class="reward-chip">🪙 +${teamCoins} Team-Münzen pro Kind</span><span class="reward-chip">🏡 Gruppenwelt +${participants.length * 3}</span></div>` : ""}
-          <div class="actions"><button class="primary" id="finishGroupWorld" type="button">Gruppenwelt ansehen</button><button class="secondary" id="finishHome" type="button">Zur Startseite</button></div>
-        </section>
-      </div>
-    `;
-    $("#finishGroupWorld").addEventListener("click", () => { closeModal(); data.round = null; saveData(); navigate("groupWorld"); });
-    $("#finishHome").addEventListener("click", () => { closeModal(); data.round = null; saveData(); navigate("home"); });
+      </div>`;
   }
 
   function closeModal() { modalRoot.innerHTML = ""; }
 
-  function renderWorlds() {
-    setChrome("Mitmach-Welten");
-    app.innerHTML = `
-      <section class="hero" style="min-height:225px">
-        <div class="hero-content"><div class="mascot">🌍</div><h2>Jede Welt sieht anders aus</h2><p>Auch wenn zwei Kinder denselben Avatar mögen, unterscheiden sie sich durch Farbe, Themenwelt, Pflanzen, Tiere und Extras. Derselbe Avatar darf mehrfach vergeben werden.</p></div>
-      </section>
-      <div class="section-head"><div><h2>Persönliche Welten</h2><p>Antippen, entdecken und gestalten.</p></div></div>
-      <section class="grid">
-        ${data.children.map(child => `
-          <button class="card tap-card child-card" data-world-child="${child.id}" type="button">
-            <span class="avatar-bubble" style="--accent:${child.accent}">${child.avatar}</span>
-            <strong>${escapeHtml(child.name)}</strong>
-            <div class="badge-row" style="margin-top:9px"><span class="badge">🌱 ${child.seeds}</span><span class="badge blue">🪙 ${child.coins}</span></div>
-            <p class="muted" style="margin:9px 0 0">${WORLD_THEMES.find(theme => theme.id === child.theme)?.title || "Eigene Welt"}</p>
-          </button>
-        `).join("")}
-      </section>
-      <div class="section-head"><div><h2>Gemeinsame Welt</h2><p>Sie gehört der ganzen Gruppe.</p></div></div>
-      <button class="card tap-card" id="openGroupWorld" type="button"><span class="avatar-large">🏡</span><strong>Unsere Gruppenwelt</strong><p class="muted">${data.group.completedRounds} gemeinsame Runden · ${data.group.points} Gruppenpunkte · ${data.group.kindnessFlowers} Herzensblumen</p></button>
-    `;
-    $$('[data-world-child]').forEach(button => button.addEventListener("click", () => { ui.worldChildId = button.dataset.worldChild; ui.worldTab = "scene"; navigate("childWorld"); }));
-    $("#openGroupWorld").addEventListener("click", () => navigate("groupWorld"));
+  function confirmModal({ title, message, confirmText = "Bestätigen", confirmAction, confirmClass = "primary-button", payload = {} }) {
+    const payloadAttrs = Object.entries(payload).map(([key,value]) => `data-${key}="${escapeHtml(value)}"`).join(" ");
+    openModal(title, `
+      <p>${message}</p>
+      <div class="modal-actions">
+        <button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button>
+        <button class="${confirmClass}" type="button" data-action="${confirmAction}" ${payloadAttrs}>${escapeHtml(confirmText)}</button>
+      </div>`);
   }
 
-  function worldStory(child) {
-    const stories = [
-      `${child.avatar} Ein kleiner Vogel schaut heute nach einem guten Nistplatz.`,
-      `🦋 Zwischen den Pflanzen ist heute besonders viel Bewegung.`,
-      `🌱 Ein neuer Trieb hat sich über Nacht durch die Erde geschoben.`,
-      `☁️ Die Wolken ziehen langsam weiter und bringen frische Luft.`,
-      `🐿️ Jemand hat eine kleine Nuss neben dem Weg versteckt.`,
-      `✨ Heute glitzert etwas zwischen den Blättern.`
-    ];
-    const seed = [...child.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) + Math.floor(Date.now() / 86400000);
-    return stories[seed % stories.length];
+  function greetingText() {
+    const hour = new Date().getHours();
+    const options = hour < 11
+      ? ["Schön, dass du da bist!", "Da bist du ja!", "Deine Welt freut sich auf dich."]
+      : hour < 17
+        ? ["Willkommen zurück!", "Schön, dass du wieder da bist!", "In deiner Welt gibt es etwas zu entdecken."]
+        : hour < 21
+          ? ["Schön, dass du noch einmal vorbeischaust!", "Da bist du wieder!", "Deine Welt hat auf dich gewartet."]
+          : ["Schön, dass du noch einmal da bist!", "Ein kleiner Blick in deine Welt?", "Da bist du ja noch einmal!"];
+    return options[Math.floor(Math.random() * options.length)];
   }
 
-  function worldObjects(child, group = false) {
-    const level = group ? data.group.points : child.seeds;
-    const completed = group ? data.group.completedRounds * 4 : child.completed;
-    const inventory = group ? data.group.inventory : child.inventory;
-    const theme = group ? "group" : child.theme;
-    const objects = [];
-    const add = (icon, left, bottom, size, extra = "") => objects.push(`<span class="world-object ${extra}" style="left:${left}%;bottom:${bottom}px;font-size:${size}rem">${icon}</span>`);
+  function screenLabel(screen) {
+    return ({
+      home:"Mitmach-Welt", child:"Kinderbereich", tasks:"Aufgaben", missions:"Tagesmissionen", world:"Meine Welt", shop:"Mein Laden",
+      achievements:"Meine Erfolge", group:"Gruppenwelt", roundSetup:"Mitmach-Runde", roundPlay:"Aufgabenwahl", roundSummary:"Mitmach-Runde", educator:"Erzieherbereich"
+    })[screen] || "Mitmach-Welt";
+  }
 
-    if (theme === "space") {
-      add("🪐", 14, 210, 4.3); add("🌍", 67, 118, 4.1);
-      if (level >= 3) add("🚀", 48, 184, 3.4);
-      if (level >= 8) add("👽", 22, 38, 2.8);
-      if (level >= 14) add("🛰️", 75, 244, 2.8);
-    } else if (theme === "ocean") {
-      add("🐚", 12, 25, 2.5); add("🌴", 72, 28, 4.8, "static");
-      if (level >= 3) add("🐠", 42, 118, 2.5);
-      if (level >= 7) add("🐬", 62, 160, 3.3);
-      if (level >= 13) add("🏝️", 27, 32, 4.4, "static");
-    } else if (theme === "magic") {
-      add("🍄", 12, 24, 2.7); add("🌳", 60, 32, 5.2, "static");
-      if (level >= 3) add("✨", 42, 210, 2.8);
-      if (level >= 7) add("🦋", 25, 112, 2.5);
-      if (level >= 12) add("🦄", 70, 45, 3.6);
-      if (level >= 18) add("🏰", 38, 34, 4.7, "static");
-    } else if (theme === "dino") {
-      add("🌴", 12, 28, 4.4, "static"); add("🌋", 70, 28, 4.4, "static");
-      if (level >= 3) add("🦕", 38, 35, 4.3);
-      if (level >= 8) add("🦖", 67, 38, 3.7);
-      if (level >= 14) add("🥚", 20, 24, 2.5);
-    } else if (theme === "farm") {
-      add("🌾", 11, 26, 2.8); add("🚜", 62, 27, 3.8, "static");
-      if (level >= 3) add("🐓", 28, 30, 2.5);
-      if (level >= 7) add("🐄", 48, 36, 3.3);
-      if (level >= 12) add("🏠", 76, 36, 4.2, "static");
-    } else {
-      add("🌼", 11, 22, 2.6); add("🌷", 31, 26, 2.5);
-      if (level >= 3) add("🌻", 76, 22, 2.7);
-      if (level >= 5) add("🌳", 53, 34, 5.3, "static");
-      if (level >= 8) add("🦋", 21, 115, 2.5);
-      if (level >= 12) add("🐦", 61, 158, 2.3);
-      if (level >= 18) add("🏡", 72, 38, 4.5, "static");
-    }
+  function navigate(screen, options = {}) {
+    if (options.push !== false && ui.screen !== screen) ui.navStack.push({ screen:ui.screen, childId:ui.childId });
+    ui.screen = screen;
+    if (Object.prototype.hasOwnProperty.call(options, "childId")) ui.childId = options.childId;
+    render();
+  }
 
-    if (group) {
-      add("🌻", 8, 24, 2.8); add("🌳", 47, 35, 5.5, "static");
-      if (data.group.points >= 15) add("🪑", 25, 25, 3.2, "static");
-      if (data.group.points >= 30) add("🛝", 66, 28, 3.6, "static");
-      if (data.group.points >= 50) add("🌉", 37, 25, 4.1, "static");
-      if (data.group.points >= 75) add("🏡", 73, 42, 4.7, "static");
-      if (data.group.kindnessFlowers >= 1) add("❤️🌸", 14, 84, 2.1);
-    }
+  function goBack() {
+    const previous = ui.navStack.pop();
+    if (!previous) return navigate("home", { push:false, childId:null });
+    ui.screen = previous.screen;
+    ui.childId = previous.childId;
+    render();
+  }
 
-    const itemPositions = {
-      bench: [24, 25, 3.2], birdhouse: [60, 145, 2.8], swing: [72, 38, 3.5], lantern: [40, 22, 2.8], windmill: [82, 30, 3.4], fountain: [46, 24, 3.5], tent: [18, 35, 3.6], telescope: [78, 48, 3.2], kite: [26, 220, 3], boat: [58, 96, 3.4], rainbow: [43, 245, 4.4], treehouse: [57, 74, 4.4]
-    };
-    inventory.forEach(itemId => {
-      const item = SHOP_ITEMS.find(entry => entry.id === itemId);
-      const position = itemPositions[itemId];
-      if (item && position) add(item.icon, position[0], position[1], position[2], "static");
+  function goHome() {
+    ui.screen = "home";
+    ui.childId = null;
+    ui.navStack = [];
+    render();
+  }
+
+  function setNavActive() {
+    document.querySelectorAll(".bottom-nav button").forEach(button => {
+      const nav = button.dataset.nav;
+      const active = (nav === "home" && ["home","child","tasks","missions","world","shop","achievements","roundSetup","roundPlay","roundSummary"].includes(ui.screen))
+        || (nav === "group" && ui.screen === "group")
+        || (nav === "educator" && ui.screen === "educator");
+      button.classList.toggle("active", active);
     });
-
-    if (completed >= 10 && theme !== "space") add("🌈", 40, 240, 4.3);
-    return objects.join("");
   }
 
-  function worldScene(child, group = false) {
-    const theme = group ? "group" : child.theme;
-    const weather = weatherForWorld();
-    const label = group ? "🏡 Unsere Gruppenwelt" : `${child.avatar} ${escapeHtml(child.name)}s Welt`;
-    const story = group ? "Wenn alle ihren Teil beitragen, entsteht hier etwas, das niemand allein bauen könnte." : worldStory(child);
+  function render() {
+    screenTitle.textContent = screenLabel(ui.screen);
+    backButton.hidden = ui.screen === "home";
+    homeButton.hidden = ui.screen === "home";
+    setNavActive();
+
+    const renderers = {
+      home: renderHome,
+      child: renderChildHub,
+      tasks: renderChildTasks,
+      missions: renderChildMissions,
+      world: renderChildWorld,
+      shop: renderChildShop,
+      achievements: renderAchievements,
+      group: renderGroupWorld,
+      roundSetup: renderRoundSetup,
+      roundPlay: renderRoundPlay,
+      roundSummary: renderRoundSummary,
+      educator: renderEducator
+    };
+    const renderer = renderers[ui.screen] || renderHome;
+    app.innerHTML = renderer();
+    window.scrollTo({ top:0, behavior:data.settings.reduceMotion ? "auto" : "smooth" });
+
+    if (ui.screen === "child" && ui.childId) {
+      setTimeout(() => maybeShowNotifications(ui.childId), 100);
+    }
+  }
+
+  function currencyStats(child) {
     return `
-      <section class="world-scene ${group ? "group-world" : `theme-${theme}`} ${weather === "night" ? "night" : ""}">
-        ${theme === "space" || weather === "night" ? '<div class="stars-layer"></div>' : ""}
-        <div class="world-label">${label}</div>
-        <div class="world-weather">${weatherEmoji()}</div>
-        ${weather !== "night" && theme !== "space" ? '<div class="world-cloud">☁️</div><div class="world-cloud second">☁️</div>' : ""}
-        ${weather === "rain" ? '<span class="world-object" style="left:45%;bottom:230px;font-size:3rem">🌧️</span>' : ""}
-        ${weather === "snow" ? '<span class="world-object" style="left:38%;bottom:225px;font-size:3rem">❄️</span>' : ""}
-        ${worldObjects(child, group)}
-        ${data.settings.showStories ? `<div class="world-story"><span>${group ? "🌻" : child.avatar}</span><span>${story}</span></div>` : ""}
-      </section>
-    `;
+      <div class="balance-chip">🪙 ${child.coins} Münzen</div>
+      <div class="balance-chip">🌱 ${child.seeds} Samen</div>
+      <div class="balance-chip">⭐ ${child.stars} Sterne</div>`;
   }
 
-  function memoriesFor(child) {
-    return [
-      ["🌱","Erste Aufgabe",child.completed >= 1],
-      ["🌳","Erster großer Baum",child.seeds >= 5],
-      ["🦋","Schmetterling eingezogen",child.seeds >= 10],
-      ["❤️🌸","Herzensblume",child.kindness >= 1],
-      ["⭐","Zehn Aufgaben",child.completed >= 10],
-      ["🏡","Besonderer Ort",child.seeds >= 18],
-      ["🛍️","Erstes Extra",child.inventory.length >= 1],
-      ["🌈","Regenbogenmoment",child.completed >= 15],
-      ["🌟","25 Aufgaben",child.completed >= 25]
-    ];
+  function renderHome() {
+    const children = activeChildren();
+    const reportedCount = data.claims.filter(claim => claim.status === "reported").length;
+    const missionCount = data.personalGoals.filter(goal => goal.active).length;
+    return `
+      <section class="hero">
+        <p class="hero-kicker">${escapeHtml(data.settings.groupName)}</p>
+        <h2>Wer möchte heute mitmachen?</h2>
+        <p>Ein Kind kann direkt seinen Namen auswählen. Für mehrere Kinder startet ihr oben die gemeinsame Mitmach-Runde mit fairer Auslosung.</p>
+      </section>
+
+      <button class="round-launch" type="button" data-action="open-round">
+        <span class="big-icon">🎡</span>
+        <span>
+          <h3>Mitmach-Runde für mehrere Kinder</h3>
+          <p>Kinder auswählen, Reihenfolge auslosen und nacheinander Aufgaben aussuchen.</p>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+
+      <section class="section">
+        <div class="section-heading">
+          <div><h2>Unsere Kinder</h2><p>Einfach den eigenen Avatar antippen.</p></div>
+        </div>
+        ${children.length ? `<div class="child-grid">${children.map(child => {
+          const unseen = unseenNotifications(child.id).length;
+          const waiting = claimsForChild(child.id, todayKey()).filter(claim => claim.status === "reported").length;
+          return `
+            <button class="child-card" type="button" style="--accent:${child.accent}" data-action="open-child" data-child-id="${child.id}">
+              ${unseen ? `<span class="notification-dot">${unseen}</span>` : ""}
+              <span class="child-avatar">${child.avatar}</span>
+              <h3>${escapeHtml(child.name)}</h3>
+              <small>${waiting ? `${waiting} Aufgabe${waiting === 1 ? "" : "n"} wartet${waiting === 1 ? "" : "en"}` : "Meine Mitmach-Welt"}</small>
+            </button>`;
+        }).join("")}</div>` : `
+          <div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine Kinder angelegt</h3><p>Im Erzieherbereich können Kinder mit eigenen Avataren angelegt werden.</p></div>`}
+      </section>
+
+      <section class="section">
+        <div class="admin-grid">
+          <button class="card" type="button" data-action="nav-group" style="text-align:left;cursor:pointer;border:0">
+            <h3>🌍 Gruppenwelt</h3>
+            <p class="muted">${data.group.communityPoints} Gemeinschaftspunkte · gemeinsam wächst etwas Neues.</p>
+          </button>
+          <button class="card" type="button" data-action="nav-educator" style="text-align:left;cursor:pointer;border:0">
+            <h3>🔒 Erzieherbereich</h3>
+            <p class="muted">${reportedCount} offene Bestätigung${reportedCount === 1 ? "" : "en"} · ${missionCount} aktive Tagesmission${missionCount === 1 ? "" : "en"}.</p>
+          </button>
+        </div>
+      </section>`;
+  }
+
+  function renderChildHub() {
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const openClaims = claimsForChild(child.id, todayKey()).filter(claim => ["reserved","reported"].includes(claim.status));
+    const goals = activeGoalsForChild(child.id);
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}">
+        <div class="profile-avatar">${child.avatar}</div>
+        <div>
+          <h2>${escapeHtml(greetingText())} ${escapeHtml(child.name)}</h2>
+          <p>Was möchtest du machen?</p>
+          <div class="balance-strip">${currencyStats(child)}</div>
+        </div>
+      </section>
+
+      <section class="profile-menu">
+        <button class="profile-action main" type="button" data-action="child-tasks">
+          <span class="icon">📋</span><span><h3>Aufgaben erledigen</h3><p>Aufgaben aussuchen, erledigt melden und direkt weitermachen.</p></span>
+          ${openClaims.length ? `<span class="chip pending">${openClaims.length} heute ausgewählt</span>` : ""}
+        </button>
+        <button class="profile-action goals" type="button" data-action="child-missions">
+          <span class="icon">🌱</span><span><h3>Meine Tagesmissionen</h3><p>${goals.length ? `${goals.length} persönliche Mission${goals.length === 1 ? "" : "en"} für heute.` : "Heute ist keine persönliche Mission eingetragen."}</p></span>
+        </button>
+        <button class="profile-action world" type="button" data-action="child-world">
+          <span class="icon">🌍</span><span><h3>Meine Welt</h3><p>Schauen, was gewachsen und eingezogen ist.</p></span>
+        </button>
+        <button class="profile-action shop" type="button" data-action="child-shop">
+          <span class="icon">🛍️</span><span><h3>Mein Laden</h3><p>Samen für die Welt, Münzen für Wünsche und Sterne für Seltenes.</p></span>
+        </button>
+        <button class="profile-action success" type="button" data-action="child-achievements">
+          <span class="icon">🏅</span><span><h3>Meine Erfolge</h3><p>Entdecke deine Meilensteine – ohne Vergleich mit anderen.</p></span>
+        </button>
+      </section>`;
+  }
+
+  function renderMissingChild() {
+    return `<div class="empty-state"><span class="emoji">🌻</span><h3>Dieses Kinderprofil ist nicht mehr vorhanden.</h3><button class="primary-button" data-action="go-home">Zur Startseite</button></div>`;
+  }
+
+  function findJoinableClaim(task, childId, date = todayKey()) {
+    return data.claims.find(claim => claim.taskId === task.id
+      && claim.date === date
+      && claim.status === "reserved"
+      && !claim.childIds.includes(childId)
+      && claim.childIds.length < task.requiredChildren);
+  }
+
+  function hasChildDoneOrJoinedTaskToday(childId, taskId) {
+    return data.claims.some(claim => claim.date === todayKey() && claim.taskId === taskId && claim.childIds.includes(childId) && ["reserved","reported","approved"].includes(claim.status));
+  }
+
+  function taskReservationState(childId, task, date = todayKey()) {
+    if (hasChildDoneOrJoinedTaskToday(childId, task.id)) return { canReserve:false, label:"Heute gewählt", joinable:null };
+    if (task.repeatMode === "shared") {
+      const activeClaims = data.claims.filter(claim => claim.date === date && claim.taskId === task.id && ["reserved","reported","approved"].includes(claim.status));
+      const joinable = task.requiredChildren > 1 ? findJoinableClaim(task, childId, date) : null;
+      if (joinable) return { canReserve:true, label:"Team beitreten", joinable };
+      if (activeClaims.length) return { canReserve:false, label:"Bereits vergeben", joinable:null };
+    }
+    return { canReserve:true, label:"Auswählen", joinable:null };
+  }
+
+  function reserveTask(childId, taskId, source = "solo") {
+    const child = childById(childId);
+    const task = taskById(taskId);
+    if (!child || !task || !task.active) return { ok:false, message:"Aufgabe nicht gefunden." };
+    const reservation = taskReservationState(childId, task);
+    if (!reservation.canReserve) return { ok:false, message:reservation.label === "Bereits vergeben" ? "Diese Gruppenaufgabe wurde heute bereits vergeben." : "Diese Aufgabe hast du heute schon ausgewählt." };
+
+    let claim = task.requiredChildren > 1 && task.repeatMode === "shared" ? reservation.joinable : null;
+    if (claim) {
+      claim.childIds.push(childId);
+      claim.source = claim.source === "round" || source === "round" ? "round" : "solo";
+    } else {
+      claim = {
+        id:uid(), taskId, childIds:[childId], date:todayKey(), source, status:"reserved",
+        createdAt:Date.now(), reportedAt:0, reviewedAt:0, reviewNote:"", rewardsApplied:false
+      };
+      data.claims.push(claim);
+    }
+    data.history.push({ id:uid(), type:"task_reserved", childId, taskId, claimId:claim.id, timestamp:Date.now() });
+    saveData();
+    return { ok:true, claim, message:task.requiredChildren > 1 ? "Du bist bei der Teamaufgabe dabei!" : "Aufgabe wurde ausgewählt." };
+  }
+
+  function leaveClaim(childId, claimId) {
+    const claim = data.claims.find(item => item.id === claimId);
+    if (!claim || claim.status !== "reserved" || !claim.childIds.includes(childId)) return;
+    claim.childIds = claim.childIds.filter(id => id !== childId);
+    if (!claim.childIds.length) data.claims = data.claims.filter(item => item.id !== claimId);
+    saveData();
+  }
+
+  function reportClaim(childId, claimId) {
+    const claim = data.claims.find(item => item.id === claimId);
+    const task = claim ? taskById(claim.taskId) : null;
+    if (!claim || !task || claim.status !== "reserved" || !claim.childIds.includes(childId)) return { ok:false, message:"Aufgabe konnte nicht gemeldet werden." };
+    if (claim.childIds.length < task.requiredChildren) return { ok:false, message:`Für diese Aufgabe werden noch ${task.requiredChildren - claim.childIds.length} Kind${task.requiredChildren - claim.childIds.length === 1 ? "" : "er"} gebraucht.` };
+    claim.status = "reported";
+    claim.reportedAt = Date.now();
+    data.history.push({ id:uid(), type:"task_reported", claimId, taskId:task.id, childIds:[...claim.childIds], timestamp:Date.now() });
+    saveData({ snapshot:true });
+    return { ok:true, message:"Geschafft gemeldet! Du kannst direkt eine weitere Aufgabe wählen." };
+  }
+
+  function renderChildTasks() {
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const todaysClaims = claimsForChild(child.id, todayKey()).filter(claim => ["reserved","reported"].includes(claim.status));
+    const available = tasksForToday();
+    const selectedHtml = todaysClaims.length ? todaysClaims.map(claim => {
+      const task = taskById(claim.taskId);
+      if (!task) return "";
+      const joined = claim.childIds.map(childById).filter(Boolean);
+      const remaining = Math.max(0, task.requiredChildren - claim.childIds.length);
+      return `
+        <article class="task-card">
+          <div class="task-card-head">
+            <span class="task-icon">${task.icon}</span>
+            <div>
+              <h3>${escapeHtml(task.title)}</h3>
+              <div class="task-meta">
+                ${task.requiredChildren > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${task.requiredChildren}</span>` : ""}
+                <span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.stars ? `<span class="chip">⭐ ${task.stars}</span>` : ""}
+              </div>
+            </div>
+            <span class="chip ${claim.status === "reported" ? "pending" : "warning"}">${claim.status === "reported" ? "Wartet auf Abendrunde" : "Ausgewählt"}</span>
+          </div>
+          ${task.requiredChildren > 1 ? `
+            <div style="margin-top:12px">
+              <div class="progress-track"><div class="progress-fill" style="width:${Math.round(claim.childIds.length/task.requiredChildren*100)}%"></div></div>
+              <p class="tiny muted">Dabei: ${joined.map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ")}${remaining ? ` · Noch ${remaining} ${remaining === 1 ? "Platz" : "Plätze"}` : " · Team vollständig"}</p>
+            </div>` : ""}
+          ${task.instructions ? `<p class="muted tiny">${escapeHtml(task.instructions)}</p>` : ""}
+          <div class="task-card-actions">
+            ${claim.status === "reserved" ? `
+              <button class="success-button small-button" type="button" data-action="report-claim" data-child-id="${child.id}" data-claim-id="${claim.id}" ${remaining ? "disabled" : ""}>✅ ${remaining ? "Warten auf Team" : "Erledigt melden"}</button>
+              <button class="ghost-button small-button" type="button" data-action="leave-claim" data-child-id="${child.id}" data-claim-id="${claim.id}">Doch nicht</button>` : `
+              <span class="callout success"><p>Die Aufgabe ist gemeldet. Ein Erzieher schaut später in Ruhe darauf.</p></span>`}
+          </div>
+        </article>`;
+    }).join("") : `<div class="empty-state"><span class="emoji">👐</span><h3>Noch keine Aufgabe ausgewählt</h3><p>Du kannst heute mehrere kleine Aufgaben nacheinander übernehmen.</p></div>`;
+
+    const availableHtml = available.length ? available.map(task => {
+      const reservation = taskReservationState(child.id, task);
+      const already = !reservation.canReserve;
+      const joinable = reservation.joinable;
+      const activeTeamNames = joinable ? joinable.childIds.map(childById).filter(Boolean).map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ") : "";
+      return `
+        <article class="task-card">
+          <div class="task-card-head">
+            <span class="task-icon">${task.icon}</span>
+            <div>
+              <h3>${escapeHtml(task.title)}</h3>
+              <div class="task-meta">
+                <span class="chip">${escapeHtml(task.category)}</span>
+                ${task.requiredChildren > 1 ? `<span class="chip team">👥 ${task.requiredChildren} Kinder</span>` : `<span class="chip">👤 Einzelaufgabe</span>`}
+                <span class="chip">${task.repeatMode === "shared" ? "🏠 einmal für die Gruppe" : "👧 pro Kind"}</span>
+                <span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>
+                ${task.communityPoints ? `<span class="chip team">🤝 +${task.communityPoints} Gemeinschaft</span>` : ""}
+              </div>
+            </div>
+            <button class="primary-button small-button" type="button" data-action="reserve-task" data-child-id="${child.id}" data-task-id="${task.id}" ${already ? "disabled" : ""}>${reservation.label}</button>
+          </div>
+          ${joinable ? `<p class="tiny muted">Schon dabei: ${activeTeamNames}</p>` : ""}
+          ${task.instructions ? `<p class="tiny muted">${escapeHtml(task.instructions)}</p>` : ""}
+        </article>`;
+    }).join("") : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine Aufgaben freigeschaltet.</h3></div>`;
+
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}">
+        <div class="profile-avatar">${child.avatar}</div>
+        <div><h2>${escapeHtml(child.name)} hilft mit</h2><p>Du musst nicht auf eine Bestätigung warten. Melde Erledigtes und such dir direkt die nächste Aufgabe aus.</p><div class="balance-strip">${currencyStats(child)}</div></div>
+      </section>
+      <div class="task-layout section">
+        <div>
+          <div class="section-heading"><div><h2>Aufgaben für heute</h2><p>${FULL_DAY_NAMES[dayIndex()]} · frei auswählbar</p></div></div>
+          <div class="task-list">${availableHtml}</div>
+        </div>
+        <aside>
+          <div class="section-heading"><div><h2>Meine Auswahl</h2><p>Erledigte Aufgaben warten gesammelt auf die Abendrunde.</p></div></div>
+          <div class="task-list">${selectedHtml}</div>
+        </aside>
+      </div>`;
+  }
+
+  function renderChildMissions() {
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const goals = activeGoalsForChild(child.id);
+    const todays = data.goalEvaluations.filter(evaluation => evaluation.childId === child.id && evaluation.date === todayKey());
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}">
+        <div class="profile-avatar">${child.avatar}</div>
+        <div><h2>Meine Tagesmissionen</h2><p>Diese Ziele begleiten dich durch den Tag. Am Abend schaut ihr gemeinsam und fair darauf.</p></div>
+      </section>
+      <section class="section">
+        ${goals.length ? `<div class="task-list">${goals.map(goal => {
+          const evaluation = todays.find(item => item.goalId === goal.id);
+          return `
+            <article class="task-card goal-card" style="--accent:${child.accent}">
+              <div class="task-card-head">
+                <span class="task-icon">${goal.icon}</span>
+                <div><h3>${escapeHtml(goal.title)}</h3><p class="muted tiny">Heute achte ich darauf. Es geht nicht um Perfektion, sondern um gemeinsames Nachdenken.</p></div>
+                ${evaluation ? `<span class="chip success">${GOAL_RESULTS[evaluation.result]?.icon || "🌱"} Besprochen</span>` : `<span class="chip warning">Für heute</span>`}
+              </div>
+              <div class="task-meta"><span class="chip">Bei geschafft: 🪙 ${goal.achievedCoins}</span><span class="chip">🌱 ${goal.achievedSeeds}</span>${goal.achievedStars ? `<span class="chip">⭐ ${goal.achievedStars}</span>` : ""}</div>
+            </article>`;
+        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌈</span><h3>Heute gibt es keine persönliche Tagesmission.</h3><p>Das ist völlig in Ordnung. Im Erzieherbereich können passende, positiv formulierte Ziele angelegt werden.</p></div>`}
+      </section>`;
+  }
+
+  function worldTheme(child) { return WORLD_THEMES.find(theme => theme.id === child.theme) || WORLD_THEMES[0]; }
+
+  function worldStarter(themeId) {
+    return ({ meadow:"🌱 🌼 🌳 🐞", magic:"🍄 ✨ 🌲 🦋", ocean:"🐚 🌴 🐬 ⛵", space:"🪐 ⭐ 🚀 🌙", dino:"🌿 🦕 🌋 🥚", farm:"🌾 🚜 🐄 🐔" })[themeId] || "🌱 🌼 🌳";
   }
 
   function renderChildWorld() {
-    const child = childById(ui.worldChildId) || data.children[0];
-    if (!child) { navigate("worlds", false); return; }
-    ui.worldChildId = child.id;
-    setChrome(`${child.name}s Welt`);
-    const tabs = [["scene","Welt"],["book","Mitmach-Buch"],["shop","Weltladen"]];
-    let content = "";
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const theme = worldTheme(child);
+    const inventoryItems = child.inventory.map(itemById).filter(Boolean);
+    const plotLevel = Math.min(6, 1 + Math.floor(child.completed / 8));
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}">
+        <div class="profile-avatar">${child.avatar}</div>
+        <div><h2>${escapeHtml(child.name)}s ${escapeHtml(theme.title)}</h2><p>Alles, was mit Samen oder Sternen gekauft wurde, lebt sichtbar in dieser Welt.</p><div class="balance-strip">${currencyStats(child)}</div></div>
+      </section>
 
-    if (ui.worldTab === "scene") {
-      content = `${worldScene(child)}<section class="grid three" style="margin-top:13px"><article class="card stat"><div><small>Samen</small><strong>${child.seeds}</strong></div><span class="stat-icon">🌱</span></article><article class="card stat"><div><small>Münzen</small><strong>${child.coins}</strong></div><span class="stat-icon">🪙</span></article><article class="card stat"><div><small>Aufgaben</small><strong>${child.completed}</strong></div><span class="stat-icon">✅</span></article></section>`;
-    } else if (ui.worldTab === "book") {
-      const memories = memoriesFor(child);
-      content = `<section class="memory-grid">${memories.map(memory => `<article class="memory ${memory[2] ? "" : "locked"}"><span class="memory-icon">${memory[0]}</span><strong>${memory[1]}</strong><small>${memory[2] ? "Entdeckt" : "Noch verborgen"}</small></article>`).join("")}</section>`;
-    } else {
-      content = `<div class="note">Extras werden mit Mitmach-Münzen gekauft. Sie verändern nur die Welt und bringen keinen Vorteil gegenüber anderen Kindern.</div><section class="shop-grid" style="margin-top:12px">${SHOP_ITEMS.map(item => {
-        const owned = child.inventory.includes(item.id);
-        const affordable = child.coins >= item.cost;
-        return `<article class="shop-item ${owned ? "owned" : ""}"><span class="shop-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.description}</small><div class="shop-price">${owned ? "✓ Gehört zur Welt" : `🪙 ${item.cost}`}</div>${owned ? "" : `<button class="mini-button" type="button" data-buy-item="${item.id}" ${affordable ? "" : "disabled"}>${affordable ? "Kaufen" : "Noch sparen"}</button>`}</article>`;
-      }).join("")}</section>`;
-    }
+      <section class="section">
+        <div class="world-scene theme-${theme.id}">
+          <span class="world-title">${theme.icon} ${escapeHtml(theme.title)} · Stufe ${plotLevel}</span>
+          <span class="world-sun">${theme.id === "space" ? "🌙" : "☀️"}</span>
+          <div class="world-ground"></div>
+          ${inventoryItems.length ? `<div class="world-items">${inventoryItems.slice(-24).map((item,index) => `<span class="world-item" style="grid-column:${(index%6)+1}">${item.icon}</span>`).join("")}</div>` : `<div class="world-starter">${worldStarter(theme.id)}</div>`}
+        </div>
+      </section>
 
-    app.innerHTML = `
-      <div class="world-tabs">${tabs.map(tab => `<button class="tab ${ui.worldTab === tab[0] ? "active" : ""}" type="button" data-world-tab="${tab[0]}">${tab[1]}</button>`).join("")}</div>
-      ${content}
-    `;
-    $$('[data-world-tab]').forEach(button => button.addEventListener("click", () => { ui.worldTab = button.dataset.worldTab; renderChildWorld(); }));
-    $$('[data-buy-item]').forEach(button => button.addEventListener("click", () => buyWorldItem(child.id, button.dataset.buyItem)));
+      <section class="section">
+        <div class="admin-grid">
+          <div class="card"><h3>🌱 Grundstück wächst</h3><p class="muted">Mit bestätigten Aufgaben wächst die Welt weiter. Noch ${Math.max(0, 8 - (child.completed % 8)) || 8} bestätigte Aufgaben bis zur nächsten Weltstufe.</p></div>
+          <div class="card"><h3>🎒 Bereits in der Welt</h3><p class="muted">${inventoryItems.length} Gegenstand${inventoryItems.length === 1 ? "" : "e"} · Gegenstände dürfen mehrfach vorkommen.</p></div>
+          <button class="card" style="text-align:left;cursor:pointer;border:0" type="button" data-action="child-shop"><h3>🛍️ Welt erweitern</h3><p class="muted">Samen im Weltenladen ausgeben oder den Sternenschatz entdecken.</p></button>
+        </div>
+      </section>`;
   }
 
-  function buyWorldItem(childId, itemId) {
-    const child = childById(childId);
-    const item = SHOP_ITEMS.find(entry => entry.id === itemId);
-    if (!child || !item || child.inventory.includes(item.id)) return;
-    if (child.coins < item.cost) { showToast("Dafür fehlen noch Münzen."); return; }
-    child.coins -= item.cost;
-    child.inventory.push(item.id);
-    saveData();
-    celebrate("stars");
-    playTone("sparkle");
-    showToast(`${item.title} gehört jetzt zu ${child.name}s Welt.`);
-    renderChildWorld();
+  function renderChildShop() {
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const tabs = [
+      { id:"world", label:"🌱 Weltenladen" },
+      { id:"wishes", label:"🪙 Wunschladen" },
+      { id:"stars", label:"⭐ Sternenschatz" },
+      { id:"exchange", label:"🔄 Tauschen" }
+    ];
+    let content = "";
+    if (ui.shopTab === "world") {
+      const items = WORLD_ITEMS.filter(item => item.seedCost);
+      content = `<div class="shop-grid">${items.map(item => `
+        <article class="shop-card">
+          <span class="shop-icon">${item.icon}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p>
+          <div class="price"><span>🌱 ${item.seedCost}</span><button class="primary-button small-button" type="button" data-action="buy-world-item" data-item-id="${item.id}" data-child-id="${child.id}" ${child.seeds < item.seedCost ? "disabled" : ""}>Kaufen</button></div>
+        </article>`).join("")}</div>`;
+    } else if (ui.shopTab === "wishes") {
+      const wishes = data.wishes.filter(wish => wish.active);
+      const openRequests = data.wishRequests.filter(request => request.childId === child.id && request.status === "pending");
+      content = `
+        <div class="callout"><p>Ein Wunsch wird vorgemerkt und später mit einem Erzieher abgestimmt. Bei einer Ablehnung kommen die Münzen automatisch zurück.</p></div>
+        <div class="shop-grid" style="margin-top:14px">${wishes.map(wish => {
+          const pending = openRequests.some(request => request.wishId === wish.id);
+          return `<article class="shop-card"><span class="shop-icon">${wish.icon}</span><h3>${escapeHtml(wish.title)}</h3><p>${escapeHtml(wish.note)}</p><div class="price"><span>🪙 ${wish.cost}</span><button class="primary-button small-button" type="button" data-action="request-wish" data-wish-id="${wish.id}" data-child-id="${child.id}" ${pending || child.coins < wish.cost ? "disabled" : ""}>${pending ? "Vorgemerkt" : "Vormerken"}</button></div></article>`;
+        }).join("")}</div>`;
+    } else if (ui.shopTab === "stars") {
+      const items = WORLD_ITEMS.filter(item => item.starCost);
+      content = `
+        <div class="callout warning"><p>Sterne sind seltene Auszeichnungen. Sie werden nicht für jede Aufgabe vergeben und können besondere Dinge freischalten.</p></div>
+        <div class="shop-grid" style="margin-top:14px">${items.map(item => `<article class="shop-card"><span class="shop-icon">${item.icon}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><div class="price"><span>⭐ ${item.starCost}</span><button class="primary-button small-button" type="button" data-action="buy-world-item" data-item-id="${item.id}" data-child-id="${child.id}" ${child.stars < item.starCost ? "disabled" : ""}>Freischalten</button></div></article>`).join("")}</div>`;
+    } else {
+      content = data.settings.allowCoinSeedExchange ? `
+        <div class="panel">
+          <h2>🪙 Münzen in 🌱 Samen tauschen</h2>
+          <p class="muted">Die zwei Bereiche bleiben getrennt. Wer seine Welt schneller erweitern möchte, darf freiwillig Münzen in Samen tauschen.</p>
+          <div class="reward-totals"><span class="reward-total">${data.settings.exchangeCoins} 🪙</span><span class="reward-total">→</span><span class="reward-total">${data.settings.exchangeSeeds} 🌱</span></div>
+          <button class="primary-button full-button" type="button" data-action="exchange-coins" data-child-id="${child.id}" ${child.coins < data.settings.exchangeCoins ? "disabled" : ""}>Jetzt tauschen</button>
+        </div>` : `<div class="empty-state"><span class="emoji">🔒</span><h3>Der Tausch ist derzeit ausgeschaltet.</h3><p>Ein Erzieher kann ihn in den Einstellungen freigeben.</p></div>`;
+    }
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}">
+        <div class="profile-avatar">${child.avatar}</div><div><h2>Mein Laden</h2><p>Münzen, Samen und Sterne haben jeweils einen eigenen Zweck.</p><div class="balance-strip">${currencyStats(child)}</div></div>
+      </section>
+      <section class="section"><div class="tabbar">${tabs.map(tab => `<button type="button" class="${ui.shopTab === tab.id ? "active" : ""}" data-action="shop-tab" data-tab="${tab.id}">${tab.label}</button>`).join("")}</div>${content}</section>`;
+  }
+
+  function achievementDefinitions(child) {
+    const approved = claimsForChild(child.id).filter(claim => claim.status === "approved");
+    const teamApproved = approved.filter(claim => claim.childIds.length > 1);
+    return [
+      { icon:"🌱", title:"Erster Schritt", description:"Die erste Aufgabe wurde bestätigt.", unlocked:child.completed >= 1 },
+      { icon:"🌻", title:"Fünfmal mitgemacht", description:"Fünf Aufgaben wurden bestätigt.", unlocked:child.completed >= 5 },
+      { icon:"🌳", title:"Zehnmal geholfen", description:"Zehn Aufgaben wurden bestätigt.", unlocked:child.completed >= 10 },
+      { icon:"🏡", title:"25 Aufgaben", description:"Ein großer persönlicher Meilenstein.", unlocked:child.completed >= 25 },
+      { icon:"🤝", title:"Teamstarter", description:"Eine Aufgabe wurde gemeinsam erledigt.", unlocked:teamApproved.length >= 1 },
+      { icon:"🧑‍🤝‍🧑", title:"Teamprofi", description:"Fünf Teamaufgaben wurden gemeinsam geschafft.", unlocked:teamApproved.length >= 5 },
+      { icon:"⭐", title:"Erster Stern", description:"Ein besonderer Stern wurde verdient.", unlocked:child.stars >= 1 || data.history.some(entry => entry.type === "star_earned" && entry.childId === child.id) },
+      { icon:"🌈", title:"Sternensammler", description:"Fünf Sterne wurden im Laufe der Zeit verdient.", unlocked:data.history.filter(entry => entry.type === "star_earned" && entry.childId === child.id).reduce((sum,entry) => sum + Number(entry.amount || 1),0) >= 5 },
+      { icon:"🎒", title:"Weltenbauer", description:"Drei Dinge leben in der eigenen Welt.", unlocked:child.inventory.length >= 3 },
+      { icon:"🏰", title:"Große Welt", description:"Zehn Dinge wurden für die Welt gesammelt.", unlocked:child.inventory.length >= 10 }
+    ];
+  }
+
+  function renderAchievements() {
+    const child = childById(ui.childId);
+    if (!child) return renderMissingChild();
+    const achievements = achievementDefinitions(child);
+    const unlocked = achievements.filter(item => item.unlocked).length;
+    return `
+      <section class="profile-banner" style="--accent:${child.accent}"><div class="profile-avatar">${child.avatar}</div><div><h2>Meine Erfolge</h2><p>${unlocked} von ${achievements.length} Meilensteinen entdeckt. Es gibt keine Rangliste und keinen Vergleich.</p></div></section>
+      <section class="section"><div class="badge-grid">${achievements.map(item => `<article class="badge-card ${item.unlocked ? "" : "locked"}"><div class="badge-icon">${item.unlocked ? item.icon : "🔒"}</div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p></article>`).join("")}</div></section>`;
+  }
+
+  function updateGroupMilestones() {
+    GROUP_MILESTONES.forEach(milestone => {
+      const id = `group_${milestone.points}`;
+      if (data.group.communityPoints >= milestone.points && !data.group.inventory.includes(id)) data.group.inventory.push(id);
+    });
   }
 
   function renderGroupWorld() {
-    setChrome("Unsere Gruppenwelt");
-    const nextMilestones = [15,30,50,75,100].filter(value => value > data.group.points);
-    const next = nextMilestones[0] || 125;
-    const previous = [0,15,30,50,75,100].filter(value => value <= data.group.points).pop() || 0;
-    const progress = Math.round((data.group.points - previous) / (next - previous) * 100);
-    app.innerHTML = `
-      ${worldScene({ id: "group", avatar: "🌻", name: "Gruppe", seeds: data.group.points, completed: data.group.completedRounds, inventory: data.group.inventory, theme: "meadow" }, true)}
-      <section class="grid three" style="margin-top:13px"><article class="card stat"><div><small>Gruppenpunkte</small><strong>${data.group.points}</strong></div><span class="stat-icon">🏡</span></article><article class="card stat"><div><small>Gemeinsame Runden</small><strong>${data.group.completedRounds}</strong></div><span class="stat-icon">🌻</span></article><article class="card stat"><div><small>Herzensblumen</small><strong>${data.group.kindnessFlowers}</strong></div><span class="stat-icon">❤️</span></article></section>
-      <div class="section-head"><div><h2>Nächstes gemeinsames Bauwerk</h2><p>Bei ${next} Gruppenpunkten wird etwas Neues sichtbar.</p></div></div>
-      <section class="card"><div class="progress-label"><span>${data.group.points} von ${next}</span><span>${clamp(progress,0,100)}%</span></div><div class="progress"><div style="width:${clamp(progress,0,100)}%"></div></div><p class="muted" style="margin:12px 0 0">Die Gruppenwelt belohnt das gemeinsame Gelingen – nicht den Vergleich zwischen einzelnen Kindern.</p></section>
-    `;
+    updateGroupMilestones();
+    const next = GROUP_MILESTONES.find(item => data.group.communityPoints < item.points);
+    const previousPoints = GROUP_MILESTONES.filter(item => item.points <= data.group.communityPoints).at(-1)?.points || 0;
+    const nextPoints = next?.points || data.group.communityPoints;
+    const percent = next ? Math.round((data.group.communityPoints - previousPoints) / Math.max(1,nextPoints - previousPoints) * 100) : 100;
+    const earnedItems = GROUP_MILESTONES.filter(item => data.group.communityPoints >= item.points);
+    return `
+      <section class="hero group-world-banner">
+        <p class="hero-kicker">Unsere gemeinsame Welt</p>
+        <h2>${data.group.communityPoints} Gemeinschaftspunkte</h2>
+        <p>Gemeinschaftspunkte entstehen durch echte Teamaufgaben und wenn die Gruppe gemeinsam genug Münzen oder Samen verdient hat.</p>
+        <div class="hero-actions"><span class="balance-chip">🌱 ${data.group.seedProgress}/${data.settings.communitySeedThreshold} bis zum nächsten Punkt</span><span class="balance-chip">🪙 ${data.group.coinProgress}/${data.settings.communityCoinThreshold} bis zum nächsten Punkt</span></div>
+      </section>
+
+      <section class="section">
+        <div class="world-scene">
+          <span class="world-title">🌍 ${escapeHtml(data.settings.groupName)}</span><span class="world-sun">☀️</span><div class="world-ground"></div>
+          ${earnedItems.length ? `<div class="world-items">${earnedItems.map((item,index) => `<span class="world-item" style="grid-column:${(index%6)+1}">${item.icon}</span>`).join("")}</div>` : `<div class="world-starter">🌱 🌼 🏡 🌳</div>`}
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="panel">
+          <div class="section-heading"><div><h2>Nächstes Gemeinschaftsziel</h2><p>${next ? `${next.icon} ${escapeHtml(next.title)} bei ${next.points} Punkten` : "Alle bisherigen Gemeinschaftsziele wurden erreicht."}</p></div><b>${percent}%</b></div>
+          <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading"><div><h2>Gemeinsam aufgebaut</h2><p>Jeder Meilenstein gehört der ganzen Gruppe.</p></div></div>
+        <div class="milestone-list">${GROUP_MILESTONES.map(item => `<div class="milestone ${data.group.communityPoints >= item.points ? "done" : ""}"><span class="milestone-icon">${data.group.communityPoints >= item.points ? item.icon : "🔒"}</span><div><b>${escapeHtml(item.title)}</b><p class="muted tiny">Ab ${item.points} Gemeinschaftspunkten</p></div><span>${data.group.communityPoints >= item.points ? "Geschafft" : `${item.points - data.group.communityPoints} fehlen`}</span></div>`).join("")}</div>
+      </section>`;
+  }
+
+  function renderRoundSetup() {
+    const selected = ui.roundDraft?.participants || [];
+    const children = activeChildren();
+    return `
+      <section class="hero">
+        <p class="hero-kicker">Gemeinsam auswählen</p>
+        <h2>Mitmach-Runde starten</h2>
+        <p>Wählt alle Kinder aus, die jetzt gemeinsam Aufgaben übernehmen möchten. Danach lost die Sonnenblume eine faire Reihenfolge aus.</p>
+      </section>
+      <section class="section">
+        <div class="child-grid">${children.map(child => {
+          const isSelected = selected.includes(child.id);
+          return `<button class="child-card" type="button" style="--accent:${child.accent};${isSelected ? "box-shadow:0 0 0 5px rgba(246,200,77,.45),var(--shadow-soft)" : ""}" data-action="toggle-round-child" data-child-id="${child.id}"><span class="child-avatar">${child.avatar}</span><h3>${escapeHtml(child.name)}</h3><small>${isSelected ? "✅ Dabei" : "Antippen zum Auswählen"}</small></button>`;
+        }).join("")}</div>
+      </section>
+      <section class="section panel">
+        <div class="section-heading"><div><h2>${selected.length} Kinder ausgewählt</h2><p>Mindestens zwei Kinder werden für die Auslosung benötigt.</p></div></div>
+        <button class="primary-button full-button" type="button" data-action="start-round" ${selected.length < 2 ? "disabled" : ""}>🎡 Reihenfolge auslosen</button>
+      </section>`;
+  }
+
+  function createFairOrder(participantIds) {
+    const shuffled = [...participantIds].sort(() => Math.random() - .5);
+    const lastFirst = data.lastOrders.at(-1)?.[0];
+    if (shuffled.length > 1 && shuffled[0] === lastFirst) {
+      const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+      [shuffled[0], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[0]];
+    }
+    return shuffled;
+  }
+
+  function startRound() {
+    const participants = ui.roundDraft?.participants || [];
+    if (participants.length < 2) return;
+    const order = createFairOrder(participants);
+    ui.roundDraft = { id:uid(), participants:[...participants], order, index:0, assignments:[], startedAt:Date.now(), finished:false };
+    data.lastOrders.push([...order]);
+    data.lastOrders = data.lastOrders.slice(-12);
+    const first = childById(order[0]);
+    if (first) first.lastFirstAt = Date.now();
+    saveData();
+    navigate("roundPlay", { push:false });
+    setTimeout(() => document.querySelector(".roulette")?.classList.add("spin"), 80);
+  }
+
+  function roundTaskAvailability(task, childId) {
+    const assignedTaskIds = ui.roundDraft?.assignments.filter(item => item.childId === childId).map(item => item.taskId) || [];
+    if (assignedTaskIds.includes(task.id)) return false;
+    return taskReservationState(childId, task).canReserve;
+  }
+
+  function renderRoundPlay() {
+    const round = ui.roundDraft;
+    if (!round) return renderRoundSetup();
+    if (round.index >= round.order.length) return renderRoundSummary();
+    const currentChild = childById(round.order[round.index]);
+    if (!currentChild) return `<div class="empty-state"><h3>Kind nicht gefunden</h3></div>`;
+    const firstStep = round.index === 0 && round.assignments.length === 0;
+    const tasks = tasksForToday();
+    return `
+      <section class="round-stage panel">
+        ${firstStep ? `<div class="roulette"><div class="roulette-inner">${currentChild.avatar}</div></div>` : `<div class="profile-avatar" style="margin:0 auto;background:${currentChild.accent}22">${currentChild.avatar}</div>`}
+        <p class="hero-kicker">Platz ${round.index + 1} von ${round.order.length}</p>
+        <h2>${escapeHtml(currentChild.name)} darf jetzt auswählen</h2>
+        <p class="muted">Eine Aufgabe auswählen. Danach ist automatisch das nächste Kind an der Reihe.</p>
+      </section>
+      <section class="section">
+        <div class="task-list">${tasks.map(task => {
+          const reservation = taskReservationState(currentChild.id, task);
+          const available = roundTaskAvailability(task, currentChild.id);
+          const joinable = reservation.joinable;
+          return `<article class="task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><div class="task-meta">${task.requiredChildren > 1 ? `<span class="chip team">👥 ${task.requiredChildren} Kinder</span>` : `<span class="chip">👤 Alleine</span>`}<span class="chip">🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.communityPoints ? `<span class="chip team">🤝 ${task.communityPoints}</span>` : ""}</div>${joinable ? `<p class="tiny muted">Team begonnen von ${joinable.childIds.map(childById).filter(Boolean).map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")}</p>` : ""}</div><button class="primary-button small-button" type="button" data-action="round-choose-task" data-task-id="${task.id}" ${available ? "" : "disabled"}>Auswählen</button></div></article>`;
+        }).join("")}</div>
+      </section>`;
+  }
+
+  function chooseRoundTask(taskId) {
+    const round = ui.roundDraft;
+    if (!round || round.index >= round.order.length) return;
+    const childId = round.order[round.index];
+    const result = reserveTask(childId, taskId, "round");
+    if (!result.ok) return showToast(result.message);
+    round.assignments.push({ childId, taskId, claimId:result.claim.id });
+    round.index += 1;
+    saveData();
+    if (round.index >= round.order.length) {
+      round.finished = true;
+      data.rounds.push(clone(round));
+      saveData({ snapshot:true });
+      ui.screen = "roundSummary";
+    }
+    render();
+  }
+
+  function renderRoundSummary() {
+    const round = ui.roundDraft;
+    if (!round) return `<div class="empty-state"><span class="emoji">🌻</span><h3>Keine laufende Runde</h3><button class="primary-button" data-action="open-round">Neue Runde starten</button></div>`;
+    return `
+      <section class="hero">
+        <p class="hero-kicker">Aufgaben sind verteilt</p>
+        <h2>Jetzt können alle gleichzeitig loslegen</h2>
+        <p>Niemand muss auf eine sofortige Bestätigung warten. Jede Aufgabe wird später im eigenen Kinderbereich als erledigt gemeldet.</p>
+      </section>
+      <section class="section"><div class="order-list">${round.assignments.map((assignment,index) => {
+        const child = childById(assignment.childId); const task = taskById(assignment.taskId);
+        if (!child || !task) return "";
+        return `<div class="order-item"><span class="order-number">${index+1}</span><span class="order-avatar">${child.avatar}</span><div><b>${escapeHtml(child.name)}</b><p class="muted tiny">${task.icon} ${escapeHtml(task.title)}</p></div></div>`;
+      }).join("")}</div></section>
+      <section class="section panel"><button class="primary-button full-button" type="button" data-action="finish-round">Zur Startseite</button></section>`;
+  }
+
+  function registerGroupEarnings(coins, seeds) {
+    data.group.totalCoinsEarned += coins;
+    data.group.totalSeedsEarned += seeds;
+    data.group.coinProgress += coins;
+    data.group.seedProgress += seeds;
+    let gained = 0;
+    while (data.group.coinProgress >= data.settings.communityCoinThreshold) {
+      data.group.coinProgress -= data.settings.communityCoinThreshold;
+      data.group.communityPoints += 1;
+      gained += 1;
+    }
+    while (data.group.seedProgress >= data.settings.communitySeedThreshold) {
+      data.group.seedProgress -= data.settings.communitySeedThreshold;
+      data.group.communityPoints += 1;
+      gained += 1;
+    }
+    updateGroupMilestones();
+    return gained;
+  }
+
+  function addNotification(childId, payload) {
+    data.notifications.push({
+      id:uid(), childId, type:payload.type || "info", title:payload.title || "Neuigkeit aus deiner Welt",
+      message:payload.message || "", detail:payload.detail || "", coins:Number(payload.coins || 0), seeds:Number(payload.seeds || 0), stars:Number(payload.stars || 0),
+      positive:payload.positive !== false, seen:false, createdAt:Date.now()
+    });
+  }
+
+  function applyChildReward(childId, { coins = 0, seeds = 0, stars = 0 }, source = "reward") {
+    const child = childById(childId);
+    if (!child) return 0;
+    child.coins += Number(coins || 0);
+    child.seeds += Number(seeds || 0);
+    child.stars += Number(stars || 0);
+    if (stars > 0) data.history.push({ id:uid(), type:"star_earned", childId, amount:stars, source, timestamp:Date.now() });
+    return registerGroupEarnings(Number(coins || 0), Number(seeds || 0));
+  }
+
+  function reviewClaim(claimId, decision, note = "") {
+    const claim = data.claims.find(item => item.id === claimId);
+    const task = claim ? taskById(claim.taskId) : null;
+    if (!claim || !task || claim.status !== "reported") return false;
+    claim.status = decision === "approve" ? "approved" : "declined";
+    claim.reviewedAt = Date.now();
+    claim.reviewNote = note;
+
+    if (decision === "approve") {
+      let thresholdPoints = 0;
+      claim.childIds.forEach(childId => {
+        const child = childById(childId);
+        if (!child) return;
+        child.completed += 1;
+        thresholdPoints += applyChildReward(childId, { coins:task.coins, seeds:task.seeds, stars:task.stars }, "task");
+        addNotification(childId, {
+          type:"task-approved", title:"Deine Hilfe wurde gesehen", message:`${task.icon} ${task.title} wurde bestätigt.`,
+          detail:task.requiredChildren > 1 ? "Ihr habt diese Aufgabe gemeinsam geschafft." : "Deine Welt ist dadurch ein Stück weiter gewachsen.",
+          coins:task.coins, seeds:task.seeds, stars:task.stars, positive:true
+        });
+      });
+      const teamPoints = claim.childIds.length >= 2 ? Math.max(1, task.communityPoints) : task.communityPoints;
+      if (teamPoints > 0) data.group.communityPoints += teamPoints;
+      updateGroupMilestones();
+      claim.rewardsApplied = true;
+      data.history.push({ id:uid(), type:"task_approved", claimId, taskId:task.id, childIds:[...claim.childIds], coins:task.coins, seeds:task.seeds, stars:task.stars, communityPoints:teamPoints + thresholdPoints, timestamp:Date.now() });
+    } else {
+      claim.childIds.forEach(childId => addNotification(childId, {
+        type:"task-declined", title:"Danke, dass du mitgemacht hast", message:`Bei „${task.title}“ fehlte noch eine Kleinigkeit.`,
+        detail:note || "Frag beim nächsten Mal kurz nach. Du kannst es jederzeit erneut versuchen.", positive:false
+      }));
+      data.history.push({ id:uid(), type:"task_declined", claimId, taskId:task.id, childIds:[...claim.childIds], note, timestamp:Date.now() });
+    }
+    saveData({ snapshot:true });
+    return true;
+  }
+
+  function evaluateGoal({ childId, goalId, childView, result, note }) {
+    const goal = goalById(goalId);
+    if (!goal || goal.childId !== childId) return false;
+    if (data.goalEvaluations.some(item => item.childId === childId && item.goalId === goalId && item.date === todayKey())) return false;
+    const reward = result === "achieved"
+      ? { coins:goal.achievedCoins, seeds:goal.achievedSeeds, stars:goal.achievedStars }
+      : result === "partial"
+        ? { coins:goal.partialCoins, seeds:goal.partialSeeds, stars:0 }
+        : { coins:0, seeds:0, stars:0 };
+    applyChildReward(childId, reward, "goal");
+    data.goalEvaluations.push({ id:uid(), childId, goalId, date:todayKey(), childView, result, note:note || "", reward, createdAt:Date.now() });
+    const label = GOAL_RESULTS[result]?.label || "Besprochen";
+    addNotification(childId, {
+      type:"goal", title:"Eure Tagesmission wurde besprochen", message:`${goal.icon} ${goal.title}`,
+      detail:result === "achieved" ? "Ihr habt gemeinsam entschieden: Das ist heute gut gelungen."
+        : result === "partial" ? "Es hat schon einiges geklappt. Morgen gibt es eine neue Chance."
+          : "Heute war es noch schwierig. Das ist kein Verlust – morgen beginnt ein neuer Tag.",
+      coins:reward.coins, seeds:reward.seeds, stars:reward.stars, positive:result !== "notYet"
+    });
+    data.history.push({ id:uid(), type:"goal_evaluated", childId, goalId, result, reward, timestamp:Date.now() });
+    saveData({ snapshot:true });
+    return true;
+  }
+
+  function maybeShowNotifications(childId) {
+    const notes = unseenNotifications(childId);
+    if (!notes.length || modalRoot.innerHTML) return;
+    const child = childById(childId);
+    if (!child) return;
+    const totals = notes.reduce((sum,note) => ({ coins:sum.coins+note.coins, seeds:sum.seeds+note.seeds, stars:sum.stars+note.stars }), { coins:0,seeds:0,stars:0 });
+    const positiveCount = notes.filter(note => note.positive).length;
+    const headingOptions = positiveCount
+      ? ["Während du weg warst, ist etwas passiert …", "Deine Welt hat Neuigkeiten für dich!", "Schau mal, was sich verändert hat!"]
+      : ["Schön, dass du wieder da bist.", "Deine Welt hat eine Nachricht für dich."];
+    const heading = headingOptions[Math.floor(Math.random() * headingOptions.length)];
+    openModal("Neuigkeiten für dich", `
+      <div class="reward-reveal">
+        <span class="main-emoji">${positiveCount ? "🌻" : "🌤️"}</span>
+        <h2>${escapeHtml(heading)}</h2>
+        <p class="muted">${escapeHtml(child.name)}, hier ist deine Rückmeldung seit deinem letzten Besuch.</p>
+        ${totals.coins || totals.seeds || totals.stars ? `<div class="reward-totals">${totals.coins ? `<span class="reward-total">🪙 +${totals.coins}</span>` : ""}${totals.seeds ? `<span class="reward-total">🌱 +${totals.seeds}</span>` : ""}${totals.stars ? `<span class="reward-total">⭐ +${totals.stars}</span>` : ""}</div>` : ""}
+        <div class="task-list" style="text-align:left">${notes.map(note => `<article class="task-card"><h3>${escapeHtml(note.title)}</h3><p>${escapeHtml(note.message)}</p>${note.detail ? `<p class="muted tiny">${escapeHtml(note.detail)}</p>` : ""}</article>`).join("")}</div>
+        <div class="modal-actions"><button class="primary-button full-button" type="button" data-action="mark-notifications-seen" data-child-id="${childId}">🌍 Meine Welt weiter entdecken</button></div>
+      </div>`);
+    if (positiveCount) celebrate(24);
   }
 
   function renderEducator() {
-    setChrome("Erzieherbereich");
-    if (!ui.educatorUnlocked) {
-      app.innerHTML = `
-        <section class="card card-highlight"><span class="avatar-large">🔒</span><h2>Geschützter Bereich</h2><p class="muted">Hier werden Kinder, Aufgaben, Runden und Einstellungen verwaltet.</p><div class="field"><label for="unlockPin">Erzieher-PIN</label><input id="unlockPin" type="password" inputmode="numeric" maxlength="4" placeholder="Vierstellige PIN"></div><div class="actions"><button class="primary" id="unlockEducator" type="button">Öffnen</button></div></section>
-      `;
-      $("#unlockEducator").addEventListener("click", () => {
-        if ($("#unlockPin").value === data.settings.pin) {
-          ui.educatorUnlocked = true;
-          playTone("success");
-          renderEducator();
-        } else {
-          playTone("error");
-          showToast("PIN ist nicht richtig.");
-        }
-      });
-      return;
-    }
-
-    const tabs = [["children","Kinder"],["tasks","Aufgaben"],["round","Runde"],["insights","Einblicke"],["settings","Einstellungen"],["data","Daten"]];
-    app.innerHTML = `<div class="tabs">${tabs.map(tab => `<button class="tab ${ui.educatorTab === tab[0] ? "active" : ""}" type="button" data-educator-tab="${tab[0]}">${tab[1]}</button>`).join("")}</div><div id="educatorContent"></div>`;
-    $$('[data-educator-tab]').forEach(button => button.addEventListener("click", () => { ui.educatorTab = button.dataset.educatorTab; renderEducator(); }));
-    renderEducatorContent();
+    if (!ui.educatorUnlocked) return renderEducatorLogin();
+    const tabs = [
+      ["review","🌙 Abendrunde"], ["overview","📊 Übersicht"], ["children","👧 Kinder"], ["tasks","📋 Aufgaben"],
+      ["goals","🌱 Tagesmissionen"], ["wishes","🪙 Wünsche"], ["backup","💾 Datensicherung"], ["settings","⚙️ Einstellungen"]
+    ];
+    const content = ({
+      review:renderReviewTab,
+      overview:renderOverviewTab,
+      children:renderChildrenAdmin,
+      tasks:renderTasksAdmin,
+      goals:renderGoalsAdmin,
+      wishes:renderWishesAdmin,
+      backup:renderBackupTab,
+      settings:renderSettingsTab
+    })[ui.educatorTab]?.() || renderReviewTab();
+    return `
+      <section class="hero"><p class="hero-kicker">Geschützter Bereich</p><h2>Erzieherbereich</h2><p>Hier werden Aufgaben gesammelt bestätigt, persönliche Tagesmissionen gemeinsam ausgewertet und alle Stammdaten verwaltet.</p></section>
+      <section class="section educator-layout">
+        <aside class="side-tabs">${tabs.map(([id,label]) => `<button type="button" class="${ui.educatorTab === id ? "active" : ""}" data-action="educator-tab" data-tab="${id}">${label}</button>`).join("")}<button type="button" data-action="lock-educator">🔒 Sperren</button></aside>
+        <div>${content}</div>
+      </section>`;
   }
 
-  function renderEducatorContent() {
-    const root = $("#educatorContent");
-    if (!root) return;
-
-    if (ui.educatorTab === "children") {
-      root.innerHTML = `
-        <div class="note success-note">Avatare dürfen mehrfach vergeben werden. Die persönliche Akzentfarbe und Themenwelt sorgen trotzdem für eine eigene Identität.</div>
-        <div class="list" style="margin-top:12px">${data.children.map(child => `<div class="list-row"><span class="avatar-bubble" style="--accent:${child.accent};width:54px;height:54px;border-radius:18px;font-size:2rem">${child.avatar}</span><div class="list-main"><strong>${escapeHtml(child.name)}</strong><small>${WORLD_THEMES.find(theme => theme.id === child.theme)?.title} · 🌱 ${child.seeds} · 🪙 ${child.coins} · ✅ ${child.completed}</small></div><button class="icon-button" type="button" data-edit-child="${child.id}">✏️</button></div>`).join("")}</div>
-        <div class="actions"><button class="primary" id="addChild" type="button">＋ Kind anlegen</button></div>
-      `;
-      $$('[data-edit-child]').forEach(button => button.addEventListener("click", () => openChildForm(button.dataset.editChild)));
-      $("#addChild").addEventListener("click", () => openChildForm());
-      return;
-    }
-
-    if (ui.educatorTab === "tasks") {
-      root.innerHTML = `
-        <div class="note">Für jeden Wochentag kann festgelegt werden, ob eine Aufgabe erscheint. Mit „Plätzen“ kann dieselbe Aufgabe von mehreren Kindern gewählt werden.</div>
-        <div class="list" style="margin-top:12px">${data.tasks.map(task => `<div class="list-row"><span class="avatar-medium">${task.icon}</span><div class="list-main"><strong>${escapeHtml(task.title)}</strong><small>${escapeHtml(task.category)} · ${escapeHtml(task.competence)} · ${"⭐".repeat(task.difficulty)} · ${task.capacity} Platz/Plätze · ${task.days.map(day => DAY_NAMES[day]).join(", ")}</small></div><button class="switch ${task.active ? "on" : ""}" type="button" data-toggle-task="${task.id}" aria-label="Aufgabe aktivieren"><i></i></button><button class="icon-button" type="button" data-edit-task="${task.id}">✏️</button></div>`).join("")}</div>
-        <div class="actions"><button class="primary" id="addTask" type="button">＋ Aufgabe anlegen</button></div>
-      `;
-      $$('[data-toggle-task]').forEach(button => button.addEventListener("click", () => { const task = taskById(button.dataset.toggleTask); task.active = !task.active; saveData(); renderEducatorContent(); }));
-      $$('[data-edit-task]').forEach(button => button.addEventListener("click", () => openTaskForm(button.dataset.editTask)));
-      $("#addTask").addEventListener("click", () => openTaskForm());
-      return;
-    }
-
-    if (ui.educatorTab === "round") {
-      const round = currentRound();
-      if (!round) {
-        root.innerHTML = `<section class="card empty-state"><div class="empty-icon">🌻</div><h2>Keine laufende Runde</h2><p>Eine neue Runde wird auf der Startseite begonnen.</p><button class="primary" id="adminStartRound" type="button">Neue Runde starten</button></section>`;
-        $("#adminStartRound").addEventListener("click", () => { ui.educatorUnlocked = false; startNewRound(); });
-      } else {
-        const progress = roundProgress();
-        root.innerHTML = `<section class="card"><h2>Laufende Runde</h2><p class="muted">${progress.done} von ${progress.total} Aufgaben bestätigt.</p><div class="progress"><div style="width:${progress.percent}%"></div></div><div class="actions"><button class="primary" id="adminOpenRound" type="button">Runde öffnen</button><button class="danger-button" id="cancelRound" type="button">Runde abbrechen</button></div></section>`;
-        $("#adminOpenRound").addEventListener("click", () => navigate("round"));
-        $("#cancelRound").addEventListener("click", () => {
-          if (confirm("Die laufende Runde wirklich abbrechen? Bereits bestätigte Belohnungen bleiben erhalten.")) {
-            data.round = null;
-            saveData();
-            showToast("Runde wurde beendet.");
-            renderEducatorContent();
-          }
-        });
-      }
-      return;
-    }
-
-    if (ui.educatorTab === "insights") {
-      renderInsights(root);
-      return;
-    }
-
-    if (ui.educatorTab === "settings") {
-      root.innerHTML = `
-        <section class="card form">
-          <div class="field"><label>Gruppenname</label><input id="groupName" maxlength="35" value="${escapeHtml(data.settings.groupName)}"></div>
-          <div class="field"><label>Neue vierstellige PIN</label><input id="newPin" type="password" inputmode="numeric" maxlength="4" value="${escapeHtml(data.settings.pin)}"></div>
-          <div class="field"><label>Weltwetter</label><select id="weatherMode"><option value="auto" ${data.settings.weatherMode === "auto" ? "selected" : ""}>Automatisch</option><option value="sun" ${data.settings.weatherMode === "sun" ? "selected" : ""}>Immer sonnig</option><option value="rain" ${data.settings.weatherMode === "rain" ? "selected" : ""}>Regen</option><option value="snow" ${data.settings.weatherMode === "snow" ? "selected" : ""}>Schnee</option><option value="night" ${data.settings.weatherMode === "night" ? "selected" : ""}>Nacht</option></select></div>
-          ${toggleSettingMarkup("sound", "Ruhige Töne", "Kurze Bestätigungs- und Belohnungstöne")}
-          ${toggleSettingMarkup("haptics", "Vibration", "Dezente Rückmeldung auf unterstützten Geräten")}
-          ${toggleSettingMarkup("reduceMotion", "Bewegungen reduzieren", "Weniger Animationen für empfindliche Kinder")}
-          ${toggleSettingMarkup("teamBonus", "Team-Bonus", "Nach einer vollständigen Runde erhalten alle einen kleinen Bonus")}
-          ${toggleSettingMarkup("showStories", "Weltgeschichten", "Kleine tägliche Geschichten in den Welten")}
-          <button class="primary" id="saveSettings" type="button">Einstellungen speichern</button>
-        </section>
-      `;
-      $$('[data-setting-toggle]').forEach(button => button.addEventListener("click", () => { const key = button.dataset.settingToggle; data.settings[key] = !data.settings[key]; saveData(); renderEducatorContent(); }));
-      $("#saveSettings").addEventListener("click", () => {
-        const pin = $("#newPin").value.trim();
-        if (!/^\d{4}$/.test(pin)) { showToast("Die PIN muss aus vier Ziffern bestehen."); return; }
-        data.settings.groupName = $("#groupName").value.trim() || "Unsere Gruppe";
-        data.settings.pin = pin;
-        data.settings.weatherMode = $("#weatherMode").value;
-        saveData();
-        showToast("Einstellungen gespeichert.");
-      });
-      return;
-    }
-
-    root.innerHTML = `
-      <section class="card"><h2>Datenschutz und Sicherung</h2><p class="muted">Alle Angaben werden ausschließlich im Browser dieses Geräts gespeichert. Es werden keine Kinder- oder Aufgabendaten an einen Server übertragen.</p><div class="note warning-note">Beim Löschen der Browserdaten können die Welten verloren gehen. Deshalb regelmäßig eine Sicherung exportieren.</div><div class="actions"><button class="secondary" id="exportData" type="button">⬇️ Sicherung exportieren</button><label class="secondary" style="display:grid;place-items:center">⬆️ Sicherung importieren<input id="importData" type="file" accept="application/json" hidden></label><button class="danger-button" id="resetData" type="button">Alle App-Daten zurücksetzen</button></div></section>
-    `;
-    $("#exportData").addEventListener("click", exportData);
-    $("#importData").addEventListener("change", importData);
-    $("#resetData").addEventListener("click", () => {
-      if (confirm("Wirklich alle Kinder, Aufgaben, Welten und Fortschritte löschen?")) {
-        data = clone(DEFAULTS);
-        saveData();
-        ui.educatorUnlocked = false;
-        showToast("App wurde zurückgesetzt.");
-        navigate("home");
-      }
-    });
+  function renderEducatorLogin() {
+    return `
+      <section class="panel" style="max-width:520px;margin:7vh auto 0;text-align:center">
+        <div style="font-size:4rem">🔒</div><h2>Erzieherbereich</h2><p class="muted">Bitte die vierstellige PIN eingeben.</p>
+        <form id="pinForm"><div class="form-field"><input name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="PIN" required style="text-align:center;font-size:1.5rem;letter-spacing:.3em"></div><button class="primary-button full-button" type="submit" style="margin-top:12px">Entsperren</button></form>
+      </section>`;
   }
 
-  function toggleSettingMarkup(key, title, description) {
-    return `<div class="toggle-row"><div><strong>${title}</strong><div class="muted">${description}</div></div><button class="switch ${data.settings[key] ? "on" : ""}" type="button" data-setting-toggle="${key}"><i></i></button></div>`;
-  }
+  function renderReviewTab() {
+    const reported = data.claims.filter(claim => claim.status === "reported").sort((a,b) => a.reportedAt - b.reportedAt);
+    const goalsToReview = activeChildren().flatMap(child => activeGoalsForChild(child.id).filter(goal => !data.goalEvaluations.some(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey())).map(goal => ({ child, goal })));
+    const pendingWishes = data.wishRequests.filter(request => request.status === "pending");
+    return `
+      <div class="section-heading"><div><h2>🌙 Abendrunde</h2><p>In Ruhe bestätigen, ablehnen oder gemeinsam reflektieren.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
 
-  function renderInsights(root) {
-    const lastSeven = Date.now() - 7 * 86400000;
-    const recent = data.history.filter(entry => new Date(entry.date).getTime() >= lastSeven);
-    const categoryCounts = {};
-    const competenceCounts = {};
-    recent.forEach(entry => {
-      categoryCounts[entry.category || "Alltag"] = (categoryCounts[entry.category || "Alltag"] || 0) + 1;
-      competenceCounts[entry.competence || "Selbstständigkeit"] = (competenceCounts[entry.competence || "Selbstständigkeit"] || 0) + 1;
-    });
-    const maxCompetence = Math.max(1, ...Object.values(competenceCounts));
-    const kindnessCount = recent.filter(entry => entry.kindness).length;
-
-    root.innerHTML = `
-      <div class="note">Diese Übersicht dient der pädagogischen Reflexion. Sie zeigt Beteiligung und geförderte Bereiche, aber keine Rangliste und keine Bewertung der Kinder.</div>
-      <section class="grid three" style="margin-top:12px"><article class="card stat"><div><small>Letzte 7 Tage</small><strong>${recent.length}</strong></div><span class="stat-icon">✅</span></article><article class="card stat"><div><small>Herzensblumen</small><strong>${kindnessCount}</strong></div><span class="stat-icon">❤️</span></article><article class="card stat"><div><small>Aktive Kategorien</small><strong>${Object.keys(categoryCounts).length}</strong></div><span class="stat-icon">🧩</span></article></section>
-      <div class="section-head"><div><h2>Geförderte Bereiche</h2><p>Auf Grundlage der bestätigten Aufgaben der letzten sieben Tage.</p></div></div>
-      <section class="card insight-bars">${Object.keys(competenceCounts).length ? Object.entries(competenceCounts).sort((a,b) => b[1]-a[1]).map(([name,count]) => `<div class="insight-row"><span>${escapeHtml(name)}</span><div class="insight-track"><div style="width:${Math.round(count/maxCompetence*100)}%"></div></div><strong>${count}</strong></div>`).join("") : '<p class="muted">Noch keine Daten aus den letzten sieben Tagen.</p>'}</section>
-      <div class="section-head"><div><h2>Letzte Aktivitäten</h2><p>Die neuesten Bestätigungen.</p></div></div>
-      <div class="activity-list">${data.history.slice(0,12).map(entry => `<article class="activity"><span class="activity-icon">${entry.taskIcon || "✅"}</span><div><p><strong>${escapeHtml(entry.childName || "Kind")}</strong>: ${escapeHtml(entry.taskTitle || "Aufgabe")} · ${resultLabel(entry.outcome)}${entry.kindness ? " · ❤️ Herzensblume" : ""}</p><small>${formatDateTime(entry.date)}</small></div></article>`).join("") || '<section class="card"><p class="muted">Noch keine Aktivitäten gespeichert.</p></section>'}</div>
-    `;
-  }
-
-  function openChildForm(childId = null) {
-    const existing = childId ? childById(childId) : null;
-    const draft = existing ? clone(existing) : { id: null, name: "", avatar: "🦄", accent: ACCENT_COLORS[0], theme: "meadow", coins: 0, seeds: 0, completed: 0, kindness: 0, inventory: [], createdAt: Date.now() };
-    let selectedCategory = Object.entries(AVATARS).find(([, avatars]) => avatars.includes(draft.avatar))?.[0] || "Tiere";
-
-    const captureDraftFields = () => {
-      const nameField = $("#childName");
-      if (nameField) draft.name = nameField.value;
-      const coinsField = $("#childCoins");
-      if (coinsField) draft.coins = Math.max(0, Number(coinsField.value) || 0);
-      const seedsField = $("#childSeeds");
-      if (seedsField) draft.seeds = Math.max(0, Number(seedsField.value) || 0);
-    };
-
-    const draw = () => {
-      const usedAvatars = data.children.filter(child => child.id !== childId).map(child => child.avatar);
-      modalRoot.innerHTML = `
-        <div class="modal-backdrop">
-          <section class="modal wide" aria-modal="true" role="dialog">
-            <div class="modal-head"><h2>${childId ? "Kind bearbeiten" : "Kind anlegen"}</h2><button class="close-button" type="button">✕</button></div>
-            <div class="form">
-              <div class="field"><label>Name oder Spitzname</label><input id="childName" maxlength="24" value="${escapeHtml(draft.name)}" placeholder="z. B. Lucy"></div>
-              <div class="field"><label>Avatar auswählen</label><div class="field-help">Mehrere Kinder dürfen denselben Avatar verwenden. Zur Auswahl stehen über 100 Symbole.</div></div>
-              <div class="avatar-picker">
-                <div class="avatar-category">${Object.keys(AVATARS).map(category => `<button class="${selectedCategory === category ? "active" : ""}" type="button" data-avatar-category="${category}">${category}</button>`).join("")}</div>
-                <div class="avatar-options">${AVATARS[selectedCategory].map(avatar => `<button class="avatar-option ${draft.avatar === avatar ? "selected" : ""} ${usedAvatars.includes(avatar) ? "used" : ""}" type="button" data-avatar-option="${avatar}" aria-label="Avatar ${avatar}">${avatar}</button>`).join("")}</div>
-              </div>
-              <div class="field"><label>Persönliche Farbe</label><div class="color-options">${ACCENT_COLORS.map(color => `<button class="color-option ${draft.accent === color ? "selected" : ""}" style="background:${color}" type="button" data-accent-color="${color}" aria-label="Farbe auswählen"></button>`).join("")}</div></div>
-              <div class="field"><label>Themenwelt</label><div class="theme-options">${WORLD_THEMES.map(theme => `<button class="theme-option ${draft.theme === theme.id ? "selected" : ""}" type="button" data-world-theme="${theme.id}"><span>${theme.icon}</span><strong>${theme.title}</strong><small>${theme.description}</small></button>`).join("")}</div></div>
-              ${childId ? `<div class="form-grid"><div class="field"><label>Münzen</label><input id="childCoins" type="number" min="0" max="9999" value="${draft.coins}"></div><div class="field"><label>Samen</label><input id="childSeeds" type="number" min="0" max="9999" value="${draft.seeds}"></div></div>` : ""}
-              <button class="primary" id="saveChild" type="button">Speichern</button>
-              ${childId ? '<button class="danger-button" id="deleteChild" type="button">Kind löschen</button>' : ""}
-            </div>
-          </section>
-        </div>
-      `;
-      $(".close-button").addEventListener("click", closeModal);
-      $$('[data-avatar-category]').forEach(button => button.addEventListener("click", () => { captureDraftFields(); selectedCategory = button.dataset.avatarCategory; draw(); }));
-      $$('[data-avatar-option]').forEach(button => button.addEventListener("click", () => { captureDraftFields(); draft.avatar = button.dataset.avatarOption; playTone("select"); draw(); }));
-      $$('[data-accent-color]').forEach(button => button.addEventListener("click", () => { captureDraftFields(); draft.accent = button.dataset.accentColor; draw(); }));
-      $$('[data-world-theme]').forEach(button => button.addEventListener("click", () => { captureDraftFields(); draft.theme = button.dataset.worldTheme; draw(); }));
-      $("#saveChild").addEventListener("click", () => {
-        const name = $("#childName").value.trim();
-        if (!name) { showToast("Bitte einen Namen eintragen."); return; }
-        draft.name = name;
-        if (childId) {
-          draft.coins = Math.max(0, Number($("#childCoins").value) || 0);
-          draft.seeds = Math.max(0, Number($("#childSeeds").value) || 0);
-          Object.assign(existing, draft);
-        } else {
-          draft.id = uid();
-          data.children.push(draft);
-        }
-        saveData();
-        closeModal();
-        renderEducatorContent();
-        showToast("Kind gespeichert.");
-      });
-      const deleteButton = $("#deleteChild");
-      if (deleteButton) deleteButton.addEventListener("click", () => {
-        if (confirm(`${existing.name} wirklich löschen? Die persönliche Welt wird ebenfalls entfernt.`)) {
-          data.children = data.children.filter(child => child.id !== childId);
-          data.history = data.history.filter(entry => entry.childId !== childId);
-          if (data.round?.participants.includes(childId)) data.round = null;
-          saveData();
-          closeModal();
-          renderEducatorContent();
-        }
-      });
-    };
-    draw();
-  }
-
-  function openTaskForm(taskId = null) {
-    const existing = taskId ? taskById(taskId) : null;
-    const draft = existing ? clone(existing) : { id: null, title: "", icon: "✅", category: "Alltag", competence: "Selbstständigkeit", difficulty: 1, coins: 5, seeds: 1, capacity: 1, active: true, days: [0,1,2,3,4,5,6] };
-    modalRoot.innerHTML = `
-      <div class="modal-backdrop">
-        <section class="modal wide" aria-modal="true" role="dialog">
-          <div class="modal-head"><h2>${taskId ? "Aufgabe bearbeiten" : "Aufgabe anlegen"}</h2><button class="close-button" type="button">✕</button></div>
-          <div class="form">
-            <div class="field"><label>Aufgabe</label><input id="taskTitle" maxlength="48" value="${escapeHtml(draft.title)}" placeholder="z. B. Tisch decken"></div>
-            <div class="field"><label>Symbol</label><select id="taskIcon">${TASK_ICONS.map(icon => `<option ${icon === draft.icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
-            <div class="form-grid"><div class="field"><label>Kategorie</label><input id="taskCategory" maxlength="28" value="${escapeHtml(draft.category)}"></div><div class="field"><label>Förderbereich</label><select id="taskCompetence">${COMPETENCES.map(competence => `<option ${competence === draft.competence ? "selected" : ""}>${competence}</option>`).join("")}</select></div></div>
-            <div class="form-grid"><div class="field"><label>Schwierigkeit</label><select id="taskDifficulty">${[1,2,3].map(value => `<option value="${value}" ${value === draft.difficulty ? "selected" : ""}>${"⭐".repeat(value)}</option>`).join("")}</select></div><div class="field"><label>Plätze</label><select id="taskCapacity">${[1,2,3,4].map(value => `<option value="${value}" ${value === draft.capacity ? "selected" : ""}>${value}</option>`).join("")}</select></div></div>
-            <div class="form-grid"><div class="field"><label>Münzen</label><input id="taskCoins" type="number" min="1" max="50" value="${draft.coins}"></div><div class="field"><label>Samen</label><input id="taskSeeds" type="number" min="0" max="10" value="${draft.seeds}"></div></div>
-            <div class="field"><label>Aktive Wochentage</label><div class="checkbox-grid">${FULL_DAY_NAMES.map((name,index) => `<label class="check-option"><input type="checkbox" data-task-day="${index}" ${draft.days.includes(index) ? "checked" : ""}>${name}</label>`).join("")}</div></div>
-            <button class="primary" id="saveTask" type="button">Speichern</button>
-            ${taskId ? '<button class="danger-button" id="deleteTask" type="button">Aufgabe löschen</button>' : ""}
-          </div>
-        </section>
+      <div class="panel">
+        <h3>Erledigt gemeldete Aufgaben (${reported.length})</h3>
+        ${reported.length ? `<div class="task-list">${reported.map(claim => {
+          const task = taskById(claim.taskId); const children = claim.childIds.map(childById).filter(Boolean);
+          if (!task) return "";
+          return `<article class="task-card review-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")} · gemeldet ${formatDateTime(claim.reportedAt)}</p><div class="task-meta"><span class="chip">pro Kind: 🪙 ${task.coins}</span><span class="chip">🌱 ${task.seeds}</span>${task.stars ? `<span class="chip">⭐ ${task.stars}</span>` : ""}${claim.childIds.length > 1 ? `<span class="chip team">🤝 Teamaufgabe</span>` : ""}</div></div><div class="inline-actions"><button class="success-button small-button" type="button" data-action="approve-claim" data-claim-id="${claim.id}">Bestätigen</button><button class="danger-button small-button" type="button" data-action="decline-claim-prompt" data-claim-id="${claim.id}">Noch nicht</button></div></div></article>`;
+        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">✅</span><h3>Keine offenen Aufgaben</h3><p>Die Kinder können tagsüber weiter Aufgaben erledigt melden.</p></div>`}
       </div>
-    `;
-    $(".close-button").addEventListener("click", closeModal);
-    $("#saveTask").addEventListener("click", () => {
-      const title = $("#taskTitle").value.trim();
-      if (!title) { showToast("Bitte eine Aufgabe eintragen."); return; }
-      const days = $$('[data-task-day]:checked').map(input => Number(input.dataset.taskDay));
-      if (!days.length) { showToast("Wähle mindestens einen Wochentag."); return; }
-      Object.assign(draft, {
-        title,
-        icon: $("#taskIcon").value,
-        category: $("#taskCategory").value.trim() || "Alltag",
-        competence: $("#taskCompetence").value,
-        difficulty: Number($("#taskDifficulty").value),
-        capacity: Number($("#taskCapacity").value),
-        coins: clamp(Number($("#taskCoins").value) || 1, 1, 50),
-        seeds: clamp(Number($("#taskSeeds").value) || 0, 0, 10),
-        days
-      });
-      if (taskId) Object.assign(existing, draft);
-      else { draft.id = uid(); data.tasks.push(draft); }
-      saveData();
-      closeModal();
-      renderEducatorContent();
-      showToast("Aufgabe gespeichert.");
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Persönliche Tagesmissionen (${goalsToReview.length})</h3>
+        <p class="muted">Kind und Erzieher schauen gemeinsam auf den Tag. Keine Minuspunkte und kein Beschämen.</p>
+        ${goalsToReview.length ? `<div class="review-grid">${goalsToReview.map(({child,goal}) => `<article class="task-card goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p></div></div><button class="primary-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌙</span><h3>Alle heutigen Missionen sind besprochen.</h3></div>`}
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Vorgemerkte Wünsche (${pendingWishes.length})</h3>
+        ${pendingWishes.length ? `<div class="task-list">${pendingWishes.map(request => {
+          const child = childById(request.childId); const wish = wishById(request.wishId);
+          if (!child || !wish) return "";
+          return `<article class="task-card"><div class="task-card-head"><span class="task-icon">${wish.icon}</span><div><h3>${escapeHtml(wish.title)}</h3><p class="muted tiny">${child.avatar} ${escapeHtml(child.name)} · ${wish.cost} Münzen sind vorgemerkt</p></div><div class="inline-actions"><button class="success-button small-button" type="button" data-action="approve-wish" data-request-id="${request.id}">Annehmen</button><button class="danger-button small-button" type="button" data-action="reject-wish" data-request-id="${request.id}">Ablehnen & erstatten</button></div></div></article>`;
+        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">🎁</span><h3>Keine offenen Wünsche</h3></div>`}
+      </div>`;
+  }
+
+  function renderOverviewTab() {
+    const todayClaims = data.claims.filter(claim => claim.date === todayKey());
+    const approvedToday = todayClaims.filter(claim => claim.status === "approved");
+    const reported = data.claims.filter(claim => claim.status === "reported").length;
+    const activeTaskCount = data.tasks.filter(task => task.active).length;
+    const activeGoalCount = data.personalGoals.filter(goal => goal.active).length;
+    return `
+      <div class="section-heading"><div><h2>Übersicht</h2><p>Ein kompakter Blick auf den aktuellen Stand.</p></div></div>
+      <div class="admin-grid">
+        <div class="card"><h3>👧 ${activeChildren().length}</h3><p class="muted">aktive Kinderprofile</p></div>
+        <div class="card"><h3>📋 ${activeTaskCount}</h3><p class="muted">aktive Aufgaben</p></div>
+        <div class="card"><h3>⏳ ${reported}</h3><p class="muted">offene Bestätigungen</p></div>
+        <div class="card"><h3>🌱 ${activeGoalCount}</h3><p class="muted">aktive Tagesmissionen</p></div>
+        <div class="card"><h3>✅ ${approvedToday.length}</h3><p class="muted">heute bestätigte Aufgaben</p></div>
+        <div class="card"><h3>🤝 ${data.group.communityPoints}</h3><p class="muted">Gemeinschaftspunkte</p></div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>So entstehen Gemeinschaftspunkte</h3>
+        <div class="milestone-list">
+          <div class="milestone"><span class="milestone-icon">🤝</span><div><b>Gemeinsame Aufgaben</b><p class="muted tiny">Wenn mindestens zwei Kinder dieselbe Aufgabe gemeinsam erledigen, entsteht mindestens ein Gemeinschaftspunkt.</p></div></div>
+          <div class="milestone"><span class="milestone-icon">🌱</span><div><b>Gemeinsam Samen verdienen</b><p class="muted tiny">Je ${data.settings.communitySeedThreshold} verdiente Samen entsteht ein Gemeinschaftspunkt.</p></div><b>${data.group.seedProgress}/${data.settings.communitySeedThreshold}</b></div>
+          <div class="milestone"><span class="milestone-icon">🪙</span><div><b>Gemeinsam Münzen verdienen</b><p class="muted tiny">Je ${data.settings.communityCoinThreshold} verdiente Münzen entsteht ein Gemeinschaftspunkt.</p></div><b>${data.group.coinProgress}/${data.settings.communityCoinThreshold}</b></div>
+        </div>
+      </div>`;
+  }
+
+  function renderChildrenAdmin() {
+    return `
+      <div class="section-heading"><div><h2>Kinder verwalten</h2><p>Avatare dürfen mehrfach vergeben werden.</p></div><button class="primary-button small-button" type="button" data-action="open-child-editor">＋ Kind anlegen</button></div>
+      <div class="admin-list">${data.children.map(child => `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${child.active ? "Aktiv" : "Archiviert"} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">Bearbeiten</button><button class="${child.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-child-active" data-child-id="${child.id}">${child.active ? "Archivieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+  }
+
+  function renderTasksAdmin() {
+    return `
+      <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Für jede Aufgabe kann festgelegt werden, wie viele Kinder gebraucht werden.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
+      <div class="admin-list">${data.tasks.map(task => `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+  }
+
+  function renderGoalsAdmin() {
+    return `
+      <div class="section-heading"><div><h2>Persönliche Tagesmissionen</h2><p>Bitte Ziele positiv, konkret und für das Kind verständlich formulieren.</p></div><button class="primary-button small-button" type="button" data-action="open-goal-editor">＋ Mission anlegen</button></div>
+      <div class="callout warning"><p>Beispiel statt „nicht weinen und nicht ärgern“: „Ich versuche ruhig zu bleiben und freundlich mit anderen umzugehen.“</p></div>
+      <div class="admin-list" style="margin-top:14px">${data.personalGoals.length ? data.personalGoals.map(goal => {
+        const child = childById(goal.childId); if (!child) return "";
+        return `<div class="admin-row"><span class="admin-row-icon">${goal.icon}</span><div><h4>${escapeHtml(goal.title)}</h4><p>${child.avatar} ${escapeHtml(child.name)} · ${goal.active ? "Aktiv" : "Pausiert"} · geschafft: 🪙 ${goal.achievedCoins}, 🌱 ${goal.achievedSeeds}${goal.achievedStars ? `, ⭐ ${goal.achievedStars}` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-goal-editor" data-goal-id="${goal.id}">Bearbeiten</button><button class="${goal.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-goal-active" data-goal-id="${goal.id}">${goal.active ? "Pausieren" : "Aktivieren"}</button></div></div>`;
+      }).join("") : `<div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine Tagesmissionen</h3></div>`}</div>`;
+  }
+
+  function renderWishesAdmin() {
+    return `
+      <div class="section-heading"><div><h2>Wunschladen verwalten</h2><p>Hier legt ihr fest, wofür Kinder Münzen im Gruppenalltag einsetzen können.</p></div><button class="primary-button small-button" type="button" data-action="open-wish-editor">＋ Wunsch anlegen</button></div>
+      <div class="admin-list">${data.wishes.map(wish => `<div class="admin-row"><span class="admin-row-icon">${wish.icon}</span><div><h4>${escapeHtml(wish.title)}</h4><p>${wish.active ? "Aktiv" : "Inaktiv"} · 🪙 ${wish.cost} · ${escapeHtml(wish.note)}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-wish-editor" data-wish-id="${wish.id}">Bearbeiten</button><button class="${wish.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-wish-active" data-wish-id="${wish.id}">${wish.active ? "Pausieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+  }
+
+  function renderBackupTab() {
+    const snapshots = readJson(BACKUP_RING_KEY) || [];
+    return `
+      <div class="section-heading"><div><h2>Datensicherung</h2><p>Kinder, Aufgaben und Fortschritte bleiben über Updates hinweg erhalten.</p></div></div>
+      <div class="admin-grid">
+        <div class="card"><h3>⬇️ Daten exportieren</h3><p class="muted">Speichert eine vollständige Sicherungsdatei auf diesem Gerät.</p><button class="primary-button full-button" type="button" data-action="export-data">Sicherung herunterladen</button></div>
+        <div class="card"><h3>⬆️ Daten importieren</h3><p class="muted">Stellt eine zuvor exportierte Sicherung wieder her.</p><label class="secondary-button full-button" style="cursor:pointer">Sicherung auswählen<input id="importFile" type="file" accept="application/json,.json" hidden></label></div>
+        <div class="card"><h3>🛟 Vor Version 2.0</h3><p class="muted">Beim ersten Start wurde automatisch eine Kopie der alten Daten angelegt.</p><button class="ghost-button full-button" type="button" data-action="restore-pre-v2" ${localStorage.getItem(PRE_V2_BACKUP_KEY) ? "" : "disabled"}>Alte Kopie wiederherstellen</button></div>
+      </div>
+      <div class="panel" style="margin-top:16px"><h3>Automatische lokale Sicherungen</h3>${snapshots.length ? `<div class="admin-list">${snapshots.map((snapshot,index) => `<div class="admin-row"><span class="admin-row-icon">💾</span><div><h4>${formatDateTime(snapshot.createdAt)}</h4><p>Version ${escapeHtml(snapshot.appVersion || "unbekannt")}</p></div><button class="ghost-button small-button" type="button" data-action="restore-snapshot" data-index="${index}">Wiederherstellen</button></div>`).join("")}</div>` : `<p class="muted">Noch keine automatische Momentaufnahme vorhanden.</p>`}</div>`;
+  }
+
+  function renderSettingsTab() {
+    return `
+      <div class="section-heading"><div><h2>Einstellungen</h2><p>Grundlegende Regeln für eure Mitmach-Welt.</p></div></div>
+      <form id="settingsForm" class="panel">
+        <div class="form-grid">
+          <div class="form-field full"><label>Gruppenname</label><input name="groupName" value="${escapeHtml(data.settings.groupName)}" required></div>
+          <div class="form-field"><label>Neue Erzieher-PIN</label><input name="pin" inputmode="numeric" maxlength="8" value="${escapeHtml(data.settings.pin)}" required></div>
+          <div class="form-field"><label>Bewegung</label><select name="reduceMotion"><option value="false" ${!data.settings.reduceMotion ? "selected" : ""}>Animationen anzeigen</option><option value="true" ${data.settings.reduceMotion ? "selected" : ""}>Bewegung reduzieren</option></select></div>
+          <div class="form-field"><label>Münzen für einen Gemeinschaftspunkt</label><input name="communityCoinThreshold" type="number" min="10" max="5000" value="${data.settings.communityCoinThreshold}"></div>
+          <div class="form-field"><label>Samen für einen Gemeinschaftspunkt</label><input name="communitySeedThreshold" type="number" min="10" max="5000" value="${data.settings.communitySeedThreshold}"></div>
+          <div class="form-field"><label>Münzen beim Tausch</label><input name="exchangeCoins" type="number" min="1" max="500" value="${data.settings.exchangeCoins}"></div>
+          <div class="form-field"><label>Samen beim Tausch</label><input name="exchangeSeeds" type="number" min="1" max="500" value="${data.settings.exchangeSeeds}"></div>
+          <div class="form-field full"><label><input name="allowCoinSeedExchange" type="checkbox" ${data.settings.allowCoinSeedExchange ? "checked" : ""} style="width:auto"> Münzen dürfen freiwillig in Samen getauscht werden</label></div>
+        </div>
+        <div class="modal-actions"><button class="primary-button" type="submit">Einstellungen speichern</button></div>
+      </form>`;
+  }
+
+  function openChildEditor(childId = null) {
+    const child = childId ? childById(childId) : null;
+    ui.editingChildId = childId;
+    const selectedAvatar = child?.avatar || "🦄";
+    const selectedAccent = child?.accent || ACCENT_COLORS[0];
+    const selectedTheme = child?.theme || "meadow";
+    openModal(child ? "Kind bearbeiten" : "Kind anlegen", `
+      <form id="childForm">
+        <input type="hidden" name="id" value="${escapeHtml(childId || "")}">
+        <input type="hidden" name="avatar" id="childAvatarValue" value="${escapeHtml(selectedAvatar)}">
+        <input type="hidden" name="accent" id="childAccentValue" value="${escapeHtml(selectedAccent)}">
+        <div class="form-grid">
+          <div class="form-field full"><label>Name oder Spitzname</label><input name="name" value="${escapeHtml(child?.name || "")}" required maxlength="30"></div>
+          <div class="form-field"><label>Start-Münzen</label><input name="coins" type="number" min="0" max="9999" value="${child?.coins ?? 0}"></div>
+          <div class="form-field"><label>Start-Samen</label><input name="seeds" type="number" min="0" max="9999" value="${child?.seeds ?? 0}"></div>
+          <div class="form-field"><label>Sterne</label><input name="stars" type="number" min="0" max="999" value="${child?.stars ?? 0}"></div>
+          <div class="form-field"><label>Themenwelt</label><select name="theme">${WORLD_THEMES.map(theme => `<option value="${theme.id}" ${selectedTheme === theme.id ? "selected" : ""}>${theme.icon} ${escapeHtml(theme.title)}</option>`).join("")}</select></div>
+          <div class="form-field full"><label>Farbe</label><div class="color-picker">${ACCENT_COLORS.map(color => `<button type="button" class="color-option ${color === selectedAccent ? "selected" : ""}" style="background:${color}" data-action="select-child-color" data-color="${color}" aria-label="Farbe auswählen"></button>`).join("")}</div></div>
+          <div class="form-field full"><label>Avatar-Kategorie</label><div class="tabbar">${Object.keys(AVATARS).map(category => `<button type="button" class="${ui.avatarCategory === category ? "active" : ""}" data-action="avatar-category" data-category="${category}">${escapeHtml(category)}</button>`).join("")}</div><div class="avatar-picker" id="avatarPicker">${renderAvatarOptions(selectedAvatar)}</div><p class="muted tiny">Derselbe Avatar darf mehreren Kindern gehören.</p></div>
+        </div>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
+      </form>`, { wide:true });
+  }
+
+  function renderAvatarOptions(selectedAvatar) {
+    return AVATARS[ui.avatarCategory].map(avatar => `<button type="button" class="avatar-option ${avatar === selectedAvatar ? "selected" : ""}" data-action="select-avatar" data-avatar="${avatar}">${avatar}</button>`).join("");
+  }
+
+  function openTaskEditor(taskId = null) {
+    const task = taskId ? taskById(taskId) : null;
+    openModal(task ? "Aufgabe bearbeiten" : "Aufgabe anlegen", `
+      <form id="taskForm"><input type="hidden" name="id" value="${escapeHtml(taskId || "")}">
+        <div class="form-grid">
+          <div class="form-field full"><label>Aufgabenname</label><input name="title" value="${escapeHtml(task?.title || "")}" required maxlength="60"></div>
+          <div class="form-field"><label>Symbol</label><select name="icon">${TASK_ICONS.map(icon => `<option value="${icon}" ${task?.icon === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Kategorie</label><input name="category" value="${escapeHtml(task?.category || "Alltag")}" maxlength="30"></div>
+          <div class="form-field"><label>Förderbereich</label><select name="competence">${COMPETENCES.map(item => `<option value="${escapeHtml(item)}" ${task?.competence === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Benötigte Kinder</label><select name="requiredChildren">${Array.from({length:8},(_,index)=>index+1).map(number => `<option value="${number}" ${(task?.requiredChildren || 1) === number ? "selected" : ""}>${number} ${number === 1 ? "Kind" : "Kinder"}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Wie oft pro Tag?</label><select name="repeatMode"><option value="shared" ${(task?.repeatMode || "shared") === "shared" ? "selected" : ""}>Einmal für die ganze Gruppe</option><option value="perChild" ${task?.repeatMode === "perChild" ? "selected" : ""}>Jedes Kind einmal</option></select></div>
+          <div class="form-field"><label>Münzen pro Kind</label><input name="coins" type="number" min="0" max="100" value="${task?.coins ?? 5}"></div>
+          <div class="form-field"><label>Samen pro Kind</label><input name="seeds" type="number" min="0" max="100" value="${task?.seeds ?? 2}"></div>
+          <div class="form-field"><label>Sterne pro Kind</label><input name="stars" type="number" min="0" max="5" value="${task?.stars ?? 0}"></div>
+          <div class="form-field"><label>Gemeinschaftspunkte nach Bestätigung</label><input name="communityPoints" type="number" min="0" max="10" value="${task?.communityPoints ?? 0}"></div>
+          <div class="form-field full"><label>Kurze Hinweise</label><textarea name="instructions" maxlength="240">${escapeHtml(task?.instructions || "")}</textarea></div>
+          <div class="form-field full"><label>Verfügbar an</label><div class="checkbox-grid">${DAY_NAMES.map((day,index) => `<label class="check-chip"><input type="checkbox" name="days" value="${index}" ${(task?.days || [0,1,2,3,4,5,6]).includes(index) ? "checked" : ""}><span>${day}</span></label>`).join("")}</div></div>
+        </div>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
+      </form>`, { wide:true });
+  }
+
+  function openGoalEditor(goalId = null) {
+    const goal = goalId ? goalById(goalId) : null;
+    openModal(goal ? "Tagesmission bearbeiten" : "Tagesmission anlegen", `
+      <form id="goalForm"><input type="hidden" name="id" value="${escapeHtml(goalId || "")}">
+        <div class="form-grid">
+          <div class="form-field"><label>Kind</label><select name="childId" required>${activeChildren().map(child => `<option value="${child.id}" ${goal?.childId === child.id ? "selected" : ""}>${child.avatar} ${escapeHtml(child.name)}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Symbol</label><select name="icon">${GOAL_ICONS.map(icon => `<option value="${icon}" ${goal?.icon === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
+          <div class="form-field full"><label>Positiv formulierte Mission</label><textarea name="title" required maxlength="180" placeholder="Ich versuche ruhig zu bleiben und freundlich mit anderen umzugehen.">${escapeHtml(goal?.title || "")}</textarea></div>
+          <div class="form-field"><label>Geschafft: Münzen</label><input name="achievedCoins" type="number" min="0" max="100" value="${goal?.achievedCoins ?? 5}"></div>
+          <div class="form-field"><label>Geschafft: Samen</label><input name="achievedSeeds" type="number" min="0" max="100" value="${goal?.achievedSeeds ?? 3}"></div>
+          <div class="form-field"><label>Geschafft: Sterne</label><input name="achievedStars" type="number" min="0" max="5" value="${goal?.achievedStars ?? 0}"></div>
+          <div class="form-field"><label>Teilweise: Münzen</label><input name="partialCoins" type="number" min="0" max="100" value="${goal?.partialCoins ?? 2}"></div>
+          <div class="form-field"><label>Teilweise: Samen</label><input name="partialSeeds" type="number" min="0" max="100" value="${goal?.partialSeeds ?? 1}"></div>
+        </div>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
+      </form>`, { wide:true });
+  }
+
+  function openWishEditor(wishId = null) {
+    const wish = wishId ? wishById(wishId) : null;
+    openModal(wish ? "Wunsch bearbeiten" : "Wunsch anlegen", `
+      <form id="wishForm"><input type="hidden" name="id" value="${escapeHtml(wishId || "")}">
+        <div class="form-grid">
+          <div class="form-field"><label>Symbol</label><input name="icon" value="${escapeHtml(wish?.icon || "🎁")}" maxlength="4"></div>
+          <div class="form-field"><label>Kosten in Münzen</label><input name="cost" type="number" min="1" max="999" value="${wish?.cost ?? 20}"></div>
+          <div class="form-field full"><label>Wunsch</label><input name="title" value="${escapeHtml(wish?.title || "")}" required maxlength="80"></div>
+          <div class="form-field full"><label>Hinweis für Kind und Team</label><textarea name="note" maxlength="240">${escapeHtml(wish?.note || "")}</textarea></div>
+        </div>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Speichern</button></div>
+      </form>`);
+  }
+
+  function openGoalReview(childId, goalId) {
+    const child = childById(childId); const goal = goalById(goalId);
+    if (!child || !goal) return;
+    openModal(`Tagesmission mit ${child.name}`, `
+      <form id="goalReviewForm">
+        <input type="hidden" name="childId" value="${child.id}"><input type="hidden" name="goalId" value="${goal.id}">
+        <div class="reward-reveal"><span class="main-emoji">${goal.icon}</span><h2>${escapeHtml(goal.title)}</h2><p class="muted">Zuerst schätzt das Kind den Tag ein. Danach trefft ihr gemeinsam eine wertschätzende Entscheidung.</p></div>
+        <div class="form-field"><label>So sieht das Kind seinen Tag</label><select name="childView" required><option value="">Bitte gemeinsam auswählen</option><option value="achieved">🌟 Das hat gut geklappt</option><option value="partial">🌱 Teilweise – einiges hat schon geklappt</option><option value="notYet">🌤️ Heute war es noch schwierig</option></select></div>
+        <div class="form-field" style="margin-top:14px"><label>Gemeinsame Entscheidung</label><select name="result" required><option value="">Bitte gemeinsam auswählen</option><option value="achieved">🌟 Geschafft</option><option value="partial">🌱 Teilweise geschafft</option><option value="notYet">🌤️ Heute noch nicht</option></select></div>
+        <div class="form-field" style="margin-top:14px"><label>Kurze wertschätzende Rückmeldung (optional)</label><textarea name="note" placeholder="Was ist heute schon gut gelungen? Was kann morgen helfen?"></textarea></div>
+        <div class="callout success" style="margin-top:14px"><p><b>Belohnung:</b> Geschafft = 🪙 ${goal.achievedCoins}, 🌱 ${goal.achievedSeeds}${goal.achievedStars ? `, ⭐ ${goal.achievedStars}` : ""}. Teilweise = 🪙 ${goal.partialCoins}, 🌱 ${goal.partialSeeds}. Heute noch nicht = keine Abzüge.</p></div>
+        <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="submit">Gespräch abschließen</button></div>
+      </form>`);
+  }
+
+  function openDeclineClaim(claimId) {
+    const claim = data.claims.find(item => item.id === claimId); const task = claim ? taskById(claim.taskId) : null;
+    if (!claim || !task) return;
+    openModal("Aufgabe noch nicht bestätigen", `
+      <p>Die Kinder bekommen keine Minuspunkte. Beim nächsten Öffnen erscheint eine freundliche Rückmeldung.</p>
+      <div class="form-field"><label>Kurzer Hinweis (optional)</label><textarea id="declineNote" placeholder="Zum Beispiel: Ein Teil des Hofes musste noch gemeinsam fertig gemacht werden."></textarea></div>
+      <div class="modal-actions"><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="danger-button" type="button" data-action="confirm-decline-claim" data-claim-id="${claimId}">Noch nicht bestätigen</button></div>`);
+  }
+
+  function buyWorldItem(childId, itemId) {
+    const child = childById(childId); const item = itemById(itemId);
+    if (!child || !item) return false;
+    if (item.seedCost) {
+      if (child.seeds < item.seedCost) return false;
+      child.seeds -= item.seedCost;
+    } else if (item.starCost) {
+      if (child.stars < item.starCost) return false;
+      child.stars -= item.starCost;
+    }
+    child.inventory.push(item.id);
+    data.history.push({ id:uid(), type:"world_item_bought", childId, itemId, seedCost:item.seedCost || 0, starCost:item.starCost || 0, timestamp:Date.now() });
+    saveData({ snapshot:true });
+    celebrate(18);
+    return true;
+  }
+
+  function requestWish(childId, wishId) {
+    const child = childById(childId); const wish = wishById(wishId);
+    if (!child || !wish || !wish.active || child.coins < wish.cost) return false;
+    if (data.wishRequests.some(request => request.childId === childId && request.wishId === wishId && request.status === "pending")) return false;
+    child.coins -= wish.cost;
+    data.wishRequests.push({ id:uid(), childId, wishId, cost:wish.cost, status:"pending", createdAt:Date.now(), reviewedAt:0 });
+    data.history.push({ id:uid(), type:"wish_requested", childId, wishId, cost:wish.cost, timestamp:Date.now() });
+    saveData({ snapshot:true });
+    return true;
+  }
+
+  function reviewWish(requestId, approved) {
+    const request = data.wishRequests.find(item => item.id === requestId);
+    const child = request ? childById(request.childId) : null;
+    const wish = request ? wishById(request.wishId) : null;
+    if (!request || !child || !wish || request.status !== "pending") return false;
+    request.status = approved ? "approved" : "rejected";
+    request.reviewedAt = Date.now();
+    if (!approved) child.coins += request.cost;
+    addNotification(child.id, {
+      type:"wish", title:approved ? "Dein Wunsch ist vorgemerkt" : "Deine Münzen sind wieder da",
+      message:approved ? `${wish.icon} ${wish.title} wurde angenommen.` : `${wish.icon} Der Wunsch konnte diesmal nicht angenommen werden.`,
+      detail:approved ? "Sprecht gemeinsam ab, wann er gut in den Alltag passt." : `${request.cost} Münzen wurden vollständig zurückgegeben.`, positive:approved
     });
-    const deleteButton = $("#deleteTask");
-    if (deleteButton) deleteButton.addEventListener("click", () => {
-      if (confirm(`${existing.title} wirklich löschen?`)) {
-        data.tasks = data.tasks.filter(task => task.id !== taskId);
-        saveData();
-        closeModal();
-        renderEducatorContent();
-      }
-    });
+    data.history.push({ id:uid(), type:approved ? "wish_approved" : "wish_rejected", childId:child.id, wishId:wish.id, timestamp:Date.now() });
+    saveData({ snapshot:true });
+    return true;
   }
 
   function exportData() {
-    const payload = { ...data, exportedAt: new Date().toISOString(), appVersion: APP_VERSION };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    saveSnapshot();
+    const payload = {
+      exportType:"Mitmach-Welt-Datensicherung",
+      exportedAt:new Date().toISOString(),
+      appVersion:APP_VERSION,
+      schemaVersion:SCHEMA_VERSION,
+      data
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], { type:"application/json" });
     const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `mitmach-welt-sicherung-${todayKey()}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Mitmach-Welt_Sicherung_${todayKey()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("Sicherungsdatei wurde erstellt.");
   }
 
-  function importData(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  function importDataFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const incoming = normalizeData(JSON.parse(reader.result));
-        if (!incoming.children || !incoming.tasks) throw new Error("invalid");
-        data = incoming;
-        saveData();
-        showToast("Sicherung wurde importiert.");
-        renderEducatorContent();
-      } catch (error) {
-        showToast("Die Datei ist keine gültige Mitmach-Welt-Sicherung.");
+        const parsed = JSON.parse(String(reader.result || ""));
+        const incoming = parsed.data || parsed;
+        if (!incoming || !Array.isArray(incoming.children) || !Array.isArray(incoming.tasks)) throw new Error("Ungültige Sicherung");
+        if (!window.confirm("Die aktuellen Daten werden durch diese Sicherung ersetzt. Fortfahren?")) return;
+        saveSnapshot();
+        data = normalizeData(incoming);
+        saveData({ snapshot:true });
+        closeModal();
+        render();
+        showToast("Sicherung wurde wiederhergestellt.");
+      } catch {
+        showToast("Diese Datei ist keine gültige Mitmach-Welt-Sicherung.");
       }
     };
     reader.readAsText(file);
   }
 
-  function setupServiceWorker() {
-    if (!("serviceWorker" in navigator)) return;
-    window.addEventListener("load", async () => {
-      try {
-        const registration = await navigator.serviceWorker.register("./sw.js");
-        if (registration.waiting) showUpdate(registration.waiting);
-        registration.addEventListener("updatefound", () => {
-          const worker = registration.installing;
-          if (!worker) return;
-          worker.addEventListener("statechange", () => {
-            if (worker.state === "installed" && navigator.serviceWorker.controller) showUpdate(worker);
-          });
-        });
-        navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload());
-      } catch (error) {
-        // Offline-Unterstützung ist optional.
+  function restorePreV2() {
+    const old = readJson(PRE_V2_BACKUP_KEY);
+    if (!old) return;
+    if (!window.confirm("Die automatisch gesicherte Kopie vor Version 2.0 wiederherstellen? Die aktuellen Daten werden vorher zusätzlich gesichert.")) return;
+    saveSnapshot();
+    data = normalizeData(old);
+    saveData({ snapshot:true });
+    render();
+    showToast("Alte Datenkopie wurde wiederhergestellt.");
+  }
+
+  function restoreSnapshot(index) {
+    const ring = readJson(BACKUP_RING_KEY) || [];
+    const snapshot = ring[Number(index)];
+    if (!snapshot?.data) return;
+    if (!window.confirm(`Sicherung vom ${formatDateTime(snapshot.createdAt)} wiederherstellen?`)) return;
+    saveSnapshot();
+    data = normalizeData(snapshot.data);
+    saveData({ snapshot:true });
+    render();
+    showToast("Momentaufnahme wurde wiederhergestellt.");
+  }
+
+  document.addEventListener("click", event => {
+    const actionElement = event.target.closest("[data-action]");
+    if (!actionElement) return;
+    if (actionElement.classList.contains("modal-backdrop") && event.target !== actionElement) return;
+    const action = actionElement.dataset.action;
+
+    switch (action) {
+      case "close-modal": closeModal(); break;
+      case "go-home": goHome(); break;
+      case "open-child": ui.childId = actionElement.dataset.childId; navigate("child", { childId:ui.childId }); break;
+      case "child-tasks": navigate("tasks", { childId:ui.childId }); break;
+      case "child-missions": navigate("missions", { childId:ui.childId }); break;
+      case "child-world": navigate("world", { childId:ui.childId }); break;
+      case "child-shop": navigate("shop", { childId:ui.childId }); break;
+      case "child-achievements": navigate("achievements", { childId:ui.childId }); break;
+      case "nav-group": navigate("group"); break;
+      case "nav-educator": navigate("educator"); break;
+      case "open-round":
+        ui.roundDraft = { participants:[] };
+        navigate("roundSetup");
+        break;
+      case "toggle-round-child": {
+        if (!ui.roundDraft || !Array.isArray(ui.roundDraft.participants)) ui.roundDraft = { participants:[] };
+        const id = actionElement.dataset.childId;
+        ui.roundDraft.participants = ui.roundDraft.participants.includes(id)
+          ? ui.roundDraft.participants.filter(childId => childId !== id)
+          : [...ui.roundDraft.participants, id];
+        render();
+        break;
       }
-    });
-  }
-
-  function showUpdate(worker) {
-    ui.pendingServiceWorker = worker;
-    updateBanner.hidden = false;
-  }
-
-  $("#reloadApp").addEventListener("click", () => {
-    ui.pendingServiceWorker?.postMessage({ type: "SKIP_WAITING" });
+      case "start-round": startRound(); break;
+      case "round-choose-task": chooseRoundTask(actionElement.dataset.taskId); break;
+      case "finish-round": ui.roundDraft = null; goHome(); break;
+      case "reserve-task": {
+        const result = reserveTask(actionElement.dataset.childId, actionElement.dataset.taskId, "solo");
+        showToast(result.message);
+        if (result.ok) render();
+        break;
+      }
+      case "leave-claim":
+        leaveClaim(actionElement.dataset.childId, actionElement.dataset.claimId);
+        showToast("Aufgabe wurde wieder freigegeben.");
+        render();
+        break;
+      case "report-claim": {
+        const result = reportClaim(actionElement.dataset.childId, actionElement.dataset.claimId);
+        showToast(result.message);
+        if (result.ok) { celebrate(12); render(); }
+        break;
+      }
+      case "shop-tab": ui.shopTab = actionElement.dataset.tab; render(); break;
+      case "buy-world-item": {
+        const child = childById(actionElement.dataset.childId); const item = itemById(actionElement.dataset.itemId);
+        if (!child || !item) break;
+        const price = item.seedCost ? `${item.seedCost} Samen` : `${item.starCost} Sterne`;
+        confirmModal({ title:`${item.icon} ${item.title}`, message:`Möchtest du ${escapeHtml(item.title)} für ${price} in deine Welt holen?`, confirmText:"Ja, in meine Welt", confirmAction:"confirm-buy-world", payload:{"child-id":child.id,"item-id":item.id} });
+        break;
+      }
+      case "confirm-buy-world": {
+        const ok = buyWorldItem(actionElement.dataset.childId, actionElement.dataset.itemId);
+        closeModal();
+        showToast(ok ? "Der Gegenstand ist jetzt in deiner Welt." : "Dafür reicht dein Guthaben noch nicht.");
+        render();
+        break;
+      }
+      case "request-wish": {
+        const child = childById(actionElement.dataset.childId); const wish = wishById(actionElement.dataset.wishId);
+        if (!child || !wish) break;
+        confirmModal({ title:`${wish.icon} Wunsch vormerken`, message:`Möchtest du „${escapeHtml(wish.title)}“ für ${wish.cost} Münzen vormerken? Ein Erzieher stimmt den Wunsch später mit dir ab.`, confirmText:"Wunsch vormerken", confirmAction:"confirm-request-wish", payload:{"child-id":child.id,"wish-id":wish.id} });
+        break;
+      }
+      case "confirm-request-wish": {
+        const ok = requestWish(actionElement.dataset.childId, actionElement.dataset.wishId);
+        closeModal();
+        showToast(ok ? "Dein Wunsch ist vorgemerkt." : "Der Wunsch konnte nicht vorgemerkt werden.");
+        render();
+        break;
+      }
+      case "exchange-coins":
+        confirmModal({ title:"Münzen in Samen tauschen", message:`${data.settings.exchangeCoins} Münzen werden in ${data.settings.exchangeSeeds} Samen getauscht. Dieser Tausch kann nicht rückgängig gemacht werden.`, confirmText:"Jetzt tauschen", confirmAction:"confirm-exchange-coins", payload:{"child-id":actionElement.dataset.childId} });
+        break;
+      case "confirm-exchange-coins": {
+        const child = childById(actionElement.dataset.childId);
+        if (child && child.coins >= data.settings.exchangeCoins) {
+          child.coins -= data.settings.exchangeCoins;
+          child.seeds += data.settings.exchangeSeeds;
+          data.history.push({ id:uid(), type:"coin_seed_exchange", childId:child.id, coins:data.settings.exchangeCoins, seeds:data.settings.exchangeSeeds, timestamp:Date.now() });
+          saveData({ snapshot:true });
+          celebrate(10);
+          showToast("Samen wurden deinem Guthaben hinzugefügt.");
+        }
+        closeModal(); render();
+        break;
+      }
+      case "educator-tab": ui.educatorTab = actionElement.dataset.tab; render(); break;
+      case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "review"; render(); break;
+      case "approve-claim":
+        if (reviewClaim(actionElement.dataset.claimId, "approve")) { showToast("Aufgabe wurde bestätigt."); celebrate(10); render(); }
+        break;
+      case "decline-claim-prompt": openDeclineClaim(actionElement.dataset.claimId); break;
+      case "confirm-decline-claim": {
+        const note = document.querySelector("#declineNote")?.value.trim() || "";
+        if (reviewClaim(actionElement.dataset.claimId, "decline", note)) showToast("Freundliche Rückmeldung wurde gespeichert.");
+        closeModal(); render();
+        break;
+      }
+      case "approve-all-claims":
+        confirmModal({ title:"Alle Aufgaben bestätigen?", message:"Alle derzeit offen gemeldeten Aufgaben werden bestätigt und die Belohnungen gutgeschrieben.", confirmText:"Alle bestätigen", confirmAction:"confirm-approve-all", confirmClass:"success-button" });
+        break;
+      case "confirm-approve-all": {
+        const ids = data.claims.filter(claim => claim.status === "reported").map(claim => claim.id);
+        ids.forEach(id => reviewClaim(id, "approve"));
+        closeModal(); celebrate(24); showToast(`${ids.length} Aufgabe${ids.length === 1 ? "" : "n"} bestätigt.`); render();
+        break;
+      }
+      case "open-goal-review": openGoalReview(actionElement.dataset.childId, actionElement.dataset.goalId); break;
+      case "approve-wish": if (reviewWish(actionElement.dataset.requestId, true)) { showToast("Wunsch wurde angenommen."); render(); } break;
+      case "reject-wish": if (reviewWish(actionElement.dataset.requestId, false)) { showToast("Münzen wurden zurückerstattet."); render(); } break;
+      case "open-child-editor": openChildEditor(actionElement.dataset.childId || null); break;
+      case "toggle-child-active": {
+        const child = childById(actionElement.dataset.childId); if (child) { child.active = !child.active; saveData({ snapshot:true }); render(); }
+        break;
+      }
+      case "open-task-editor": openTaskEditor(actionElement.dataset.taskId || null); break;
+      case "toggle-task-active": {
+        const task = taskById(actionElement.dataset.taskId); if (task) { task.active = !task.active; saveData({ snapshot:true }); render(); }
+        break;
+      }
+      case "open-goal-editor": openGoalEditor(actionElement.dataset.goalId || null); break;
+      case "toggle-goal-active": {
+        const goal = goalById(actionElement.dataset.goalId); if (goal) { goal.active = !goal.active; saveData({ snapshot:true }); render(); }
+        break;
+      }
+      case "open-wish-editor": openWishEditor(actionElement.dataset.wishId || null); break;
+      case "toggle-wish-active": {
+        const wish = wishById(actionElement.dataset.wishId); if (wish) { wish.active = !wish.active; saveData({ snapshot:true }); render(); }
+        break;
+      }
+      case "avatar-category": {
+        ui.avatarCategory = actionElement.dataset.category;
+        document.querySelectorAll("[data-action='avatar-category']").forEach(button => button.classList.toggle("active", button.dataset.category === ui.avatarCategory));
+        const selected = document.querySelector("#childAvatarValue")?.value || "🦄";
+        const picker = document.querySelector("#avatarPicker"); if (picker) picker.innerHTML = renderAvatarOptions(selected);
+        break;
+      }
+      case "select-avatar": {
+        const input = document.querySelector("#childAvatarValue"); if (input) input.value = actionElement.dataset.avatar;
+        document.querySelectorAll(".avatar-option").forEach(button => button.classList.toggle("selected", button === actionElement));
+        break;
+      }
+      case "select-child-color": {
+        const input = document.querySelector("#childAccentValue"); if (input) input.value = actionElement.dataset.color;
+        document.querySelectorAll(".color-option").forEach(button => button.classList.toggle("selected", button === actionElement));
+        break;
+      }
+      case "export-data": exportData(); break;
+      case "restore-pre-v2": restorePreV2(); break;
+      case "restore-snapshot": restoreSnapshot(actionElement.dataset.index); break;
+      case "mark-notifications-seen": {
+        data.notifications.forEach(note => { if (note.childId === actionElement.dataset.childId && !note.seen) note.seen = true; });
+        saveData(); closeModal(); navigate("world", { push:false, childId:actionElement.dataset.childId });
+        break;
+      }
+      default: break;
+    }
   });
 
+  document.querySelectorAll(".bottom-nav button").forEach(button => button.addEventListener("click", () => {
+    if (button.dataset.nav === "home") goHome();
+    if (button.dataset.nav === "group") navigate("group");
+    if (button.dataset.nav === "educator") navigate("educator");
+  }));
+  backButton.addEventListener("click", goBack);
+  homeButton.addEventListener("click", goHome);
+
+  document.addEventListener("submit", event => {
+    const form = event.target;
+    event.preventDefault();
+
+    if (form.id === "pinForm") {
+      const pin = new FormData(form).get("pin");
+      if (String(pin) === String(data.settings.pin)) {
+        ui.educatorUnlocked = true;
+        ui.educatorTab = "review";
+        showToast("Erzieherbereich entsperrt.");
+        render();
+      } else {
+        showToast("PIN ist nicht richtig.");
+        form.reset();
+      }
+      return;
+    }
+
+    if (form.id === "childForm") {
+      const values = Object.fromEntries(new FormData(form).entries());
+      const existing = values.id ? childById(values.id) : null;
+      const child = existing || { id:uid(), completed:0, inventory:[], active:true, createdAt:Date.now(), lastFirstAt:0 };
+      child.name = values.name.trim(); child.avatar = values.avatar || "🙂"; child.accent = values.accent || ACCENT_COLORS[0]; child.theme = values.theme || "meadow";
+      child.coins = Math.max(0, Number(values.coins || 0)); child.seeds = Math.max(0, Number(values.seeds || 0)); child.stars = Math.max(0, Number(values.stars || 0));
+      if (!existing) data.children.push(child);
+      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Kinderprofil wurde aktualisiert." : "Kinderprofil wurde angelegt."); render();
+      return;
+    }
+
+    if (form.id === "taskForm") {
+      const formData = new FormData(form); const values = Object.fromEntries(formData.entries()); const days = formData.getAll("days").map(Number);
+      if (!days.length) return showToast("Bitte mindestens einen Wochentag auswählen.");
+      const existing = values.id ? taskById(values.id) : null;
+      const task = existing || { id:uid(), active:true };
+      Object.assign(task, {
+        title:values.title.trim(), icon:values.icon || "✅", category:values.category.trim() || "Alltag", competence:values.competence || "Selbstständigkeit",
+        requiredChildren:clamp(values.requiredChildren,1,8), repeatMode:clamp(values.requiredChildren,1,8) > 1 ? "shared" : (values.repeatMode === "perChild" ? "perChild" : "shared"), coins:clamp(values.coins,0,100), seeds:clamp(values.seeds,0,100), stars:clamp(values.stars,0,5),
+        communityPoints:clamp(values.communityPoints,0,10), instructions:values.instructions.trim(), days
+      });
+      if (!existing) data.tasks.push(task);
+      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Aufgabe wurde aktualisiert." : "Aufgabe wurde angelegt."); render();
+      return;
+    }
+
+    if (form.id === "goalForm") {
+      const values = Object.fromEntries(new FormData(form).entries()); const existing = values.id ? goalById(values.id) : null;
+      const goal = existing || { id:uid(), active:true, createdAt:Date.now() };
+      Object.assign(goal, {
+        childId:values.childId, icon:values.icon || "🌱", title:values.title.trim(), achievedCoins:clamp(values.achievedCoins,0,100),
+        achievedSeeds:clamp(values.achievedSeeds,0,100), achievedStars:clamp(values.achievedStars,0,5), partialCoins:clamp(values.partialCoins,0,100), partialSeeds:clamp(values.partialSeeds,0,100)
+      });
+      if (!existing) data.personalGoals.push(goal);
+      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Tagesmission wurde aktualisiert." : "Tagesmission wurde angelegt."); render();
+      return;
+    }
+
+    if (form.id === "wishForm") {
+      const values = Object.fromEntries(new FormData(form).entries()); const existing = values.id ? wishById(values.id) : null;
+      const wish = existing || { id:uid(), active:true };
+      Object.assign(wish, { icon:values.icon.trim() || "🎁", title:values.title.trim(), cost:clamp(values.cost,1,999), note:values.note.trim() });
+      if (!existing) data.wishes.push(wish);
+      saveData({ snapshot:true }); closeModal(); showToast(existing ? "Wunsch wurde aktualisiert." : "Wunsch wurde angelegt."); render();
+      return;
+    }
+
+    if (form.id === "settingsForm") {
+      const formData = new FormData(form); const values = Object.fromEntries(formData.entries());
+      data.settings.groupName = values.groupName.trim() || "Unsere Gruppe";
+      data.settings.pin = values.pin.trim() || "2468";
+      data.settings.reduceMotion = values.reduceMotion === "true";
+      data.settings.communityCoinThreshold = clamp(values.communityCoinThreshold,10,5000);
+      data.settings.communitySeedThreshold = clamp(values.communitySeedThreshold,10,5000);
+      data.settings.exchangeCoins = clamp(values.exchangeCoins,1,500);
+      data.settings.exchangeSeeds = clamp(values.exchangeSeeds,1,500);
+      data.settings.allowCoinSeedExchange = formData.has("allowCoinSeedExchange");
+      saveData({ snapshot:true }); showToast("Einstellungen wurden gespeichert."); render();
+      return;
+    }
+
+    if (form.id === "goalReviewForm") {
+      const values = Object.fromEntries(new FormData(form).entries());
+      const ok = evaluateGoal({ childId:values.childId, goalId:values.goalId, childView:values.childView, result:values.result, note:values.note.trim() });
+      closeModal(); showToast(ok ? "Tagesmission wurde gemeinsam ausgewertet." : "Diese Mission wurde heute schon ausgewertet."); render();
+    }
+  });
+
+  document.addEventListener("change", event => {
+    if (event.target.id === "importFile" && event.target.files?.[0]) importDataFile(event.target.files[0]);
+  });
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+    navigator.serviceWorker.register("./sw.js").then(registration => {
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) updateBanner.hidden = false;
+        });
+      });
+    }).catch(() => {});
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload());
+  }
+
+  document.querySelector("#reloadApp")?.addEventListener("click", async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    registration?.waiting?.postMessage({ type:"SKIP_WAITING" });
+    location.reload();
+  });
+
+  window.addEventListener("beforeunload", () => saveData());
   applyPreferences();
+  registerServiceWorker();
   render();
-  setupServiceWorker();
+
+  // Kleine Diagnosehilfe für lokale Tests. Enthält keine personenbezogenen Daten.
+  window.MitmachWelt = {
+    version: APP_VERSION,
+    getSummary: () => ({ children:data.children.length, tasks:data.tasks.length, claims:data.claims.length, goals:data.personalGoals.length, schemaVersion:data.schemaVersion })
+  };
 })();

@@ -1,57 +1,67 @@
-# Mitmach-Welt v1.1
+# Mitmach-Welt 2.0
 
-Deutlich erweiterte Testversion für die Wohngruppe.
+Version 2.0 ist eine grundlegend neu strukturierte Testversion für den Alltag in einer Kinder- und Jugendwohngruppe.
 
-## Neu in Version 1.1
+## Zentrale Neuerungen
 
-- über 100 Avatare in vier Kategorien
-- Avatare dürfen mehrfach vergeben werden
-- persönliche Farbe und eigene Themenwelt pro Kind
-- sechs Themenwelten: Blumenwiese, Zauberwald, Meeresbucht, Weltraum, Dinotal und Bauernhof
-- fairere Auslosung: Die App berücksichtigt, wer zuletzt zuerst wählen durfte
-- Aufgaben mit mehreren Plätzen für gemeinsame Tätigkeiten
-- Aufgaben nach Wochentagen planbar
-- Sonnenblumen-Vorschlag bei der Aufgabenwahl
-- persönliche Welten mit Tagesgeschichten, Wetter und freischaltbaren Elementen
-- Weltladen mit dekorativen Extras
-- Mitmach-Buch mit Erinnerungen und Meilensteinen
-- größere gemeinsame Gruppenwelt mit Baufortschritt
-- Herzensblumen für freiwillige Hilfe und freundliches Verhalten
-- Team-Bonus nach einer vollständig geschafften Runde
-- pädagogische Einblicke ohne Rangliste
-- Ton, Vibration und reduzierte Bewegung einstellbar
-- Offline-Nutzung und Update-Hinweis
-- Datenübernahme aus Version 1.0
+- neue Startseite mit allen Kinderprofilen
+- großer Button für eine gemeinsame Mitmach-Runde mit fairer Auslosung
+- Kinder können allein jederzeit beliebig viele Aufgaben nacheinander übernehmen
+- erledigte Aufgaben warten gesammelt auf die spätere Abendrunde
+- Erzieher können Aufgaben bestätigen oder wertschätzend als „noch nicht“ zurückmelden
+- Rückmeldungen erscheinen erst, wenn das Kind sein Profil das nächste Mal öffnet
+- zeitabhängige, abwechslungsreiche Begrüßungen ohne starres „Guten Morgen“
+- persönliche Kinderübersicht mit:
+  - Aufgaben erledigen
+  - Tagesmissionen
+  - Meine Welt
+  - Mein Laden
+  - Meine Erfolge
+- Aufgaben für 1 bis 8 Kinder
+- Teamaufgaben können von mehreren Kindern gemeinsam belegt werden
+- drei persönliche Belohnungsarten:
+  - Münzen für echte Wünsche im Gruppenalltag
+  - Samen für die persönliche Spielwelt
+  - Sterne für seltene Weltgegenstände
+- optionaler Tausch von Münzen in Samen
+- Gemeinschaftspunkte durch Teamaufgaben sowie gemeinsam verdiente Münzen und Samen
+- persönliche, positiv formulierte Tagesmissionen
+- gemeinsame Abendreflexion von Kind und Erzieher: geschafft, teilweise oder heute noch nicht
+- keine Minuspunkte und keine Rangliste
+- mehr als 250 Avatare; gleiche Avatare dürfen mehrfach vergeben werden
+- Wunschladen, Weltenladen und Sternenschatz
+- Datenexport, Datenimport, automatische lokale Sicherungen und Wiederherstellung der Kopie vor Version 2.0
 
-## Wichtige Grundsätze
+## Datenerhalt beim Update
 
-- keine Rangliste zwischen Kindern
-- keine negative Meldung bei nicht geschafften Aufgaben
-- Kinder wählen zuerst alle ihre Aufgaben und arbeiten danach gleichzeitig
-- Belohnungen sind motivierend, aber nicht beschämend oder strafend
-- Daten werden nur lokal im Browser gespeichert
+Version 2.0 verwendet weiterhin den stabilen Speicherschlüssel der vorherigen Versionen. Vorhandene Kinder, Aufgaben, Münzen, Samen, Welten und Einstellungen werden automatisch übernommen und um die neuen Felder ergänzt.
+
+Beim ersten Start von Version 2.0 wird zusätzlich eine unveränderte Kopie des vorherigen Datenstands gespeichert. Diese kann im Erzieherbereich unter **Datensicherung** wiederhergestellt werden.
+
+Die Daten bleiben lokal an den jeweiligen Browser und das jeweilige Gerät gebunden. Für einen Gerätewechsel bitte im Erzieherbereich eine Sicherungsdatei exportieren und auf dem anderen Gerät importieren.
 
 ## Test-PIN
 
 `2468`
 
-Die PIN kann im Erzieherbereich geändert werden.
+Eine bereits geänderte PIN aus der vorherigen Version bleibt erhalten.
 
-## Dateien für GitHub Pages
+## Installation über GitHub Pages
 
-Alle Dateien aus dem ZIP in das Stammverzeichnis des Repositories hochladen und vorhandene Dateien ersetzen:
+Alle Dateien aus diesem Ordner in das Stammverzeichnis des GitHub-Repositories hochladen und die vorhandenen Dateien ersetzen:
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `manifest.webmanifest`
-- `sw.js`
-- `icon-192.png`
-- `icon-512.png`
-- `README.md`
+- index.html
+- styles.css
+- app.js
+- manifest.webmanifest
+- sw.js
+- icon-192.png
+- icon-512.png
+- README.md
+- CHANGELOG.md
 
-GitHub Pages bleibt auf `main` und `/(root)` eingestellt.
+Danach GitHub Pages auf `main` und `/(root)` belassen. Wegen des Offline-Speichers kann beim ersten Öffnen noch kurz die alte Version erscheinen. Dann die Seite neu laden oder den Update-Hinweis in der App antippen.
 
-## Nach dem Hochladen
+## Pädagogischer Grundsatz
 
-Die App einmal vollständig neu laden. Auf dem iPhone kann zusätzlich Safari → Teilen → **Zum Home-Bildschirm** verwendet werden.
+Die App soll Verhalten nicht bestrafen oder Kinder vergleichen. Persönliche Tagesmissionen werden positiv formuliert, gemeinsam reflektiert und führen bei „heute noch nicht“ niemals zu Abzügen.

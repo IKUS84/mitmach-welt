@@ -1,14 +1,20 @@
 # Änderungsprotokoll
 
-## 1.1.0
+## Version 2.0.0
 
-- Oberfläche vollständig überarbeitet
-- große Avatarbibliothek ergänzt
-- doppelte Avatare ausdrücklich erlaubt
-- persönliche Farben und Themenwelten ergänzt
-- fairere Reihenfolge eingeführt
-- Mehrpersonen-Aufgaben und Wochenplanung ergänzt
-- Weltladen und Erinnerungsbuch ergänzt
-- Herzensblumen und Team-Bonus ergänzt
-- pädagogische Einblicke ergänzt
-- Offline- und Update-Verhalten verbessert
+- vollständig neue Startseite mit direktem Zugang zu jedem Kind
+- separate gemeinsame Mitmach-Runde mit Roulette und fairer Reihenfolge
+- unbegrenzter Aufgabenfluss ohne sofortige Erzieherbestätigung
+- Abendrunde für gesammelte Bestätigungen, Rückmeldungen und Wünsche
+- Aufgaben mit frei wählbarer Kinderanzahl von 1 bis 8
+- gemeinsames Belegen und Abschließen von Teamaufgaben
+- Münzen, Samen, Sterne und Gemeinschaftspunkte
+- persönlicher Wunschladen, Weltenladen, Sternenschatz und Münzen-Samen-Tausch
+- persönliche Tagesmissionen mit gemeinsamer Reflexion
+- zeitabhängige Rückmeldungen beim nächsten Öffnen des Kinderprofils
+- Gruppenwelt mit Meilensteinen
+- mehr als 250 mehrfach nutzbare Avatare
+- automatische Migration aus Version 1.x
+- unveränderte Sicherung des Datenstands vor Version 2.0
+- Export, Import und mehrere automatische lokale Sicherungen
+- neues responsives Design für Tablet und Smartphone

@@ -3,35 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f5c542">
+  <meta name="theme-color" content="#f6c84d">
   <meta name="color-scheme" content="light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mitmach-Welt">
-  <meta name="description" content="Mitmach-Welt – eine motivierende Aufgaben-App für Kinder in Wohngruppen.">
+  <meta name="description" content="Mitmach-Welt – Aufgaben, persönliche Ziele und gemeinsame Erfolge für Kinder in Wohngruppen.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./styles.css">
-  <title>Mitmach-Welt</title>
+  <title>Mitmach-Welt 2.0</title>
 </head>
 <body>
   <div class="app-shell" id="appShell">
     <header class="topbar">
-      <button class="icon-button" id="backButton" type="button" aria-label="Zurück" hidden>←</button>
-      <div class="title-block">
-        <p class="eyebrow">Projekt Sonnenblume · v1.1</p>
-        <h1 id="screenTitle">Mitmach-Welt</h1>
+      <button class="round-icon-button" id="backButton" type="button" aria-label="Zurück" hidden>←</button>
+      <div class="brand-block">
+        <span class="brand-flower" aria-hidden="true">🌻</span>
+        <div>
+          <p class="eyebrow">Projekt Sonnenblume · Version 2.0</p>
+          <h1 id="screenTitle">Mitmach-Welt</h1>
+        </div>
       </div>
-      <button class="icon-button" id="homeButton" type="button" aria-label="Startseite">⌂</button>
+      <button class="round-icon-button" id="homeButton" type="button" aria-label="Startseite">⌂</button>
     </header>
 
     <main id="app" class="screen" aria-live="polite"></main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-      <button type="button" data-nav="home"><span class="nav-icon">🏠</span><span>Start</span></button>
-      <button type="button" data-nav="round"><span class="nav-icon">🌻</span><span>Runde</span></button>
-      <button type="button" data-nav="worlds"><span class="nav-icon">🌍</span><span>Welten</span></button>
-      <button type="button" data-nav="educator"><span class="nav-icon">🔒</span><span>Erzieher</span></button>
+      <button type="button" data-nav="home"><span>🏠</span><b>Start</b></button>
+      <button type="button" data-nav="group"><span>🌍</span><b>Gruppenwelt</b></button>
+      <button type="button" data-nav="educator"><span>🔒</span><b>Erzieher</b></button>
     </nav>
   </div>
 
