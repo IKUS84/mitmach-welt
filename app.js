@@ -34,7 +34,6 @@
   ];
   const TASK_ICONS = ["✅","🛏️","🍽️","🧸","🧺","🪴","🧹","🗑️","🐾","📚","🚿","👕","🍳","🧽","🪥","🥤","🧼","🧻","🪣","🌿","🥕","🛒","📦","🎒","👟","🪟","🧑‍🍳","🧑‍🤝‍🧑","🧤","🪥","🧯","🧰","🧺","🫧","🪴","🚲","🏡","🧑‍🌾"];
   const GOAL_ICONS = ["🌱","🌟","❤️","🤝","😌","👂","💬","🧠","🎒","🪥","🧸","📚","🧹","😊","🫶","⏰","🌈","🪴","🧘","🎯"];
-  const WISH_ICONS = ["🎁","📖","🎲","🌙","🍿","🍝","🎮","🎨","⚽","🏀","🚲","🛴","🛝","🎵","🎬","🍕","🍦","🧁","🍪","🥞","🧸","🪁","🌈","⭐","🦄","🦖","🐾","🌳","🏕️","🏊","🎳","🎯","🧩","📚","✏️","🎒","👑","🎉","💌","🫶"];
   const COMPETENCES = ["Selbstständigkeit","Zusammenarbeit","Ordnung","Hilfsbereitschaft","Verantwortung","Konzentration","Kommunikation","Kreativität","Selbstregulation","Rücksichtnahme"];
 
   const WORLD_ITEMS = [
@@ -208,7 +207,7 @@
       goalEvaluations: Array.isArray(raw.goalEvaluations) ? raw.goalEvaluations : [],
       notifications: Array.isArray(raw.notifications) ? raw.notifications : [],
       wishRequests: Array.isArray(raw.wishRequests) ? raw.wishRequests : [],
-      wishes: Array.isArray(raw.wishes) && raw.wishes.length ? raw.wishes : clone(DEFAULT_WISHES),
+      wishes: Array.isArray(raw.wishes) ? raw.wishes : clone(DEFAULT_WISHES),
       rounds: Array.isArray(raw.rounds) ? raw.rounds : [],
       lastOrders: Array.isArray(raw.lastOrders) ? raw.lastOrders : [],
       history: Array.isArray(raw.history) ? raw.history : []
@@ -1501,14 +1500,14 @@
       <div class="callout warning"><p>Beispiel statt „nicht weinen und nicht ärgern“: „Ich versuche ruhig zu bleiben und freundlich mit anderen umzugehen.“</p></div>
       <div class="admin-list" style="margin-top:14px">${data.personalGoals.length ? data.personalGoals.map(goal => {
         const child = childById(goal.childId); if (!child) return "";
-        return `<div class="admin-row"><span class="admin-row-icon">${goal.icon}</span><div><h4>${escapeHtml(goal.title)}</h4><p>${child.avatar} ${escapeHtml(child.name)} · ${goal.active ? "Aktiv" : "Pausiert"} · geschafft: 🪙 ${goal.achievedCoins}, 🌱 ${goal.achievedSeeds}${goal.achievedStars ? `, ⭐ ${goal.achievedStars}` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-goal-editor" data-goal-id="${goal.id}">Bearbeiten</button><button class="${goal.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-goal-active" data-goal-id="${goal.id}">${goal.active ? "Pausieren" : "Aktivieren"}</button></div></div>`;
+        return `<div class="admin-row"><span class="admin-row-icon">${goal.icon}</span><div><h4>${escapeHtml(goal.title)}</h4><p>${child.avatar} ${escapeHtml(child.name)} · ${goal.active ? "Aktiv" : "Pausiert"} · geschafft: 🪙 ${goal.achievedCoins}, 🌱 ${goal.achievedSeeds}${goal.achievedStars ? `, ⭐ ${goal.achievedStars}` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-goal-editor" data-goal-id="${goal.id}">Bearbeiten</button><button class="${goal.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-goal-active" data-goal-id="${goal.id}">${goal.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-goal-prompt" data-goal-id="${goal.id}">Löschen</button></div></div>`;
       }).join("") : `<div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine Tagesmissionen</h3></div>`}</div>`;
   }
 
   function renderWishesAdmin() {
     return `
       <div class="section-heading"><div><h2>Wunschladen verwalten</h2><p>Hier legt ihr fest, wofür Kinder Münzen im Gruppenalltag einsetzen können.</p></div><button class="primary-button small-button" type="button" data-action="open-wish-editor">＋ Wunsch anlegen</button></div>
-      <div class="admin-list">${data.wishes.map(wish => `<div class="admin-row"><span class="admin-row-icon">${wish.icon}</span><div><h4>${escapeHtml(wish.title)}</h4><p>${wish.active ? "Aktiv" : "Inaktiv"} · 🪙 ${wish.cost} · ${escapeHtml(wish.note)}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-wish-editor" data-wish-id="${wish.id}">Bearbeiten</button><button class="${wish.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-wish-active" data-wish-id="${wish.id}">${wish.active ? "Pausieren" : "Aktivieren"}</button></div></div>`).join("")}</div>`;
+      <div class="admin-list">${data.wishes.map(wish => `<div class="admin-row"><span class="admin-row-icon">${wish.icon}</span><div><h4>${escapeHtml(wish.title)}</h4><p>${wish.active ? "Aktiv" : "Inaktiv"} · 🪙 ${wish.cost} · ${escapeHtml(wish.note)}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-wish-editor" data-wish-id="${wish.id}">Bearbeiten</button><button class="${wish.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-wish-active" data-wish-id="${wish.id}">${wish.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-wish-prompt" data-wish-id="${wish.id}">Löschen</button></div></div>`).join("")}</div>`;
   }
 
   function renderBackupTab() {
@@ -1818,14 +1817,121 @@
     return true;
   }
 
+
+  function setSimpleFormStatus(formId, message, isError = false) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    let status = form.querySelector(".form-save-status");
+    if (!status) {
+      status = document.createElement("p");
+      status.className = "form-save-status";
+      const actions = form.querySelector(".modal-actions");
+      if (actions) actions.before(status); else form.append(status);
+    }
+    status.textContent = message || "";
+    status.classList.toggle("error", Boolean(isError));
+    status.classList.toggle("success", Boolean(message) && !isError);
+  }
+
+  function saveGoalFromForm(form) {
+    if (!form) return false;
+    const values = Object.fromEntries(new FormData(form).entries());
+    const title = String(values.title || "").trim();
+    if (!values.childId || !childById(values.childId)) { setSimpleFormStatus("goalForm", "Bitte ein gültiges Kind auswählen.", true); return false; }
+    if (!title) { setSimpleFormStatus("goalForm", "Bitte eine Tagesmission eintragen.", true); return false; }
+    const previous = clone(data.personalGoals);
+    const existingIndex = values.id ? data.personalGoals.findIndex(item => item.id === values.id) : -1;
+    if (values.id && existingIndex < 0) {
+      setSimpleFormStatus("goalForm", "Diese Tagesmission wurde auf einem anderen Gerät verändert oder gelöscht. Bitte schließen und erneut öffnen.", true);
+      return false;
+    }
+    const goal = {
+      ...(existingIndex >= 0 ? data.personalGoals[existingIndex] : {}),
+      id: existingIndex >= 0 ? data.personalGoals[existingIndex].id : uid(),
+      active: existingIndex >= 0 ? data.personalGoals[existingIndex].active !== false : true,
+      createdAt: existingIndex >= 0 ? (data.personalGoals[existingIndex].createdAt || Date.now()) : Date.now(),
+      childId: values.childId, icon: values.icon || "🌱", title,
+      achievedCoins: clamp(values.achievedCoins,0,100), achievedSeeds: clamp(values.achievedSeeds,0,100),
+      achievedStars: clamp(values.achievedStars,0,5), partialCoins: clamp(values.partialCoins,0,100), partialSeeds: clamp(values.partialSeeds,0,100)
+    };
+    if (existingIndex >= 0) data.personalGoals[existingIndex] = goal; else data.personalGoals.push(goal);
+    if (!saveData({ snapshot:true })) { data.personalGoals = previous; setSimpleFormStatus("goalForm", "Die Tagesmission konnte nicht gespeichert werden.", true); return false; }
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (!Array.isArray(stored.personalGoals) || !stored.personalGoals.some(item => item.id === goal.id && item.title === goal.title)) throw new Error("Mission fehlt nach Speicherprüfung");
+    } catch (error) {
+      data.personalGoals = previous; saveData({ snapshot:false });
+      setSimpleFormStatus("goalForm", "Die Speicherprüfung ist fehlgeschlagen. Bitte erneut versuchen.", true);
+      console.error("Mitmach-Welt: Missionsprüfung fehlgeschlagen", error); return false;
+    }
+    closeModal(); ui.educatorTab = "goals"; render(); showToast(existingIndex >= 0 ? "Tagesmission wurde gespeichert." : "Tagesmission wurde angelegt."); return true;
+  }
+
+  function saveWishFromForm(form) {
+    if (!form) return false;
+    const values = Object.fromEntries(new FormData(form).entries());
+    const title = String(values.title || "").trim();
+    if (!title) { setSimpleFormStatus("wishForm", "Bitte einen Wunsch eintragen.", true); return false; }
+    const previous = clone(data.wishes);
+    const existingIndex = values.id ? data.wishes.findIndex(item => item.id === values.id) : -1;
+    if (values.id && existingIndex < 0) {
+      setSimpleFormStatus("wishForm", "Dieser Wunsch wurde auf einem anderen Gerät verändert oder gelöscht. Bitte schließen und erneut öffnen.", true);
+      return false;
+    }
+    const wish = {
+      ...(existingIndex >= 0 ? data.wishes[existingIndex] : {}),
+      id: existingIndex >= 0 ? data.wishes[existingIndex].id : uid(),
+      active: existingIndex >= 0 ? data.wishes[existingIndex].active !== false : true,
+      icon: String(values.icon || "").trim() || "🎁", title, cost: clamp(values.cost,1,999), note: String(values.note || "").trim()
+    };
+    if (existingIndex >= 0) data.wishes[existingIndex] = wish; else data.wishes.push(wish);
+    if (!saveData({ snapshot:true })) { data.wishes = previous; setSimpleFormStatus("wishForm", "Der Wunsch konnte nicht gespeichert werden.", true); return false; }
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (!Array.isArray(stored.wishes) || !stored.wishes.some(item => item.id === wish.id && item.title === wish.title)) throw new Error("Wunsch fehlt nach Speicherprüfung");
+    } catch (error) {
+      data.wishes = previous; saveData({ snapshot:false });
+      setSimpleFormStatus("wishForm", "Die Speicherprüfung ist fehlgeschlagen. Bitte erneut versuchen.", true);
+      console.error("Mitmach-Welt: Wunschprüfung fehlgeschlagen", error); return false;
+    }
+    closeModal(); ui.educatorTab = "wishes"; render(); showToast(existingIndex >= 0 ? "Wunsch wurde gespeichert." : "Wunsch wurde angelegt."); return true;
+  }
+
+  function removeGoal(goalId) {
+    const index = data.personalGoals.findIndex(item => item.id === goalId);
+    if (index < 0) return false;
+    const previous = clone(data);
+    data.personalGoals.splice(index,1);
+    data.goalEvaluations = data.goalEvaluations.filter(item => item.goalId !== goalId);
+    data.history = data.history.filter(item => item.goalId !== goalId);
+    if (!saveData({ snapshot:true })) { data = previous; return false; }
+    return true;
+  }
+
+  function removeWish(wishId) {
+    const index = data.wishes.findIndex(item => item.id === wishId);
+    if (index < 0) return false;
+    const previous = clone(data);
+    const pending = data.wishRequests.filter(item => item.wishId === wishId && item.status === "pending");
+    pending.forEach(request => { const child = childById(request.childId); if (child) child.coins += clamp(request.cost,0,9999); });
+    data.wishes.splice(index,1);
+    data.wishRequests = data.wishRequests.filter(item => item.wishId !== wishId);
+    data.history = data.history.filter(item => item.wishId !== wishId);
+    if (!saveData({ snapshot:true })) { data = previous; return false; }
+    return true;
+  }
+
   function openGoalEditor(goalId = null) {
     const goal = goalId ? goalById(goalId) : null;
-    const selectedIcon = goal?.icon || "🌱";
+    if (goalId && !goal) {
+      showToast("Diese Tagesmission wurde nicht gefunden. Bitte die Ansicht neu laden.");
+      return;
+    }
     openModal(goal ? "Tagesmission bearbeiten" : "Tagesmission anlegen", `
-      <form id="goalForm" novalidate><input type="hidden" name="id" value="${escapeHtml(goalId || "")}"><input type="hidden" id="goalIconValue" name="icon" value="${escapeHtml(selectedIcon)}">
+      <form id="goalForm" novalidate><input type="hidden" name="id" value="${escapeHtml(goalId || "")}">
         <div class="form-grid">
           <div class="form-field"><label>Kind</label><select name="childId" required>${activeChildren().map(child => `<option value="${child.id}" ${goal?.childId === child.id ? "selected" : ""}>${child.avatar} ${escapeHtml(child.name)}</option>`).join("")}</select></div>
-          <div class="form-field full"><label>Symbol auswählen</label><div class="symbol-picker" role="group" aria-label="Symbol für Tagesmission">${GOAL_ICONS.map(icon => `<button class="symbol-option ${selectedIcon === icon ? "selected" : ""}" type="button" data-action="select-goal-icon" data-icon="${escapeHtml(icon)}" aria-label="${escapeHtml(icon)}">${icon}</button>`).join("")}</div></div>
+          <div class="form-field"><label>Symbol</label><select name="icon">${GOAL_ICONS.map(icon => `<option value="${icon}" ${goal?.icon === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
           <div class="form-field full"><label>Positiv formulierte Mission</label><textarea name="title" required maxlength="180" placeholder="Ich versuche ruhig zu bleiben und freundlich mit anderen umzugehen.">${escapeHtml(goal?.title || "")}</textarea></div>
           <div class="form-field"><label>Geschafft: Münzen</label><input name="achievedCoins" type="number" min="0" max="100" value="${goal?.achievedCoins ?? 5}"></div>
           <div class="form-field"><label>Geschafft: Samen</label><input name="achievedSeeds" type="number" min="0" max="100" value="${goal?.achievedSeeds ?? 3}"></div>
@@ -1833,198 +1939,46 @@
           <div class="form-field"><label>Teilweise: Münzen</label><input name="partialCoins" type="number" min="0" max="100" value="${goal?.partialCoins ?? 2}"></div>
           <div class="form-field"><label>Teilweise: Samen</label><input name="partialSeeds" type="number" min="0" max="100" value="${goal?.partialSeeds ?? 1}"></div>
         </div>
-        <p id="goalFormStatus" class="tiny muted" role="status" aria-live="polite"></p>
+        <p class="form-save-status" role="status" aria-live="polite"></p>
         <div class="modal-actions">${goal ? `<button class="danger-button" type="button" data-action="delete-goal-prompt" data-goal-id="${goal.id}">Mission löschen</button>` : ""}<span class="modal-action-spacer"></span><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="button" data-action="save-goal">Speichern</button></div>
       </form>`, { wide:true });
-  }
 
-  function setGoalFormStatus(message, isError = false) {
-    const status = document.querySelector("#goalFormStatus");
-    if (!status) return;
-    status.textContent = message;
-    status.classList.toggle("form-error", Boolean(isError));
-  }
-
-  function saveGoalFromForm(form) {
-    if (!form) return false;
-    const values = Object.fromEntries(new FormData(form).entries());
-    const title = String(values.title || "").trim();
-    const childId = String(values.childId || "").trim();
-    const child = childById(childId);
-    if (!child || child.active === false || child.deletedAt) {
-      setGoalFormStatus("Bitte ein aktives Kind auswählen.", true);
-      return false;
+    const goalForm = document.querySelector("#goalForm");
+    if (goalForm) {
+      goalForm.addEventListener("submit", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        saveGoalFromForm(goalForm);
+      }, { once:true });
     }
-    if (!title) {
-      setGoalFormStatus("Bitte eine Tagesmission eingeben.", true);
-      form.querySelector?.('[name="title"]')?.focus?.();
-      return false;
-    }
-
-    const id = String(values.id || "").trim();
-    const existingIndex = id ? data.personalGoals.findIndex(goal => goal.id === id) : -1;
-    if (id && existingIndex < 0) {
-      setGoalFormStatus("Die Tagesmission wurde auf einem anderen Gerät verändert oder gelöscht. Bitte schließen und erneut öffnen.", true);
-      return false;
-    }
-
-    const nextGoal = {
-      ...(existingIndex >= 0 ? data.personalGoals[existingIndex] : { id:uid(), active:true, createdAt:Date.now() }),
-      childId,
-      icon:String(values.icon || "🌱"),
-      title,
-      achievedCoins:clamp(values.achievedCoins,0,100),
-      achievedSeeds:clamp(values.achievedSeeds,0,100),
-      achievedStars:clamp(values.achievedStars,0,5),
-      partialCoins:clamp(values.partialCoins,0,100),
-      partialSeeds:clamp(values.partialSeeds,0,100),
-      updatedAt:Date.now()
-    };
-
-    const previousGoals = clone(data.personalGoals);
-    if (existingIndex >= 0) data.personalGoals.splice(existingIndex, 1, nextGoal);
-    else data.personalGoals.push(nextGoal);
-
-    setGoalFormStatus("Wird gespeichert …");
-    if (!saveData({ snapshot:true })) {
-      data.personalGoals = previousGoals;
-      setGoalFormStatus("Die Tagesmission konnte nicht gespeichert werden.", true);
-      return false;
-    }
-
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      const verified = Array.isArray(stored.personalGoals) && stored.personalGoals.some(goal => goal.id === nextGoal.id && goal.title === nextGoal.title && goal.childId === nextGoal.childId);
-      if (!verified) throw new Error("Tagesmission fehlt nach Speicherprüfung");
-    } catch (error) {
-      data.personalGoals = previousGoals;
-      saveData({ snapshot:false });
-      setGoalFormStatus("Die Speicherprüfung ist fehlgeschlagen. Bitte noch einmal versuchen.", true);
-      console.error("Mitmach-Welt: Prüfung der Tagesmission fehlgeschlagen", error);
-      return false;
-    }
-
-    closeModal();
-    ui.educatorTab = "goals";
-    render();
-    showToast(existingIndex >= 0 ? "Tagesmission wurde gespeichert und aktualisiert." : "Neue Tagesmission wurde gespeichert.");
-    return true;
-  }
-
-  function removeGoal(goalId) {
-    const index = data.personalGoals.findIndex(goal => goal.id === goalId);
-    if (index < 0) return false;
-    const previous = clone(data);
-    data.personalGoals.splice(index, 1);
-    data.goalEvaluations = data.goalEvaluations.filter(item => item.goalId !== goalId);
-    data.history = data.history.filter(item => item.goalId !== goalId);
-    if (!saveData({ snapshot:true })) {
-      data = previous;
-      return false;
-    }
-    return true;
   }
 
   function openWishEditor(wishId = null) {
     const wish = wishId ? wishById(wishId) : null;
-    const selectedIcon = wish?.icon || "🎁";
+    if (wishId && !wish) {
+      showToast("Dieser Wunsch wurde nicht gefunden. Bitte die Ansicht neu laden.");
+      return;
+    }
     openModal(wish ? "Wunsch bearbeiten" : "Wunsch anlegen", `
-      <form id="wishForm" novalidate><input type="hidden" name="id" value="${escapeHtml(wishId || "")}"><input type="hidden" id="wishIconValue" name="icon" value="${escapeHtml(selectedIcon)}">
+      <form id="wishForm" novalidate><input type="hidden" name="id" value="${escapeHtml(wishId || "")}">
         <div class="form-grid">
-          <div class="form-field full"><label>Symbol auswählen</label><div class="symbol-picker" role="group" aria-label="Symbol für Wunsch">${WISH_ICONS.map(icon => `<button class="symbol-option ${selectedIcon === icon ? "selected" : ""}" type="button" data-action="select-wish-icon" data-icon="${escapeHtml(icon)}" aria-label="${escapeHtml(icon)}">${icon}</button>`).join("")}</div></div>
+          <div class="form-field"><label>Symbol</label><input name="icon" value="${escapeHtml(wish?.icon || "🎁")}" maxlength="4"></div>
           <div class="form-field"><label>Kosten in Münzen</label><input name="cost" type="number" min="1" max="999" value="${wish?.cost ?? 20}"></div>
-          <div class="form-field full"><label>Wunsch</label><input name="title" value="${escapeHtml(wish?.title || "")}" required maxlength="80" autocomplete="off"></div>
+          <div class="form-field full"><label>Wunsch</label><input name="title" value="${escapeHtml(wish?.title || "")}" required maxlength="80"></div>
           <div class="form-field full"><label>Hinweis für Kind und Team</label><textarea name="note" maxlength="240">${escapeHtml(wish?.note || "")}</textarea></div>
         </div>
-        <p id="wishFormStatus" class="tiny muted" role="status" aria-live="polite"></p>
+        <p class="form-save-status" role="status" aria-live="polite"></p>
         <div class="modal-actions">${wish ? `<button class="danger-button" type="button" data-action="delete-wish-prompt" data-wish-id="${wish.id}">Wunsch löschen</button>` : ""}<span class="modal-action-spacer"></span><button class="ghost-button" type="button" data-action="close-modal">Abbrechen</button><button class="primary-button" type="button" data-action="save-wish">Speichern</button></div>
-      </form>`, { wide:true });
-  }
+      </form>`);
 
-  function setWishFormStatus(message, isError = false) {
-    const status = document.querySelector("#wishFormStatus");
-    if (!status) return;
-    status.textContent = message;
-    status.classList.toggle("form-error", Boolean(isError));
-  }
-
-  function saveWishFromForm(form) {
-    if (!form) return false;
-    const values = Object.fromEntries(new FormData(form).entries());
-    const title = String(values.title || "").trim();
-    if (!title) {
-      setWishFormStatus("Bitte einen Wunsch eingeben.", true);
-      form.querySelector?.('[name="title"]')?.focus?.();
-      return false;
+    const wishForm = document.querySelector("#wishForm");
+    if (wishForm) {
+      wishForm.addEventListener("submit", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        saveWishFromForm(wishForm);
+      }, { once:true });
     }
-
-    const id = String(values.id || "").trim();
-    const existingIndex = id ? data.wishes.findIndex(wish => wish.id === id) : -1;
-    if (id && existingIndex < 0) {
-      setWishFormStatus("Der Wunsch wurde auf einem anderen Gerät verändert oder gelöscht. Bitte schließen und erneut öffnen.", true);
-      return false;
-    }
-
-    const nextWish = {
-      ...(existingIndex >= 0 ? data.wishes[existingIndex] : { id:uid(), active:true }),
-      icon:String(values.icon || "🎁"),
-      title,
-      cost:clamp(values.cost,1,999),
-      note:String(values.note || "").trim(),
-      updatedAt:Date.now()
-    };
-
-    const previousWishes = clone(data.wishes);
-    if (existingIndex >= 0) data.wishes.splice(existingIndex, 1, nextWish);
-    else data.wishes.push(nextWish);
-
-    setWishFormStatus("Wird gespeichert …");
-    if (!saveData({ snapshot:true })) {
-      data.wishes = previousWishes;
-      setWishFormStatus("Der Wunsch konnte nicht gespeichert werden.", true);
-      return false;
-    }
-
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      const verified = Array.isArray(stored.wishes) && stored.wishes.some(wish => wish.id === nextWish.id && wish.title === nextWish.title && wish.icon === nextWish.icon);
-      if (!verified) throw new Error("Wunsch fehlt nach Speicherprüfung");
-    } catch (error) {
-      data.wishes = previousWishes;
-      saveData({ snapshot:false });
-      setWishFormStatus("Die Speicherprüfung ist fehlgeschlagen. Bitte noch einmal versuchen.", true);
-      console.error("Mitmach-Welt: Prüfung des Wunsches fehlgeschlagen", error);
-      return false;
-    }
-
-    closeModal();
-    ui.educatorTab = "wishes";
-    render();
-    showToast(existingIndex >= 0 ? "Wunsch wurde gespeichert und aktualisiert." : "Neuer Wunsch wurde gespeichert.");
-    return true;
-  }
-
-  function removeWish(wishId) {
-    const index = data.wishes.findIndex(wish => wish.id === wishId);
-    if (index < 0) return false;
-    const previous = clone(data);
-    data.wishRequests.filter(request => request.wishId === wishId && request.status === "pending").forEach(request => {
-      const child = childById(request.childId);
-      if (child) {
-        child.coins += clamp(request.cost,0,999);
-        data.notifications.push({
-          id:uid(), childId:child.id, type:"wish", title:"Deine Münzen sind wieder da",
-          message:"Der Wunsch wurde aus dem Laden entfernt.", createdAt:Date.now(), seen:false
-        });
-      }
-    });
-    data.wishes.splice(index, 1);
-    data.wishRequests = data.wishRequests.filter(request => request.wishId !== wishId);
-    if (!saveData({ snapshot:true })) {
-      data = previous;
-      return false;
-    }
-    return true;
   }
 
   function openGoalReview(childId, goalId) {
@@ -2318,70 +2272,36 @@
         break;
       }
       case "open-goal-editor": openGoalEditor(actionElement.dataset.goalId || null); break;
-      case "select-goal-icon": {
-        const input = document.querySelector("#goalIconValue");
-        if (input) input.value = actionElement.dataset.icon || "🌱";
-        document.querySelectorAll("[data-action='select-goal-icon']").forEach(button => button.classList.toggle("selected", button === actionElement));
-        break;
-      }
       case "save-goal": saveGoalFromForm(document.querySelector("#goalForm")); break;
-      case "delete-goal-prompt": {
-        const goal = goalById(actionElement.dataset.goalId);
-        if (!goal) { closeModal(); showToast("Die Tagesmission ist bereits gelöscht."); render(); break; }
-        confirmModal({
-          title:"Tagesmission wirklich löschen?",
-          message:`„${escapeHtml(goal.title)}“ wird endgültig entfernt. Bereits vergebene Belohnungen bleiben beim Kind erhalten.`,
-          confirmText:"Mission löschen",
-          confirmAction:"delete-goal-confirm",
-          confirmClass:"danger-button",
-          payload:{"goal-id":goal.id}
-        });
-        break;
-      }
-      case "delete-goal-confirm": {
-        const goal = goalById(actionElement.dataset.goalId);
-        if (!goal) { closeModal(); showToast("Die Tagesmission ist bereits gelöscht."); render(); break; }
-        const title = goal.title;
-        if (removeGoal(goal.id)) { closeModal(); ui.educatorTab="goals"; render(); showToast(`„${title}“ wurde gelöscht.`); }
-        else showToast("Die Tagesmission konnte nicht gelöscht werden.");
-        break;
-      }
       case "toggle-goal-active": {
         const goal = goalById(actionElement.dataset.goalId); if (goal) { goal.active = !goal.active; saveData({ snapshot:true }); render(); }
         break;
       }
-      case "open-wish-editor": openWishEditor(actionElement.dataset.wishId || null); break;
-      case "select-wish-icon": {
-        const input = document.querySelector("#wishIconValue");
-        if (input) input.value = actionElement.dataset.icon || "🎁";
-        document.querySelectorAll("[data-action='select-wish-icon']").forEach(button => button.classList.toggle("selected", button === actionElement));
+      case "delete-goal-prompt": {
+        const goal = goalById(actionElement.dataset.goalId); if (!goal) break;
+        confirmModal({ title:"Tagesmission löschen", message:`Möchtest du „${escapeHtml(goal.title)}“ wirklich löschen? Bereits vergebene Belohnungen bleiben erhalten.`, confirmText:"Endgültig löschen", confirmAction:"delete-goal-confirm", payload:{"goal-id":goal.id} });
         break;
       }
+      case "delete-goal-confirm": {
+        const goal = goalById(actionElement.dataset.goalId); const title = goal?.title || "Tagesmission";
+        if (goal && removeGoal(goal.id)) { closeModal(); ui.educatorTab="goals"; render(); showToast(`„${title}“ wurde gelöscht.`); } else showToast("Die Tagesmission konnte nicht gelöscht werden.");
+        break;
+      }
+      case "open-wish-editor": openWishEditor(actionElement.dataset.wishId || null); break;
       case "save-wish": saveWishFromForm(document.querySelector("#wishForm")); break;
+      case "toggle-wish-active": {
+        const wish = wishById(actionElement.dataset.wishId); if (wish) { wish.active = !wish.active; saveData({ snapshot:true }); render(); }
+        break;
+      }
       case "delete-wish-prompt": {
-        const wish = wishById(actionElement.dataset.wishId);
-        if (!wish) { closeModal(); showToast("Der Wunsch ist bereits gelöscht."); render(); break; }
-        const pendingCount = data.wishRequests.filter(request => request.wishId === wish.id && request.status === "pending").length;
-        confirmModal({
-          title:"Wunsch wirklich löschen?",
-          message:`„${escapeHtml(wish.title)}“ wird endgültig aus dem Wunschladen entfernt.${pendingCount ? ` ${pendingCount} offene Vormerkung${pendingCount === 1 ? "" : "en"} werden aufgehoben und die Münzen automatisch zurückerstattet.` : ""}`,
-          confirmText:"Wunsch löschen",
-          confirmAction:"delete-wish-confirm",
-          confirmClass:"danger-button",
-          payload:{"wish-id":wish.id}
-        });
+        const wish = wishById(actionElement.dataset.wishId); if (!wish) break;
+        const pending = data.wishRequests.filter(item => item.wishId === wish.id && item.status === "pending").length;
+        confirmModal({ title:"Wunsch löschen", message:`Möchtest du „${escapeHtml(wish.title)}“ wirklich löschen?${pending ? ` ${pending} vorgemerkte Anfrage(n) werden entfernt und die Münzen zurückgegeben.` : ""}`, confirmText:"Endgültig löschen", confirmAction:"delete-wish-confirm", payload:{"wish-id":wish.id} });
         break;
       }
       case "delete-wish-confirm": {
-        const wish = wishById(actionElement.dataset.wishId);
-        if (!wish) { closeModal(); showToast("Der Wunsch ist bereits gelöscht."); render(); break; }
-        const title = wish.title;
-        if (removeWish(wish.id)) { closeModal(); ui.educatorTab="wishes"; render(); showToast(`„${title}“ wurde gelöscht.`); }
-        else showToast("Der Wunsch konnte nicht gelöscht werden.");
-        break;
-      }
-      case "toggle-wish-active": {
-        const wish = wishById(actionElement.dataset.wishId); if (wish) { wish.active = !wish.active; saveData({ snapshot:true }); render(); }
+        const wish = wishById(actionElement.dataset.wishId); const title = wish?.title || "Wunsch";
+        if (wish && removeWish(wish.id)) { closeModal(); ui.educatorTab="wishes"; render(); showToast(`„${title}“ wurde gelöscht.`); } else showToast("Der Wunsch konnte nicht gelöscht werden.");
         break;
       }
       case "avatar-category": {
@@ -2457,15 +2377,9 @@
       return;
     }
 
-    if (form.id === "goalForm") {
-      saveGoalFromForm(form);
-      return;
-    }
+    if (form.id === "goalForm") { saveGoalFromForm(form); return; }
 
-    if (form.id === "wishForm") {
-      saveWishFromForm(form);
-      return;
-    }
+    if (form.id === "wishForm") { saveWishFromForm(form); return; }
 
     if (form.id === "settingsForm") {
       const formData = new FormData(form); const values = Object.fromEntries(formData.entries());
@@ -2538,7 +2452,11 @@
     goHome,
     saveChildFromForm,
     saveTaskFromForm,
+    saveGoalFromForm,
+    saveWishFromForm,
     removeTask,
+    removeGoal,
+    removeWish,
     getChildAge: childId => childAge(childById(childId)),
     getTaskAgeEligibility: (childId, taskId) => clone(taskAgeEligibility(childById(childId), taskById(taskId))),
     reserveTask,

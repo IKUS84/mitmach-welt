@@ -2,14 +2,9 @@
 
 Mitmach-Welt ist eine installierbare Web-App für Aufgaben, Tagesmissionen, persönliche Welten und gemeinsame Erfolge in einer Kinder- und Jugendwohngruppe.
 
-## Hotfix 2.2.1: Tagesmissionen und Wünsche
-
-Im Erzieherbereich können Tagesmissionen und Wünsche jetzt zuverlässig neu angelegt, bearbeitet, gespeichert und gelöscht werden. Die Symbolauswahl erfolgt über große Schaltflächen und ist damit auch auf iPhone und iPad einfach bedienbar. Das Formular bleibt bei einem Speicherproblem geöffnet und zeigt direkt an, was nicht gespeichert werden konnte.
-
-
 ## Neu: Diensttelefon und Kinder-Tablet verbinden
 
-Version 2.2.0 erweitert die bestehende Gerätesynchronisierung um altersgerechte Aufgaben. Für jedes Kind können Geburtsmonat und Geburtsjahr gespeichert werden. Die App berechnet daraus automatisch das Alter und zeigt passende Aufgaben zuerst.
+Version 2.2.1 erweitert die bestehende Gerätesynchronisierung um altersgerechte Aufgaben. Für jedes Kind können Geburtsmonat und Geburtsjahr gespeichert werden. Die App berechnet daraus automatisch das Alter und zeigt passende Aufgaben zuerst.
 
 ### Erstes Gerät einrichten
 
@@ -54,17 +49,18 @@ Alle Dateien aus diesem Ordner in das Hauptverzeichnis des GitHub-Repositories h
 Sofern noch nicht geändert: `2468`
 
 
-## Wichtig beim Update auf 2.2.0
+## Wichtig beim Update auf 2.2.1
 
-Kinder, Aufgaben, Welten und Belohnungen bleiben erhalten. Nach dem Update sollten Diensttelefon, Tablet und Computer einmal vollständig neu geladen werden. Danach im Erzieherbereich unter **Kinder** bei jedem aktiven Kind Geburtsmonat und Geburtsjahr ergänzen. Bis diese Angaben vorhanden sind, werden nur Aufgaben ohne Altersgrenze angezeigt.
+Dieses Hotfix behebt das Speichern von Tagesmissionen und Wünschen. Beide Formulare verwenden jetzt einen eigenen, direkten Speichervorgang und prüfen anschließend, ob der Eintrag wirklich im Gerätespeicher vorhanden ist. Vorhandene Tagesmissionen und Wünsche können außerdem bearbeitet oder nach einer Sicherheitsabfrage endgültig gelöscht werden. Eine vollständig geleerte Wunschliste bleibt auch nach einem Neustart leer.
 
+Kinder, Aufgaben, Welten und Belohnungen bleiben erhalten. Diensttelefon, Tablet und Computer müssen nach dem Hochladen einmal vollständig neu geladen werden.
 
 ## Aufgaben verwalten (Version 2.1.3)
 
 Im Erzieherbereich unter **Aufgaben** können Aufgaben angelegt, bearbeitet, pausiert, aktiviert und gelöscht werden. Beim Löschen erscheint eine Sicherheitsabfrage. Offene Zuordnungen zu dieser Aufgabe werden ebenfalls entfernt; bereits gutgeschriebene Belohnungen bleiben bestehen.
 
 
-## Altersgerechte Aufgaben (Version 2.2.0)
+## Altersgerechte Aufgaben (Version 2.2.1)
 
 ### Kinderprofil
 

@@ -431,30 +431,8 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
   margin: 0;
 }
 
-/* Version 2.2.1: touch-friendly symbol selection for missions and wishes */
-.symbol-picker {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(48px,1fr));
-  gap:8px;
-  max-height:220px;
-  overflow:auto;
-  padding:4px;
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:#fffdf7;
-}
-.symbol-option {
-  aspect-ratio:1;
-  min-height:48px;
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:#fff;
-  font-size:1.55rem;
-  cursor:pointer;
-  touch-action:manipulation;
-}
-.symbol-option.selected {
-  background:#fff0b8;
-  border-color:#e4bd38;
-  box-shadow:0 0 0 3px rgba(238,197,64,.18);
-}
+/* Version 2.2.1 – zuverlässiges Speichern von Missionen und Wünschen */
+.form-save-status { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; font-weight: 700; }
+.form-save-status:empty { display:none; }
+.form-save-status.error { background:#fff0f0; color:#8d1f1f; }
+.form-save-status.success { background:#eefaf0; color:#276b36; }
