@@ -1,57 +1,76 @@
-# Mitmach-Welt 2.4.0 – Alltagspaket
+# Mitmach-Welt 2.5.0 – Teamaufgaben, kompakte iPhone-Ansicht und persönliche Bereiche
 
-Diese Version baut vollständig auf **Version 2.3.0** auf. Wetter, Synchronisierung, Altersregeln, Symbolauswahl, Kontokorrektur, Verlauf und die vorhandenen Kinder- und Weltdaten bleiben erhalten.
+Diese Version baut vollständig auf **Version 2.4.0** auf. Der vorbereitete Aufgaben- und Belohnungskatalog, Wetter, Synchronisierung, Altersregeln, Symbolauswahl, Kontokorrektur und alle bestehenden Daten bleiben erhalten.
 
-## Neu in Version 2.4.0
+## Neu in Version 2.5.0
 
-### Vorgefertigte Aufgaben
+### Flexible Gruppenaufgaben
 
-Die gewünschten Aufgaben sind bereits eingebaut und nach diesen Bereichen geordnet:
+Bei Aufgaben für zwei oder mehr Kinder wird beim Erledigtmelden ausgewählt, welche Kinder tatsächlich beteiligt waren.
 
-- Haushalt
-- Zimmer & Ordnung
-- Außenbereich
-- Schule & Lernen
-- Sonstiges
+- Ein Kind kann eine Gruppenaufgabe allein melden.
+- Eine kleinere Gruppe kann die Aufgabe ebenfalls melden.
+- Der vollständige vorgesehene Gruppenwert wird fair auf die tatsächlichen Teilnehmer verteilt.
+- Ungerade Werte werden als ganze Punkte möglichst gleichmäßig verteilt, zum Beispiel 8 und 7 Münzen.
+- Eine notwendige Altersbegleitung kann nicht umgangen werden.
 
-Enthalten sind unter anderem Frühstücks-, Mittags- und Abendbrottisch, Geschirrspüler, Küche saugen, Schuhschrank, Bäder, Treppen, Zimmer- und Wäscheaufgaben, Hof und Wiese, Außenstreifen, Spieleschuppen, Lernzeit, Schulfeedback und Gesellschaftsspiele.
+Vor der Gutschrift können Erzieher die Teilnehmer sowie Münzen, Samen und Sterne pro Kind prüfen und verändern.
 
-Die Münzwerte wurden bewusst reduziert. Es gibt **kein Tageslimit**: Jede tatsächlich verfügbare und bestätigte Aufgabe wird belohnt.
+### Direkte Rücknahme
 
-### Vorgefertigte Belohnungen
+Nach einer Bestätigung erscheint für sieben Sekunden **„Rückgängig“**. Zusätzlich bleiben bestätigte Aufgaben in der Abendrunde über eine Sicherheitsabfrage zurücknehmbar. Münzen, Samen und Sterne werden dabei genau entsprechend der vorherigen Verteilung zurückgebucht und im Kontoverlauf dokumentiert.
 
-Alle gewünschten Belohnungen sind enthalten und geordnet in:
+### Kompakte iPhone-Startseite
 
-- Kleine Belohnungen
-- Mittlere Belohnungen
-- Große Belohnungen
+- Wetter für heute, morgen und übermorgen steht in drei kleinen Feldern nebeneinander.
+- Details zur Wetterlage öffnen sich erst nach Antippen.
+- Begrüßung und Mitmach-Runde benötigen weniger Höhe.
+- Kinderprofile beginnen deutlich weiter oben.
+- Die untere Navigation berücksichtigt den iPhone-Sicherheitsbereich und verdeckt keine Inhalte.
 
-Belohnungen können nun einen Preis in Münzen, Samen oder in beiden Währungen haben. Bei einer abgelehnten Vormerkung werden beide Währungen vollständig zurückgegeben.
+### Altersneutrale persönliche Bereiche
 
-### Bestätigung zurücknehmen
+„Meine Welt“ wurde zu **„Mein Bereich“** weiterentwickelt. Die Navigation bleibt für alle Kinder gleich, die Darstellung ist pro Kind frei wählbar:
 
-Im Erzieherbereich unter **Abendrunde** erscheinen die letzten bestätigten Aufgaben. Eine versehentliche Bestätigung kann zurückgenommen werden. Dabei werden Münzen, Samen und Sterne automatisch abgezogen und die Aufgabe wird wieder als erledigt gemeldet angezeigt.
+- verspielt
+- cool und modern
+- neutral
 
-Falls das Guthaben inzwischen nicht mehr ausreicht, bleibt die vorhandene manuelle Kontokorrektur verfügbar.
+Zusätzlich stehen moderne Bereiche wie Gaming-Zimmer, Musikstudio, Sportarena, City, Streetpark, Technik-Labor, Outdoor-Camp, Chill-Lounge und Kreativstudio zur Auswahl. Ein Begleiter ist freiwillig und kann vollständig ausgeschaltet werden. Bestehender Fortschritt bleibt erhalten.
 
-### Vorhandene Daten
+### Aufgaben vorlesen
 
-Beim ersten Start nach dem Update wird das Alltagspaket automatisch ergänzt. Eigene Kinderprofile, selbst angelegte Aufgaben, Missionen, Wünsche, Welten und Kontostände bleiben erhalten. Unveränderte alte Standardaufgaben, die durch das neue Paket ersetzt werden, werden nur pausiert und nicht gelöscht.
+Auf Aufgaben kann ein Kind den Lautsprecher **🔊** antippen. Das Gerät liest Titel, Hinweise, Gruppengröße und Belohnung auf Deutsch vor. Das Vorlesen startet nie automatisch und kann jederzeit gestoppt werden. Im Aufgaben-Editor lässt sich die Vorleseschaltfläche je Aufgabe ein- oder ausschalten.
+
+## Funktionen aus Version 2.4.0
+
+- 23 vorbereitete Aufgaben mit passenden Symbolen und reduzierten Münzwerten
+- 21 vorbereitete kleine, mittlere und große Belohnungen
+- kein Tageslimit
+- individuelle Münzen- und Samenwerte
+- manuelles Hinzufügen und Abziehen von Münzen, Samen und Sternen
+- Kontoverlauf mit Begründungen
+- große Symbolauswahl für Aufgaben, Missionen und Wünsche
+- Wetterübersicht für Lübben
+- altersgerechte Aufgaben und gemeinsame Durchführung mit älterem Kind
+- Kinderverwaltung, Archiv, Papierkorb und Datensicherung
 
 ## Installation über GitHub Pages
 
-1. Vorher im Erzieherbereich unter **Datensicherung** eine Sicherung herunterladen.
-2. Alle Dateien aus diesem Ordner in das Hauptverzeichnis des GitHub-Repositories hochladen.
-3. Vorhandene Dateien ersetzen.
-4. Commit-Nachricht: `Mitmach-Welt 2.4.0 – Alltagspaket und Belohnungskatalog`
-5. App auf allen Geräten vollständig neu laden.
-6. Bei der Meldung **„Eine neue Version ist bereit“** auf **„Jetzt laden“** tippen.
-7. Am Computer gegebenenfalls `Strg + F5` verwenden.
+1. Im Erzieherbereich unter **Datensicherung** zuerst eine Sicherung herunterladen.
+2. Das ZIP-Archiv entpacken.
+3. Alle enthaltenen Dateien in das Hauptverzeichnis des GitHub-Repositories hochladen und vorhandene Dateien ersetzen.
+4. Commit-Nachricht: `Mitmach-Welt 2.5.0 – flexible Teamaufgaben und mobile Optimierung`
+5. Warten, bis GitHub Pages die neue Version veröffentlicht hat.
+6. Die App auf Diensttelefon, Tablet und Computer vollständig neu laden.
+7. Bei **„Eine neue Version ist bereit“** auf **„Jetzt laden“** tippen. Am Computer gegebenenfalls `Strg + F5` verwenden.
 
 ## Standard-PIN
 
 Sofern nicht geändert: `2468`
 
-## Hinweis zur Synchronisierung
+## Technische Hinweise
+
+Die Sprachausgabe verwendet die auf dem Gerät vorhandene Browser-/Systemstimme. Stimme und Aussprache können deshalb je nach iPhone, iPad, Android-Gerät oder Computer leicht abweichen.
 
 Die bestehende verschlüsselte Testsynchronisierung bleibt erhalten. Für einen dauerhaften Regelbetrieb mit sensiblen Daten ist weiterhin ein eigener geschützter Backend-Dienst zu empfehlen.

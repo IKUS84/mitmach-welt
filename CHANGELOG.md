@@ -1,5 +1,26 @@
 # Änderungsverlauf
 
+## Version 2.5.0 – flexible Teamaufgaben und altersneutrale Bereiche
+
+- Tatsächliche Teilnehmer können beim Abschluss jeder Aufgabe für zwei oder mehr Kinder ausgewählt werden.
+- Gruppenaufgaben dürfen allein oder mit einer kleineren Gruppe erledigt gemeldet werden.
+- Der vollständige vorgesehene Gruppenwert wird fair auf die tatsächlichen Teilnehmer verteilt.
+- Ungerade Münz-, Samen- und Sternwerte werden als ganze Punkte möglichst gleichmäßig verteilt.
+- Erzieher können Teilnehmer und individuelle Auszahlungen vor der Bestätigung korrigieren.
+- Altersregeln für notwendige ältere Begleitkinder bleiben auch bei einer kleineren Teilnehmerzahl verbindlich.
+- Direkt nach einer Bestätigung steht sieben Sekunden lang eine Rückgängig-Schaltfläche bereit.
+- Rücknahmen buchen die tatsächlich verteilten Münzen, Samen und Sterne exakt zurück.
+- iPhone-Startseite deutlich komprimiert: drei Wettertage nebeneinander, kürzere Texte und früher sichtbare Kinderprofile.
+- Wetterdetails werden erst nach Antippen geöffnet.
+- „Meine Welt“ wurde zu „Mein Bereich“ weiterentwickelt.
+- Pro Kind sind die Darstellungsstile verspielt, cool & modern oder neutral auswählbar.
+- Moderne Bereiche wie Gaming-Zimmer, Musikstudio, Sportarena, City, Streetpark und Technik-Labor ergänzt.
+- Begleiter sind freiwillig und können ausgeschaltet werden.
+- Aufgaben besitzen eine Vorleseschaltfläche mit deutscher Gerätestimme.
+- Die Vorleseschaltfläche kann im Aufgaben-Editor je Aufgabe ein- oder ausgeschaltet werden.
+- Vorhandene Kinder, Kontostände, Aufgaben, Belohnungen, Bereiche und Synchronisierungsdaten bleiben erhalten.
+- Offline-Cache und Versionskennung auf 2.5.0 angehoben.
+
 ## Version 2.4.0 – Alltagspaket und Belohnungskatalog
 
 - 23 vorgefertigte Aufgaben mit passenden Symbolen ergänzt.
