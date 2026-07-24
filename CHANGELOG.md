@@ -134,3 +134,12 @@ Diese Version nutzt für den schnellen Testbetrieb einen öffentlichen Übertrag
 - Kontoverwaltung für Münzen, Samen und Sterne
 - Manuelle Plus-/Minus-Korrekturen mit Begründung und Verlauf
 - Sicherheitsabfrage vor Abzügen
+
+## 2.6.0 – Tagesstruktur und Automatik
+- Kinder können Tagesmissionen selbst einschätzen; Erzieher bestätigen später.
+- Vorlesefunktion für Tagesmissionen.
+- Sichtbar-, reservierbar-, erledigt-meldbar- und Endzeit je Aufgabe.
+- Automatische Freigabe abgelaufener Reservierungen mit Countdown.
+- Reservierte Aufgaben direkt im Erzieherbereich bestätigen, verlängern oder freigeben.
+- Optionale automatische Tagesend-Bestätigung für normale gemeldete Aufgaben.
+- Vollständige Verlaufseinträge für automatische Freigaben und Bestätigungen.

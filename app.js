@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.5.0";
-  const SCHEMA_VERSION = 5;
+  const APP_VERSION = "2.6.0";
+  const SCHEMA_VERSION = 6;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
@@ -199,7 +199,10 @@
       exchangeSeeds: 5,
       communitySeedThreshold: 100,
       communityCoinThreshold: 250,
-      catalogVersion: CATALOG_VERSION
+      catalogVersion: CATALOG_VERSION,
+      autoApproveEnabled: true,
+      autoApproveTime: "21:00",
+      defaultReservationMinutes: 120
     },
     children: [
       { id:"lucy", name:"Lucy", avatar:"🦄", accent:"#d070ba", theme:"magic", coins:24, seeds:7, stars:0, completed:4, inventory:["lantern"], active:true, createdAt:Date.now()-86400000*10 },
@@ -279,6 +282,10 @@
   const formatDate = key => new Intl.DateTimeFormat("de-DE", { weekday:"long", day:"2-digit", month:"2-digit", year:"numeric" }).format(new Date(`${key}T12:00:00`));
   const formatDateTime = timestamp => new Intl.DateTimeFormat("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }).format(new Date(timestamp));
   const dayIndex = () => new Date().getDay();
+  const minutesNow = () => { const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+  const timeToMinutes = value => { const m=String(value||"00:00").match(/^(\d{2}):(\d{2})$/); return m ? Number(m[1])*60+Number(m[2]) : 0; };
+  const taskTimeState = task => { const now=minutesNow(); return { visible:now>=timeToMinutes(task.visibleFrom||"00:00") && now<=timeToMinutes(task.availableUntil||"23:59"), reservable:now>=timeToMinutes(task.reservableFrom||"00:00") && now<=timeToMinutes(task.availableUntil||"23:59"), reportable:now>=timeToMinutes(task.reportableFrom||task.reservableFrom||"00:00") && now<=timeToMinutes(task.availableUntil||"23:59") }; };
+  const remainingReservationText = claim => { const mins=Math.max(0,Math.ceil(((claim.expiresAt||0)-Date.now())/60000)); return mins>=60 ? `${Math.floor(mins/60)} Std. ${mins%60} Min.` : `${mins} Min.`; };
 
   function readJson(key) {
     try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
@@ -445,7 +452,14 @@
       minAgeSolo: clamp(task.minAgeSolo ?? 0, 0, 18),
       allowYoungerWithOlder: Boolean(task.allowYoungerWithOlder),
       minAgeWithOlder: clamp(task.minAgeWithOlder ?? 0, 0, 18),
-      olderPartnerMinAge: clamp(task.olderPartnerMinAge ?? task.minAgeSolo ?? 0, 0, 18)
+      olderPartnerMinAge: clamp(task.olderPartnerMinAge ?? task.minAgeSolo ?? 0, 0, 18),
+      visibleFrom: /^\d{2}:\d{2}$/.test(task.visibleFrom || "") ? task.visibleFrom : "00:00",
+      reservableFrom: /^\d{2}:\d{2}$/.test(task.reservableFrom || "") ? task.reservableFrom : "00:00",
+      availableUntil: /^\d{2}:\d{2}$/.test(task.availableUntil || "") ? task.availableUntil : "23:59",
+      reportableFrom: /^\d{2}:\d{2}$/.test(task.reportableFrom || "") ? task.reportableFrom : ( /^\d{2}:\d{2}$/.test(task.reservableFrom || "") ? task.reservableFrom : "00:00"),
+      reservationMinutes: clamp(task.reservationMinutes ?? merged.settings.defaultReservationMinutes ?? 120, 15, 720),
+      autoApprove: task.autoApprove !== false,
+      requiresManualReview: Boolean(task.requiresManualReview)
     }));
 
     merged.personalGoals = merged.personalGoals.map(goal => ({
@@ -1058,6 +1072,9 @@
 
   function taskReservationState(childId, task, date = todayKey()) {
     const child = childById(childId);
+    const timeState = taskTimeState(task);
+    if (!timeState.visible) return { canReserve:false, label:`Ab ${task.visibleFrom || "00:00"} Uhr sichtbar`, joinable:null, eligibility:{mode:"time"} };
+    if (!timeState.reservable) return { canReserve:false, label:`Ab ${task.reservableFrom || "00:00"} Uhr reservierbar`, joinable:null, eligibility:{mode:"time"} };
     const eligibility = taskAgeEligibility(child, task);
     if (eligibility.mode === "unknown") return { canReserve:false, label:"Geburtsdaten fehlen", joinable:null, eligibility };
     if (eligibility.mode === "blocked") return { canReserve:false, label:eligibility.label, joinable:null, eligibility };
@@ -1111,7 +1128,7 @@
       const needsOlder = eligibility.mode === "supported";
       claim = {
         id:uid(), taskId, childIds:[childId], date:todayKey(), source, status:"reserved",
-        createdAt:Date.now(), reportedAt:0, reviewedAt:0, reviewNote:"", rewardsApplied:false,
+        createdAt:Date.now(), expiresAt:Date.now()+clamp(task.reservationMinutes||data.settings.defaultReservationMinutes||120,15,720)*60000, reportedAt:0, reviewedAt:0, reviewNote:"", rewardsApplied:false,
         requiredChildrenOverride:needsOlder ? Math.max(2, task.requiredChildren) : 0,
         ageSupportRequired:needsOlder,
         olderPartnerMinAge:needsOlder ? Number(eligibility.olderPartnerMinAge || task.olderPartnerMinAge || task.minAgeSolo || 0) : 0
@@ -1180,6 +1197,7 @@
     const claim = data.claims.find(item => item.id === claimId);
     const task = claim ? taskById(claim.taskId) : null;
     if (!claim || !task || claim.status !== "reserved" || !claim.childIds.includes(childId)) return { ok:false, message:"Aufgabe konnte nicht gemeldet werden." };
+    if (!taskTimeState(task).reportable) return { ok:false, message:`Diese Aufgabe kann erst ab ${task.reportableFrom || task.reservableFrom || "00:00"} Uhr als erledigt gemeldet werden.` };
     if (Number(task.requiredChildren || 1) > 1) return { ok:false, requiresParticipantSelection:true, message:"Bitte zuerst auswählen, wer die Aufgabe tatsächlich erledigt hat." };
     return finalizeClaimReport(claim, task, [...claim.childIds], childId);
   }
@@ -1358,23 +1376,40 @@
     return `
       <section class="profile-banner" style="--accent:${child.accent}">
         <div class="profile-avatar">${child.avatar}</div>
-        <div><h2>Meine Tagesmissionen</h2><p>Diese Ziele begleiten dich durch den Tag. Am Abend schaut ihr gemeinsam und fair darauf.</p></div>
+        <div><h2>Meine Tagesmissionen</h2><p>Schätze selbst ein, wie es heute geklappt hat. Ein Erzieher schaut später gemeinsam mit dir darauf.</p></div>
       </section>
       <section class="section">
         ${goals.length ? `<div class="task-list">${goals.map(goal => {
           const evaluation = todays.find(item => item.goalId === goal.id);
+          const assessed = evaluation?.childView;
           return `
             <article class="task-card goal-card" style="--accent:${child.accent}">
               <div class="task-card-head">
                 <span class="task-icon">${goal.icon}</span>
-                <div><h3>${escapeHtml(goal.title)}</h3><p class="muted tiny">Heute achte ich darauf. Es geht nicht um Perfektion, sondern um gemeinsames Nachdenken.</p></div>
-                ${evaluation ? `<span class="chip success">${GOAL_RESULTS[evaluation.result]?.icon || "🌱"} Besprochen</span>` : `<span class="chip warning">Für heute</span>`}
+                <div><h3>${escapeHtml(goal.title)}</h3><p class="muted tiny">Es geht nicht um Perfektion, sondern um ehrliches Nachdenken.</p></div>
+                ${evaluation?.result ? `<span class="chip success">${GOAL_RESULTS[evaluation.result]?.icon || "🌱"} Bestätigt</span>` : assessed ? `<span class="chip warning">${GOAL_RESULTS[assessed]?.icon || "🌱"} Wartet auf Auswertung</span>` : `<span class="chip warning">Für heute</span>`}
               </div>
               <div class="task-meta"><span class="chip">Bei geschafft: 🪙 ${goal.achievedCoins}</span><span class="chip">🌱 ${goal.achievedSeeds}</span>${goal.achievedStars ? `<span class="chip">⭐ ${goal.achievedStars}</span>` : ""}</div>
+              <div class="inline-actions" style="margin-top:12px"><button class="ghost-button small-button" type="button" data-action="speak-goal" data-goal-id="${goal.id}">🔊 Vorlesen</button>${!evaluation?.result ? `<button class="primary-button small-button" type="button" data-action="open-goal-self-assessment" data-child-id="${child.id}" data-goal-id="${goal.id}">${assessed ? "Einschätzung ändern" : "Mission einschätzen"}</button>` : ""}</div>
             </article>`;
-        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌈</span><h3>Heute gibt es keine persönliche Tagesmission.</h3><p>Das ist völlig in Ordnung. Im Erzieherbereich können passende, positiv formulierte Ziele angelegt werden.</p></div>`}
+        }).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌈</span><h3>Heute gibt es keine persönliche Tagesmission.</h3></div>`}
       </section>`;
   }
+
+  function openGoalSelfAssessment(childId, goalId) {
+    const child=childById(childId), goal=goalById(goalId); if(!child||!goal) return;
+    openModal("Tagesmission einschätzen", `<div class="profile-banner" style="--accent:${child.accent}"><div class="profile-avatar">${child.avatar}</div><div><h3>${escapeHtml(goal.title)}</h3><p>Wie hat es heute geklappt?</p></div></div><div class="goal-choice-grid"><button class="success-button" data-action="save-goal-self-assessment" data-child-id="${child.id}" data-goal-id="${goal.id}" data-result="achieved">🌟 Hat gut geklappt</button><button class="primary-button" data-action="save-goal-self-assessment" data-child-id="${child.id}" data-goal-id="${goal.id}" data-result="partial">🌱 Teilweise geschafft</button><button class="ghost-button" data-action="save-goal-self-assessment" data-child-id="${child.id}" data-goal-id="${goal.id}" data-result="notYet">🌤️ Heute noch schwierig</button></div>`);
+  }
+
+  function saveGoalSelfAssessment(childId, goalId, result) {
+    if(!Object.keys(GOAL_RESULTS).includes(result)) return;
+    let ev=data.goalEvaluations.find(x=>x.childId===childId&&x.goalId===goalId&&x.date===todayKey());
+    if(ev?.result) return showToast("Diese Mission wurde bereits gemeinsam ausgewertet.");
+    if(!ev){ ev={id:uid(),childId,goalId,date:todayKey(),result:"",note:"",createdAt:Date.now()}; data.goalEvaluations.push(ev); }
+    ev.childView=result; ev.selfAssessedAt=Date.now(); saveData({snapshot:true}); closeModal(); render(); showToast("Deine Einschätzung wurde gespeichert.");
+  }
+
+  function speakGoal(goalId){ const goal=goalById(goalId); if(!goal||!("speechSynthesis" in window)) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(goal.title); u.lang="de-DE"; speechSynthesis.speak(u); }
 
   function worldTheme(child) { return WORLD_THEMES.find(theme => theme.id === child.theme) || WORLD_THEMES[0]; }
 
@@ -1911,7 +1946,7 @@
             : readiness.missingChildren
               ? `noch ${readiness.missingChildren} ${readiness.missingChildren === 1 ? "Kind" : "Kinder"} benötigt`
               : "Team vollständig";
-          return `<article class="task-card active-task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)} (${childAgeLabel(child)})`).join(", ")} · ${waiting}</p><div class="task-meta"><span class="chip warning">Ausgewählt</span>${readiness.required > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${readiness.required}</span>` : ""}${claim.ageSupportRequired ? `<span class="chip warning">🧒 + 🧑 Altersbegleitung</span>` : ""}</div></div></div></article>`;
+          return `<article class="task-card active-task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)} (${childAgeLabel(child)})`).join(", ")} · ${waiting}</p><div class="task-meta"><span class="chip warning">Ausgewählt</span><span class="chip">⏱️ ${remainingReservationText(claim)}</span>${readiness.required > 1 ? `<span class="chip team">👥 ${claim.childIds.length}/${readiness.required}</span>` : ""}${claim.ageSupportRequired ? `<span class="chip warning">🧒 + 🧑 Altersbegleitung</span>` : ""}</div></div><div class="inline-actions"><button class="success-button small-button" data-action="educator-confirm-reserved" data-claim-id="${claim.id}">Direkt bestätigen</button><button class="ghost-button small-button" data-action="extend-reservation" data-claim-id="${claim.id}">＋ 1 Std.</button><button class="danger-button small-button" data-action="release-reservation" data-claim-id="${claim.id}">Freigeben</button></div></div></article>`;
         }).join("")}</div>` : `<div class="empty-state compact"><span class="emoji">👐</span><h3>Zurzeit ist keine Aufgabe ausgewählt.</h3></div>`}
       </div>
 
@@ -1929,7 +1964,7 @@
       <div class="panel" style="margin-top:16px">
         <h3>Persönliche Tagesmissionen (${goalsToReview.length})</h3>
         <p class="muted">Kind und Erzieher schauen gemeinsam auf den Tag. Keine Minuspunkte und kein Beschämen.</p>
-        ${goalsToReview.length ? `<div class="review-grid">${goalsToReview.map(({child,goal}) => `<article class="task-card goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p></div></div><button class="primary-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌙</span><h3>Alle heutigen Missionen sind besprochen.</h3></div>`}
+        ${goalsToReview.length ? `<div class="review-grid">${goalsToReview.map(({child,goal}) => `<article class="task-card goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p>${(()=>{const ev=data.goalEvaluations.find(x=>x.childId===child.id&&x.goalId===goal.id&&x.date===todayKey()); return ev?.childView?`<p class="tiny"><b>Selbsteinschätzung:</b> ${GOAL_RESULTS[ev.childView]?.icon||""} ${GOAL_RESULTS[ev.childView]?.label||""}</p>`:"";})()}</div></div><button class="primary-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌙</span><h3>Alle heutigen Missionen sind besprochen.</h3></div>`}
       </div>
 
       <div class="panel" style="margin-top:16px">
@@ -2263,7 +2298,14 @@
           <div class="form-field"><label>Sterne pro Kind</label><input name="stars" type="number" min="0" max="5" value="${task?.stars ?? 0}"></div>
           <div class="form-field"><label>Gemeinschaftspunkte nach Bestätigung</label><input name="communityPoints" type="number" min="0" max="10" value="${task?.communityPoints ?? 0}"></div>
           <div class="form-field full"><label>Kurze Hinweise</label><textarea name="instructions" maxlength="240">${escapeHtml(task?.instructions || "")}</textarea></div>
-          <div class="form-field full"><label><input name="readAloud" type="checkbox" ${task?.readAloud !== false ? "checked" : ""} style="width:auto"> 🔊 Vorleseschaltfläche bei dieser Aufgabe anzeigen</label><p class="tiny muted">Vorgelesen werden Titel, Hinweis, Gruppengröße und Belohnung. Die Sprachausgabe startet nur nach Antippen.</p></div>
+          <div class="form-field full"><label><input name="readAloud" type="checkbox" ${task?.readAloud !== false ? "checked" : ""} style="width:auto"> 🔊 Vorleseschaltfläche bei dieser Aufgabe anzeigen</label><p class="tiny muted">Vorgelesen werden Titel, Hinweis, Gruppengröße und Belohnung.</p></div>
+          <div class="form-field"><label>Sichtbar ab</label><input name="visibleFrom" type="time" value="${task?.visibleFrom || "00:00"}"></div>
+          <div class="form-field"><label>Reservierbar ab</label><input name="reservableFrom" type="time" value="${task?.reservableFrom || "00:00"}"></div>
+          <div class="form-field"><label>Erledigt meldbar ab</label><input name="reportableFrom" type="time" value="${task?.reportableFrom || task?.reservableFrom || "00:00"}"></div>
+          <div class="form-field"><label>Verfügbar bis</label><input name="availableUntil" type="time" value="${task?.availableUntil || "23:59"}"></div>
+          <div class="form-field"><label>Reservierung läuft ab nach</label><select name="reservationMinutes">${[30,60,90,120,180,240,360].map(m=>`<option value="${m}" ${Number(task?.reservationMinutes || 120)===m?"selected":""}>${m<60?`${m} Minuten`:`${m/60} Stunde${m===60?"":"n"}`}</option>`).join("")}</select></div>
+          <div class="form-field"><label><input name="autoApprove" type="checkbox" ${task?.autoApprove !== false ? "checked" : ""} style="width:auto"> Tagesend-Bestätigung erlauben</label></div>
+          <div class="form-field full"><label><input name="requiresManualReview" type="checkbox" ${task?.requiresManualReview ? "checked" : ""} style="width:auto"> Immer manuell prüfen (z. B. Gruppen-, Bonus- oder Sternaufgabe)</label></div>
           <div class="form-field full"><label>Verfügbar an</label><div class="checkbox-grid">${DAY_NAMES.map((day,index) => `<label class="check-chip"><input type="checkbox" name="days" value="${index}" ${(task?.days || [0,1,2,3,4,5,6]).includes(index) ? "checked" : ""}><span>${day}</span></label>`).join("")}</div></div>
         </div>
         <p id="taskFormStatus" class="tiny muted" role="status" aria-live="polite"></p>
@@ -2338,6 +2380,13 @@
       allowYoungerWithOlder,
       minAgeWithOlder,
       olderPartnerMinAge,
+      visibleFrom:String(values.visibleFrom || "00:00"),
+      reservableFrom:String(values.reservableFrom || "00:00"),
+      reportableFrom:String(values.reportableFrom || values.reservableFrom || "00:00"),
+      availableUntil:String(values.availableUntil || "23:59"),
+      reservationMinutes:clamp(values.reservationMinutes,15,720),
+      autoApprove:formData.has("autoApprove"),
+      requiresManualReview:formData.has("requiresManualReview"),
       days:[...new Set(days)].sort((a,b) => a-b),
       updatedAt:Date.now()
     };
@@ -2894,6 +2943,9 @@
       case "open-group-report": openGroupReport(actionElement.dataset.claimId, actionElement.dataset.childId); break;
       case "submit-group-report": submitGroupReport(); break;
       case "speak-task": speakTask(actionElement.dataset.taskId); break;
+      case "speak-goal": speakGoal(actionElement.dataset.goalId); break;
+      case "open-goal-self-assessment": openGoalSelfAssessment(actionElement.dataset.childId, actionElement.dataset.goalId); break;
+      case "save-goal-self-assessment": saveGoalSelfAssessment(actionElement.dataset.childId, actionElement.dataset.goalId, actionElement.dataset.result); break;
       case "shop-tab": ui.shopTab = actionElement.dataset.tab; render(); break;
       case "buy-world-item": {
         const child = childById(actionElement.dataset.childId); const item = itemById(actionElement.dataset.itemId);
@@ -2943,6 +2995,11 @@
       case "save-wallet-correction": saveWalletCorrection(); break;
       case "confirm-wallet-correction": { const child=childById(actionElement.dataset.childId); const amount=Math.trunc(Number(actionElement.dataset.amount)); const currency=actionElement.dataset.currency; if(child && amount<0 && Number(child[currency]||0)+amount>=0){ child[currency]=Number(child[currency]||0)+amount; data.ledger=data.ledger||[]; data.ledger.push({id:uid(),childId:child.id,currency,amount,reason:actionElement.dataset.reason||"Korrektur",note:actionElement.dataset.note||"",timestamp:Date.now()}); saveData({snapshot:true}); closeModal(); ui.educatorTab="wallet"; render(); showToast("Kontostand wurde korrigiert."); } break; }
       case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "review"; render(); break;
+      case "educator-confirm-reserved": {
+        const claim=data.claims.find(x=>x.id===actionElement.dataset.claimId); if(claim&&claim.status==="reserved"){ claim.status="reported"; claim.reportedAt=Date.now(); claim.actualParticipantIds=[...claim.childIds]; claim.rewardAllocations=buildRewardAllocations(taskById(claim.taskId),claim.childIds,plannedChildrenForClaim(claim,taskById(claim.taskId))); saveData({snapshot:true}); openClaimApprovalEditor(claim.id); } break;
+      }
+      case "extend-reservation": { const claim=data.claims.find(x=>x.id===actionElement.dataset.claimId); if(claim&&claim.status==="reserved"){ claim.expiresAt=Math.max(Date.now(),claim.expiresAt||Date.now())+3600000; data.history.push({id:uid(),type:"reservation_extended",claimId:claim.id,timestamp:Date.now()}); saveData({snapshot:true}); render(); showToast("Reservierung wurde um eine Stunde verlängert."); } break; }
+      case "release-reservation": { const claim=data.claims.find(x=>x.id===actionElement.dataset.claimId); if(claim&&claim.status==="reserved"){ claim.status="released"; claim.releasedAt=Date.now(); data.history.push({id:uid(),type:"reservation_released",claimId:claim.id,timestamp:Date.now()}); saveData({snapshot:true}); render(); showToast("Aufgabe wurde wieder freigegeben."); } break; }
       case "approve-claim": {
         const claimId = actionElement.dataset.claimId;
         if (reviewClaim(claimId, "approve")) { celebrate(10); render(); showUndoToast(claimId); }
@@ -3171,6 +3228,15 @@
     if (event.target.id === "importFile" && event.target.files?.[0]) importDataFile(event.target.files[0]);
   });
 
+  function runDailyAutomation() {
+    let changed=false; const now=Date.now();
+    data.claims.forEach(claim=>{
+      if(claim.status==="reserved" && claim.expiresAt && claim.expiresAt<=now){ claim.status="released"; claim.releasedAt=now; data.history.push({id:uid(),type:"reservation_auto_released",claimId:claim.id,timestamp:now}); changed=true; }
+    });
+    if(data.settings.autoApproveEnabled){ const [h,m]=String(data.settings.autoApproveTime||"21:00").split(":").map(Number); const cutoff=h*60+m; if(minutesNow()>=cutoff){ data.claims.filter(c=>c.status==="reported"&&c.date===todayKey()).forEach(claim=>{ const task=taskById(claim.taskId); if(task && task.autoApprove!==false && !task.requiresManualReview && Number(task.stars||0)===0 && claim.childIds.length===plannedChildrenForClaim(claim,task)){ if(reviewClaim(claim.id,"approve")){ claim.autoApproved=true; data.history.push({id:uid(),type:"task_auto_approved",claimId:claim.id,timestamp:now}); changed=true; } } }); } }
+    if(changed) saveData({snapshot:true,notify:true});
+  }
+
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
     navigator.serviceWorker.register("./sw.js").then(registration => {
@@ -3193,6 +3259,8 @@
   window.addEventListener("beforeunload", () => saveData({ notify:false }));
   applyPreferences();
   registerServiceWorker();
+  runDailyAutomation();
+  setInterval(()=>{ runDailyAutomation(); render(); },60000);
   render();
 
   // Kleine Diagnosehilfe für lokale Tests. Enthält keine personenbezogenen Daten.
