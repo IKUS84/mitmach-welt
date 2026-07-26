@@ -1,5 +1,15 @@
 # Änderungsverlauf
 
+## Version 2.7.0 – Aufgabensuche und Aktivitäten nach Kind
+
+- Live-Suche für Kinder nach Aufgabenname, Beschreibung, Kategorie und Symbol.
+- Erweiterte Aufgabensuche für Erzieher mit Kategorie- und Statusfilter.
+- Letzte Aktivitäten werden nach Kindern geordnet statt als lange gemischte Liste angezeigt.
+- Standardzeitraum sind die letzten drei Kalendertage; 7 Tage, 30 Tage und der gesamte Verlauf sind auswählbar.
+- Aufgabenbestätigungen lassen sich weiterhin direkt aus dem Verlauf zurücknehmen.
+- Abgelaufene oder manuell freigegebene Reservierungen bleiben auch nach einem Neuladen korrekt freigegeben.
+- Versionsanzeigen, Manifest und Offline-Cache auf 2.7.0 aktualisiert.
+
 ## Version 2.5.0 – flexible Teamaufgaben und altersneutrale Bereiche
 
 - Tatsächliche Teilnehmer können beim Abschluss jeder Aufgabe für zwei oder mehr Kinder ausgewählt werden.

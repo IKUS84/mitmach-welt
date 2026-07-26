@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.6.0";
+  const APP_VERSION = "2.7.0";
   const SCHEMA_VERSION = 6;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -240,6 +240,10 @@
     shopTab: "world",
     educatorUnlocked: false,
     educatorTab: "review",
+    childTaskSearch: "",
+    adminTaskSearch: "",
+    adminTaskCategory: "all",
+    adminTaskStatus: "all",
     avatarCategory: "Tiere",
     editingChildId: null,
     editingTaskId: null,
@@ -294,6 +298,19 @@
 
   function normalizedTitle(value) {
     return String(value || "").trim().toLocaleLowerCase("de-DE").replace(/\s+/g," ");
+  }
+
+  function normalizedSearchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("de-DE")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function taskSearchText(task) {
+    return normalizedSearchText([task?.title, task?.instructions, task?.category, task?.competence, task?.icon].filter(Boolean).join(" "));
   }
 
   function inferWishCategory(wish) {
@@ -482,7 +499,7 @@
       childIds: Array.isArray(claim.childIds) ? claim.childIds : (claim.childId ? [claim.childId] : []),
       date: claim.date || todayKey(),
       source: claim.source || "solo",
-      status: ["reserved","reported","approved","declined"].includes(claim.status) ? claim.status : "reserved",
+      status: ["reserved","reported","approved","declined","released"].includes(claim.status) ? claim.status : "reserved",
       createdAt: Number(claim.createdAt || Date.now()),
       reportedAt: Number(claim.reportedAt || 0),
       reviewedAt: Number(claim.reviewedAt || 0),
@@ -740,6 +757,143 @@
     return `🪙 ${Number(allocation?.coins || 0)} · 🌱 ${Number(allocation?.seeds || 0)}${Number(allocation?.stars || 0) ? ` · ⭐ ${Number(allocation.stars || 0)}` : ""}`;
   }
 
+  function signedAllocationText(allocation) {
+    const parts = [];
+    const add = (icon, value) => {
+      const amount = Number(value || 0);
+      if (amount) parts.push(`${icon} ${amount > 0 ? "+" : ""}${amount}`);
+    };
+    add("🪙", allocation?.coins);
+    add("🌱", allocation?.seeds);
+    add("⭐", allocation?.stars);
+    return parts.join(" · ") || "Keine Punkteänderung";
+  }
+
+  function activityCutoff(days = 3) {
+    if (!Number(days)) return 0;
+    const date = new Date();
+    date.setHours(0,0,0,0);
+    date.setDate(date.getDate() - Math.max(0, Number(days) - 1));
+    return date.getTime();
+  }
+
+  function childActivityItems(childId, days = 3) {
+    const cutoff = activityCutoff(days);
+    const withinRange = timestamp => Number(timestamp || 0) >= cutoff;
+    const items = [];
+
+    data.claims.forEach(claim => {
+      if (!claim.childIds.includes(childId) || claim.status !== "approved" || !claim.rewardsApplied || !withinRange(claim.reviewedAt)) return;
+      const task = taskById(claim.taskId);
+      if (!task) return;
+      const allocation = allocationForChild(claim, task, childId);
+      items.push({
+        id:`task-${claim.id}`, type:"task", timestamp:claim.reviewedAt, icon:task.icon, title:task.title,
+        detail:claim.autoApproved ? "Automatisch am Tagesende bestätigt" : "Aufgabe bestätigt",
+        reward:allocation, claimId:claim.id, undoable:true
+      });
+    });
+
+    data.history.filter(entry => entry.type === "task_approval_reversed" && Array.isArray(entry.childIds) && entry.childIds.includes(childId) && withinRange(entry.timestamp)).forEach(entry => {
+      const task = taskById(entry.taskId);
+      const allocation = (entry.allocations || []).find(item => item.childId === childId) || { coins:0, seeds:0, stars:0 };
+      items.push({
+        id:`reversed-${entry.id}`, type:"reversed", timestamp:entry.timestamp, icon:"↩️",
+        title:task?.title || "Aufgabenbestätigung", detail:"Bestätigung zurückgenommen",
+        reward:{ coins:-Number(allocation.coins || 0), seeds:-Number(allocation.seeds || 0), stars:-Number(allocation.stars || 0) }
+      });
+    });
+
+    data.goalEvaluations.filter(entry => entry.childId === childId && withinRange(entry.createdAt)).forEach(entry => {
+      const goal = goalById(entry.goalId);
+      const result = GOAL_RESULTS[entry.result] || { icon:"🌱", label:"Ausgewertet" };
+      items.push({
+        id:`goal-${entry.id}`, type:"goal", timestamp:entry.createdAt, icon:goal?.icon || "🌱",
+        title:goal?.title || "Tagesmission", detail:`${result.icon} ${result.label}`, reward:entry.reward || { coins:0, seeds:0, stars:0 }
+      });
+    });
+
+    (data.ledger || []).filter(entry => entry.childId === childId && withinRange(entry.timestamp) && !entry.claimId && !["Aufgabe bestätigt","Tagesmission bewertet"].includes(entry.reason)).forEach(entry => {
+      const reward = { coins:0, seeds:0, stars:0 };
+      if (["coins","seeds","stars"].includes(entry.currency)) reward[entry.currency] = Number(entry.amount || 0);
+      items.push({
+        id:`ledger-${entry.id}`, type:"correction", timestamp:entry.timestamp, icon:"💰",
+        title:entry.reason || "Kontokorrektur", detail:entry.note || "Manuelle Änderung", reward
+      });
+    });
+
+    data.history.filter(entry => ["wish_approved","wish_rejected"].includes(entry.type) && entry.childId === childId && withinRange(entry.timestamp)).forEach(entry => {
+      const wish = wishById(entry.wishId);
+      items.push({
+        id:`wish-${entry.id}`, type:"wish", timestamp:entry.timestamp, icon:wish?.icon || "🎁",
+        title:wish?.title || "Belohnungswunsch", detail:entry.type === "wish_approved" ? "Wunsch angenommen" : "Wunsch abgelehnt und erstattet",
+        reward:{ coins:0, seeds:0, stars:0 }
+      });
+    });
+
+    return items.sort((a,b) => b.timestamp - a.timestamp);
+  }
+
+  function renderActivityList(items) {
+    if (!items.length) return `<div class="empty-state compact"><span class="emoji">🌤️</span><h3>Keine Aktivitäten in diesem Zeitraum</h3><p>Bestätigungen, Missionen und Korrekturen erscheinen hier automatisch.</p></div>`;
+    const groups = new Map();
+    items.forEach(item => {
+      const key = localDateKey(new Date(item.timestamp));
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    });
+    return [...groups.entries()].map(([date, entries]) => `
+      <section class="activity-day">
+        <h3>${escapeHtml(formatDate(date))}</h3>
+        <div class="activity-list">${entries.map(item => `
+          <article class="activity-row">
+            <span class="activity-icon">${item.icon}</span>
+            <div class="activity-copy"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.detail)} · ${formatDateTime(item.timestamp)}</p><strong>${signedAllocationText(item.reward)}</strong></div>
+            ${item.undoable ? `<button class="ghost-button small-button" type="button" data-action="undo-claim-prompt" data-claim-id="${item.claimId}">Zurücknehmen</button>` : ""}
+          </article>`).join("")}</div>
+      </section>`).join("");
+  }
+
+  function openChildActivities(childId, days = 3) {
+    const child = childById(childId);
+    if (!child) return showToast("Dieses Kinderprofil wurde nicht gefunden.");
+    const safeDays = [3,7,30,0].includes(Number(days)) ? Number(days) : 3;
+    const items = childActivityItems(child.id, safeDays);
+    const rangeLabel = safeDays ? `Zeitraum der letzten ${safeDays} Tage` : "gesamten Verlauf";
+    openModal(`Aktivitäten von ${child.name}`, `
+      <section class="profile-banner compact-profile-banner" style="--accent:${child.accent}"><div class="profile-avatar">${child.avatar}</div><div><h3>${escapeHtml(child.name)}</h3><p>${items.length} Aktivität${items.length === 1 ? "" : "en"} im ${rangeLabel}</p><div class="balance-strip">${currencyStats(child)}</div></div></section>
+      <div class="activity-range" role="group" aria-label="Zeitraum auswählen">
+        ${[[3,"3 Tage"],[7,"7 Tage"],[30,"30 Tage"],[0,"Alle"]].map(([value,label]) => `<button type="button" class="filter-chip ${safeDays === value ? "active" : ""}" data-action="open-child-activities" data-child-id="${child.id}" data-days="${value}">${label}</button>`).join("")}
+      </div>
+      ${renderActivityList(items)}`, { wide:true });
+  }
+
+  function applyTaskSearchFilters(scope) {
+    const childScope = scope === "child";
+    const input = document.querySelector(childScope ? "#childTaskSearch" : "#adminTaskSearch");
+    if (!input) return;
+    const query = normalizedSearchText(input.value);
+    const category = childScope ? "all" : (document.querySelector("#adminTaskCategory")?.value || "all");
+    const status = childScope ? "all" : (document.querySelector("#adminTaskStatus")?.value || "all");
+    let visible = 0;
+    document.querySelectorAll(`[data-task-search-scope="${scope}"]`).forEach(item => {
+      const textMatch = !query || normalizedSearchText(item.dataset.taskSearchText).includes(query);
+      const categoryMatch = category === "all" || item.dataset.taskCategory === category;
+      const statusTokens = String(item.dataset.taskStatus || "").split(" ");
+      const statusMatch = status === "all" || statusTokens.includes(status);
+      const matches = textMatch && categoryMatch && statusMatch;
+      item.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    document.querySelectorAll(`[data-task-category-group="${scope}"]`).forEach(section => {
+      section.hidden = !section.querySelector(`[data-task-search-scope="${scope}"]:not([hidden])`);
+    });
+    const empty = document.querySelector(childScope ? "#childTaskSearchEmpty" : "#adminTaskSearchEmpty");
+    if (empty) empty.hidden = visible > 0;
+    const count = document.querySelector(childScope ? "#childTaskSearchCount" : "#adminTaskSearchCount");
+    if (count) count.textContent = query || category !== "all" || status !== "all" ? `${visible} Treffer` : "";
+  }
+
   let speakingTaskId = null;
 
   function taskTitleMarkup(task) {
@@ -932,6 +1086,8 @@
     const renderer = renderers[ui.screen] || renderHome;
     app.innerHTML = renderer();
     if (ui.screen === "home") setTimeout(loadWeatherForecast, 0);
+    if (ui.screen === "tasks") setTimeout(() => applyTaskSearchFilters("child"), 0);
+    if (ui.screen === "educator" && ui.educatorTab === "tasks") setTimeout(() => applyTaskSearchFilters("admin"), 0);
     window.scrollTo({ top:0, behavior:data.settings.reduceMotion ? "auto" : "smooth" });
 
     if (ui.screen === "child" && ui.childId) {
@@ -1323,7 +1479,7 @@
       const joinable = reservation.joinable;
       const activeTeamNames = joinable ? joinable.childIds.map(childById).filter(Boolean).map(member => `${member.avatar} ${escapeHtml(member.name)}`).join(", ") : "";
       return `
-        <article class="task-card ${eligibility.mode === "supported" ? "age-supported-task" : ""}">
+        <article class="task-card ${eligibility.mode === "supported" ? "age-supported-task" : ""}" data-task-search-scope="child" data-task-search-text="${escapeHtml(taskSearchText(task))}" data-task-category="${escapeHtml(task.category)}">
           <div class="task-card-head">
             <span class="task-icon">${task.icon}</span>
             <div>
@@ -1348,7 +1504,7 @@
     const availableHtml = visibleTasks.length ? taskGroups.map(category => {
       const entries = visibleTasks.filter(item => item.task.category === category);
       if (!entries.length) return "";
-      return `<section class="task-category-section"><h3 class="task-category-title">${escapeHtml(category)}</h3><div class="task-list">${entries.map(taskCardHtml).join("")}</div></section>`;
+      return `<section class="task-category-section" data-task-category-group="child"><h3 class="task-category-title">${escapeHtml(category)}</h3><div class="task-list">${entries.map(taskCardHtml).join("")}</div></section>`;
     }).join("") : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine passenden Aufgaben freigeschaltet.</h3><p>Ein Erzieher kann Aufgaben oder Altersregeln anpassen.</p></div>`;
 
     return `
@@ -1363,6 +1519,12 @@
         </div>
         <div class="available-task-block">
           <div class="section-heading"><div><h2>Weitere passende Aufgaben</h2><p>${FULL_DAY_NAMES[dayIndex()]} · nach Alter passend sortiert${hiddenAgeCount ? ` · ${hiddenAgeCount} noch nicht passende Aufgabe${hiddenAgeCount === 1 ? "" : "n"} ausgeblendet` : ""}</p></div></div>
+          <div class="task-search-toolbar compact-search-toolbar">
+            <label class="task-search-field"><span>🔎</span><input id="childTaskSearch" type="search" value="${escapeHtml(ui.childTaskSearch)}" placeholder="Aufgabe suchen …" autocomplete="off" aria-label="Aufgabe suchen"></label>
+            <button class="ghost-button small-button" type="button" data-action="clear-child-task-search">Löschen</button>
+            <span class="search-result-count" id="childTaskSearchCount"></span>
+          </div>
+          <div id="childTaskSearchEmpty" class="empty-state compact" hidden><span class="emoji">🔎</span><h3>Keine passende Aufgabe gefunden</h3><p>Versuche einen kürzeren Suchbegriff, zum Beispiel „Tisch“, „Wäsche“ oder „Hof“.</p></div>
           <div class="task-list">${availableHtml}</div>
         </div>
       </div>`;
@@ -1930,7 +2092,7 @@
     const reserved = data.claims.filter(claim => claim.status === "reserved" && claim.date === todayKey()).sort((a,b) => a.createdAt - b.createdAt);
     const goalsToReview = activeChildren().flatMap(child => activeGoalsForChild(child.id).filter(goal => !data.goalEvaluations.some(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey())).map(goal => ({ child, goal })));
     const pendingWishes = data.wishRequests.filter(request => request.status === "pending");
-    const recentApproved = data.claims.filter(claim => claim.status === "approved" && claim.rewardsApplied).sort((a,b) => b.reviewedAt - a.reviewedAt).slice(0,10);
+    const activityChildren = activeChildren().map(child => ({ child, items:childActivityItems(child.id, 3) }));
     return `
       <div class="section-heading"><div><h2>🌙 Abendrunde</h2><p>Offene und erledigt gemeldete Aufgaben stehen bewusst ganz oben.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
 
@@ -1977,9 +2139,13 @@
       </div>
 
       <div class="panel" style="margin-top:16px">
-        <h3>↩️ Letzte Bestätigungen (${recentApproved.length})</h3>
-        <p class="muted">Eine versehentliche Bestätigung kann hier vollständig zurückgenommen werden. Die Aufgabe erscheint danach wieder bei den offenen Meldungen.</p>
-        ${recentApproved.length ? `<div class="task-list">${recentApproved.map(claim => { const task=taskById(claim.taskId); const children=claim.childIds.map(childById).filter(Boolean); if(!task) return ""; return `<article class="task-card"><div class="task-card-head"><span class="task-icon">${task.icon}</span><div><h3>${escapeHtml(task.title)}</h3><p class="muted tiny">${children.map(child => `${child.avatar} ${escapeHtml(child.name)}`).join(", ")} · bestätigt ${formatDateTime(claim.reviewedAt)}</p></div><button class="ghost-button small-button" type="button" data-action="undo-claim-prompt" data-claim-id="${claim.id}">Bestätigung zurücknehmen</button></div></article>`; }).join("")}</div>` : `<p class="muted">Noch keine Bestätigung zum Zurücknehmen vorhanden.</p>`}
+        <h3>🕘 Aktivitäten nach Kind</h3>
+        <p class="muted">Wähle ein Kind aus. Angezeigt werden standardmäßig die letzten drei Kalendertage mit bestätigten Aufgaben, Tagesmissionen und Korrekturen.</p>
+        <div class="activity-child-grid">${activityChildren.map(({child,items}) => `
+          <article class="activity-child-card" style="--accent:${child.accent}">
+            <div class="activity-child-head"><span class="activity-child-avatar">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${items.length} Aktivität${items.length === 1 ? "" : "en"} in 3 Tagen</p></div></div>
+            <button class="ghost-button full-button small-button" type="button" data-action="open-child-activities" data-child-id="${child.id}" data-days="3" ${items.length ? "" : "disabled"}>Letzte 3 Tage anzeigen</button>
+          </article>`).join("")}</div>
       </div>`;
   }
 
@@ -2077,14 +2243,25 @@
       if (!entries.length) return "";
       const rows = entries.map(task => {
         const linked = data.claims.filter(claim => claim.taskId === task.id);
-        const open = linked.filter(claim => ["reserved","reported"].includes(claim.status)).length;
-        return `<div class="admin-row"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 🎂 ${escapeHtml(taskAgeRuleLabel(task))} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}${open ? ` · ⚠️ ${open} offen` : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Löschen</button></div></div>`;
+        const reserved = linked.filter(claim => claim.status === "reserved").length;
+        const reported = linked.filter(claim => claim.status === "reported").length;
+        const open = reserved + reported;
+        const statuses = [task.active ? "active" : "inactive", reserved ? "reserved" : "", reported ? "reported" : "", task.requiresManualReview ? "manual" : ""].filter(Boolean).join(" ");
+        return `<div class="admin-row" data-task-search-scope="admin" data-task-search-text="${escapeHtml(taskSearchText(task))}" data-task-category="${escapeHtml(task.category)}" data-task-status="${statuses}"><span class="admin-row-icon">${task.icon}</span><div><h4>${escapeHtml(task.title)}</h4><p>${task.active ? "Aktiv" : "Inaktiv"} · 🎂 ${escapeHtml(taskAgeRuleLabel(task))} · 👥 ${task.requiredChildren} · ${task.repeatMode === "shared" ? "einmal für Gruppe" : "pro Kind"} · 🪙 ${task.coins} · 🌱 ${task.seeds}${task.communityPoints ? ` · 🤝 ${task.communityPoints}` : ""}${reserved ? ` · ⏱️ ${reserved} reserviert` : ""}${reported ? ` · ✅ ${reported} gemeldet` : ""}${task.requiresManualReview ? " · 👀 manuell prüfen" : ""}</p></div><div class="inline-actions"><button class="ghost-button small-button" type="button" data-action="open-task-editor" data-task-id="${task.id}">Bearbeiten</button><button class="${task.active ? "danger-button" : "success-button"} small-button" type="button" data-action="toggle-task-active" data-task-id="${task.id}">${task.active ? "Pausieren" : "Aktivieren"}</button><button class="danger-button small-button" type="button" data-action="delete-task-prompt" data-task-id="${task.id}">Löschen</button></div></div>`;
       }).join("");
-      return `<section class="panel task-admin-category" style="margin-top:14px"><h3>${escapeHtml(category)} (${entries.length})</h3><div class="admin-list">${rows}</div></section>`;
+      return `<section class="panel task-admin-category" style="margin-top:14px" data-task-category-group="admin"><h3>${escapeHtml(category)} (${entries.length})</h3><div class="admin-list">${rows}</div></section>`;
     }).join("");
     return `
       <div class="section-heading"><div><h2>Aufgaben verwalten</h2><p>Alle Aufgaben sind nach Alltagsthemen geordnet und können an die Gruppe angepasst werden.</p></div><button class="primary-button small-button" type="button" data-action="open-task-editor">＋ Aufgabe anlegen</button></div>
       <div class="callout success"><p><b>Kein Tageslimit:</b> Jedes Kind erhält die Belohnung für jede tatsächlich verfügbare und bestätigte Aufgabe. Fleiß wird nicht künstlich begrenzt.</p></div>
+      <div class="task-search-toolbar admin-task-search-toolbar">
+        <label class="task-search-field"><span>🔎</span><input id="adminTaskSearch" type="search" value="${escapeHtml(ui.adminTaskSearch)}" placeholder="Aufgabe, Beschreibung oder Kategorie suchen …" autocomplete="off" aria-label="Aufgabe suchen"></label>
+        <label class="compact-select"><span>Kategorie</span><select id="adminTaskCategory"><option value="all">Alle Kategorien</option>${categories.map(category => `<option value="${escapeHtml(category)}" ${ui.adminTaskCategory === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>
+        <label class="compact-select"><span>Status</span><select id="adminTaskStatus"><option value="all" ${ui.adminTaskStatus === "all" ? "selected" : ""}>Alle</option><option value="active" ${ui.adminTaskStatus === "active" ? "selected" : ""}>Aktiv</option><option value="inactive" ${ui.adminTaskStatus === "inactive" ? "selected" : ""}>Inaktiv</option><option value="reserved" ${ui.adminTaskStatus === "reserved" ? "selected" : ""}>Reserviert</option><option value="reported" ${ui.adminTaskStatus === "reported" ? "selected" : ""}>Erledigt gemeldet</option><option value="manual" ${ui.adminTaskStatus === "manual" ? "selected" : ""}>Manuelle Prüfung</option></select></label>
+        <button class="ghost-button small-button" type="button" data-action="clear-admin-task-search">Filter löschen</button>
+        <span class="search-result-count" id="adminTaskSearchCount"></span>
+      </div>
+      <div id="adminTaskSearchEmpty" class="empty-state compact" hidden><span class="emoji">🔎</span><h3>Keine Aufgabe gefunden</h3><p>Ändere den Suchbegriff oder setze die Filter zurück.</p></div>
       ${sections || `<div class="empty-state"><span class="emoji">📋</span><h3>Noch keine Aufgaben vorhanden</h3><p>Lege oben die erste Aufgabe an.</p></div>`}`;
   }
 
@@ -2991,6 +3168,9 @@
         break;
       }
       case "educator-tab": ui.educatorTab = actionElement.dataset.tab; render(); break;
+      case "clear-child-task-search": { ui.childTaskSearch = ""; const input=document.querySelector("#childTaskSearch"); if(input){ input.value=""; input.focus(); } applyTaskSearchFilters("child"); break; }
+      case "clear-admin-task-search": { ui.adminTaskSearch=""; ui.adminTaskCategory="all"; ui.adminTaskStatus="all"; const input=document.querySelector("#adminTaskSearch"); const category=document.querySelector("#adminTaskCategory"); const status=document.querySelector("#adminTaskStatus"); if(input) input.value=""; if(category) category.value="all"; if(status) status.value="all"; applyTaskSearchFilters("admin"); input?.focus(); break; }
+      case "open-child-activities": openChildActivities(actionElement.dataset.childId, Number(actionElement.dataset.days ?? 3)); break;
       case "open-wallet-editor": openWalletEditor(actionElement.dataset.childId); break;
       case "save-wallet-correction": saveWalletCorrection(); break;
       case "confirm-wallet-correction": { const child=childById(actionElement.dataset.childId); const amount=Math.trunc(Number(actionElement.dataset.amount)); const currency=actionElement.dataset.currency; if(child && amount<0 && Number(child[currency]||0)+amount>=0){ child[currency]=Number(child[currency]||0)+amount; data.ledger=data.ledger||[]; data.ledger.push({id:uid(),childId:child.id,currency,amount,reason:actionElement.dataset.reason||"Korrektur",note:actionElement.dataset.note||"",timestamp:Date.now()}); saveData({snapshot:true}); closeModal(); ui.educatorTab="wallet"; render(); showToast("Kontostand wurde korrigiert."); } break; }
@@ -3224,8 +3404,15 @@
     }
   });
 
+  document.addEventListener("input", event => {
+    if (event.target.id === "childTaskSearch") { ui.childTaskSearch = event.target.value; applyTaskSearchFilters("child"); }
+    if (event.target.id === "adminTaskSearch") { ui.adminTaskSearch = event.target.value; applyTaskSearchFilters("admin"); }
+  });
+
   document.addEventListener("change", event => {
     if (event.target.id === "importFile" && event.target.files?.[0]) importDataFile(event.target.files[0]);
+    if (event.target.id === "adminTaskCategory") { ui.adminTaskCategory = event.target.value; applyTaskSearchFilters("admin"); }
+    if (event.target.id === "adminTaskStatus") { ui.adminTaskStatus = event.target.value; applyTaskSearchFilters("admin"); }
   });
 
   function runDailyAutomation() {

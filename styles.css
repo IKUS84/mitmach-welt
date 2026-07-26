@@ -607,3 +607,61 @@ body.child-style-neutral .world-item { animation:none; }
   .home-hero h2 { font-size:1.4rem; }
   .round-launch p { display:none; }
 }
+
+
+/* Version 2.7.0: Aufgabensuche und Aktivitäten nach Kind */
+.task-search-toolbar {
+  margin: 14px 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255,255,255,.78);
+}
+.compact-search-toolbar { grid-template-columns: minmax(200px,1fr) auto auto; }
+.task-search-field { min-height: 44px; display:flex; align-items:center; gap:8px; padding:0 13px; background:#fff; border:1px solid var(--line); border-radius:14px; }
+.task-search-field:focus-within { outline:3px solid rgba(70,141,213,.18); border-color:#77a9d8; }
+.task-search-field input { width:100%; min-width:0; border:0; outline:0; background:transparent; font:inherit; color:var(--ink); }
+.compact-select { display:grid; gap:4px; font-size:.76rem; color:var(--muted); font-weight:800; }
+.compact-select select { min-height:44px; max-width:190px; border:1px solid var(--line); border-radius:14px; padding:0 34px 0 11px; background:#fff; color:var(--ink); font:inherit; }
+.search-result-count { min-width:68px; align-self:center; color:var(--muted); font-size:.82rem; font-weight:800; text-align:right; }
+
+.activity-child-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin-top:14px; }
+.activity-child-card { position:relative; overflow:hidden; display:grid; gap:12px; padding:14px; border:1px solid var(--line); border-radius:20px; background:#fff; }
+.activity-child-card::before { content:""; position:absolute; width:100px; height:100px; top:-55px; right:-35px; border-radius:50%; background:var(--accent,#f6c84d); opacity:.14; pointer-events:none; }
+.activity-child-head { position:relative; display:flex; align-items:center; gap:12px; }
+.activity-child-avatar { width:52px; height:52px; display:grid; place-items:center; flex:0 0 auto; border-radius:17px; background:color-mix(in srgb, var(--accent,#f6c84d) 18%, white); font-size:1.9rem; }
+.activity-child-card h4 { margin:0 0 3px; font-size:1.08rem; }
+.activity-child-card p { margin:0; color:var(--muted); font-size:.82rem; }
+.compact-profile-banner { min-height:0; margin-bottom:12px; padding:14px; }
+.activity-range { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; }
+.filter-chip { border:1px solid var(--line); border-radius:999px; background:#fff; color:var(--ink); padding:9px 13px; font:inherit; font-size:.84rem; font-weight:850; cursor:pointer; }
+.filter-chip.active { background:#fff0b6; border-color:#e7c34e; }
+.activity-day { margin-top:18px; }
+.activity-day > h3 { margin:0 0 9px; font-size:1rem; color:var(--muted); }
+.activity-list { display:grid; gap:9px; }
+.activity-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 13px; border:1px solid var(--line); border-radius:17px; background:#fff; }
+.activity-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:#f7f4e9; font-size:1.55rem; }
+.activity-copy h4 { margin:0 0 3px; }
+.activity-copy p { margin:0 0 4px; color:var(--muted); font-size:.8rem; }
+.activity-copy strong { font-size:.84rem; }
+
+@media (max-width: 760px) {
+  .task-search-toolbar, .compact-search-toolbar { grid-template-columns:1fr auto; align-items:center; }
+  .admin-task-search-toolbar .task-search-field { grid-column:1 / -1; }
+  .compact-select { min-width:0; }
+  .compact-select select { width:100%; max-width:none; }
+  .search-result-count { grid-column:1 / -1; text-align:left; min-height:0; }
+  .activity-child-grid { grid-template-columns:1fr 1fr; }
+  .activity-row { grid-template-columns:auto minmax(0,1fr); }
+  .activity-row > button { grid-column:1 / -1; width:100%; }
+}
+@media (max-width: 430px) {
+  .activity-child-grid { grid-template-columns:1fr; }
+  .task-search-toolbar, .compact-search-toolbar { grid-template-columns:1fr; }
+  .task-search-toolbar .ghost-button { width:100%; }
+  .admin-task-search-toolbar .task-search-field { grid-column:auto; }
+}
