@@ -1,4 +1,33 @@
+# Version 2.8.1 – Tagesmissionen-Auswertung Hotfix
+
+- Selbsteingeschätzte Tagesmissionen erscheinen jetzt im Erzieherbereich ganz oben unter **„Wartet auf Auswertung“**.
+- Der Name des Kindes, die Mission und die gewählte Selbsteinschätzung werden direkt angezeigt.
+- Auf der Erzieher-Übersicht erscheint ein deutlicher Hinweis mit dem Namen des Kindes.
+- Der Menüpunkt **„Bestätigen“** erhält eine Zählmarke, wenn Tagesmissionen auf Auswertung warten.
+- Die Selbsteinschätzung wird im Auswertungsfenster automatisch vorausgewählt.
+- Die Gerätesynchronisierung führt Selbsteinschätzungen gezielt zusammen, damit eine Eintragung vom Kinder-Tablet nicht durch einen neueren Stand des Diensthandys verloren geht.
+- Noch nicht selbsteingeschätzte Tagesmissionen bleiben separat sichtbar und können weiterhin gemeinsam ausgewertet werden.
+
 # Änderungsverlauf
+
+## Version 2.8.0 – vereinfachte Führung und Begleiter
+
+- Navigation grundlegend vereinfacht und in vier feste Kinder- sowie vier feste Erzieherbereiche gegliedert.
+- Kinderansicht: Start, Aufgaben, Gemeinsam und Mein Bereich.
+- Erzieheransicht: Übersicht, Bestätigen, Kinder und Verwalten.
+- Kinder-Startseite und Erzieher-Übersicht kompakter und auf die häufigsten Alltagsschritte ausgerichtet.
+- Aufgaben im Kinderbereich nach aktuellem Status und Verfügbarkeit gegliedert.
+- Gruppenwelt in feste Zonen für Himmel, Hintergrund, Boden und Spielbereich aufgeteilt.
+- Animierte Begleiter in der persönlichen Welt ergänzt; Bewegung je Kind aus, ruhig oder lebendig.
+- Begleiter reagieren auf Bett, Futternapf, Ball, Musikbox und direktes Antippen.
+- Samen-Shop um erste Begleiter- und Einrichtungsgegenstände erweitert.
+- Freiwilliges Suchspiel ohne Belohnung, Zeitdruck oder negative Folgen ergänzt.
+- Nach ungefähr zwei Tagen findet der Begleiter einen nicht gefundenen Gegenstand selbst wieder.
+- Suchspiel global und je Kind abschaltbar.
+- Hilfe-Center mit Schnellstart und kontextbezogener Erklärung eingebaut.
+- Geschützte Vorschau der Kinderansicht im Erzieherbereich ergänzt.
+- Selbsteinschätzung von Tagesmissionen bleibt zur anschließenden Erzieherauswertung erhalten.
+- Manifest, Versionsanzeige, Datenschema und Offline-Cache auf 2.8.0 aktualisiert.
 
 ## Version 2.7.0 – Aufgabensuche und Aktivitäten nach Kind
 

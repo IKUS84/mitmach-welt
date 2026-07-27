@@ -428,6 +428,7 @@
       node.hidden = config.role === "child";
     });
     if (syncButton) syncButton.hidden = config.role === "child";
+    window.MitmachWelt?.render?.();
   }
 
   function formatTime(timestamp) {
@@ -717,6 +718,65 @@
     }
   }
 
+  function goalEvaluationKey(entry) {
+    return `${String(entry?.childId || "")}::${String(entry?.goalId || "")}::${String(entry?.date || "")}`;
+  }
+
+  function evaluationMoment(entry) {
+    return Math.max(Number(entry?.evaluatedAt || 0), Number(entry?.selfAssessedAt || 0), Number(entry?.createdAt || 0));
+  }
+
+  function mergeGoalEvaluationPair(left, right) {
+    if (!left) return { ...right };
+    if (!right) return { ...left };
+    const newer = evaluationMoment(right) >= evaluationMoment(left) ? right : left;
+    const older = newer === right ? left : right;
+    const merged = { ...older, ...newer };
+
+    const leftSelfAt = Number(left.selfAssessedAt || left.createdAt || 0);
+    const rightSelfAt = Number(right.selfAssessedAt || right.createdAt || 0);
+    const selfSource = rightSelfAt >= leftSelfAt ? right : left;
+    if (selfSource.childView) {
+      merged.childView = selfSource.childView;
+      merged.selfAssessedAt = Number(selfSource.selfAssessedAt || selfSource.createdAt || 0);
+    }
+
+    const leftFinalAt = left.result ? Number(left.evaluatedAt || left.createdAt || 0) : 0;
+    const rightFinalAt = right.result ? Number(right.evaluatedAt || right.createdAt || 0) : 0;
+    const finalSource = rightFinalAt >= leftFinalAt ? right : left;
+    if (finalSource.result) {
+      merged.result = finalSource.result;
+      merged.note = finalSource.note || "";
+      merged.reward = finalSource.reward || merged.reward;
+      merged.evaluatedAt = Number(finalSource.evaluatedAt || finalSource.createdAt || 0);
+    }
+    return merged;
+  }
+
+  function mergeGoalEvaluations(localEntries, remoteEntries) {
+    const map = new Map();
+    [...(Array.isArray(localEntries) ? localEntries : []), ...(Array.isArray(remoteEntries) ? remoteEntries : [])].forEach(entry => {
+      const key = goalEvaluationKey(entry);
+      if (!key || key === "::::") return;
+      map.set(key, mergeGoalEvaluationPair(map.get(key), entry));
+    });
+    return [...map.values()];
+  }
+
+  function sameGoalEvaluations(left, right) {
+    try {
+      const normalize = entries => mergeGoalEvaluations([], entries)
+        .sort((a,b) => goalEvaluationKey(a).localeCompare(goalEvaluationKey(b)))
+        .map(entry => ({
+          key:goalEvaluationKey(entry), childView:entry.childView || "", result:entry.result || "",
+          selfAssessedAt:Number(entry.selfAssessedAt || 0), evaluatedAt:Number(entry.evaluatedAt || 0), note:entry.note || ""
+        }));
+      return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+    } catch {
+      return false;
+    }
+  }
+
   async function handleRemotePayload(payload) {
     try {
       const remote = await decryptState(payload);
@@ -734,9 +794,14 @@
         return;
       }
 
+      const localState = API.getData();
+      const mergedGoalEvaluations = mergeGoalEvaluations(localState.goalEvaluations, remote.state?.goalEvaluations);
+      const goalEvaluationsChangedLocally = !sameGoalEvaluations(localState.goalEvaluations, mergedGoalEvaluations);
+      const goalEvaluationsChangedRemotely = !sameGoalEvaluations(remote.state?.goalEvaluations, mergedGoalEvaluations);
       const shouldTakeRemote = config.forceRemote || remote.timestamp > meta.updatedAt || (!meta.dirty && wasInitial);
       if (shouldTakeRemote) {
-        const saved = API.replaceData(remote.state, { snapshot: true, notify: false, render: true });
+        const remoteWithMergedGoals = { ...remote.state, goalEvaluations:mergedGoalEvaluations };
+        const saved = API.replaceData(remoteWithMergedGoals, { snapshot: true, notify: false, render: true });
         if (!saved) throw new Error("Der empfangene Datenstand konnte lokal nicht gespeichert werden.");
         meta.updatedAt = remote.timestamp;
         meta.lastSyncedAt = Date.now();
@@ -749,7 +814,16 @@
         return;
       }
 
-      if (meta.dirty && meta.updatedAt >= remote.timestamp) {
+      if (goalEvaluationsChangedLocally) {
+        const mergedLocalState = { ...localState, goalEvaluations:mergedGoalEvaluations };
+        const saved = API.replaceData(mergedLocalState, { snapshot:true, notify:false, render:true });
+        if (!saved) throw new Error("Die Tagesmission-Auswertung konnte nicht zusammengeführt werden.");
+        meta.updatedAt = Math.max(Date.now(), meta.updatedAt + 1, remote.timestamp + 1);
+        meta.dirty = true;
+        saveMeta();
+        setStatus("online", `Tagesmission von ${remote.deviceName} übernommen · ${formatTime(Date.now())}`);
+        publishCurrent({ force:true });
+      } else if (meta.dirty && meta.updatedAt >= remote.timestamp) {
         publishCurrent({ force: true });
       } else {
         meta.lastSyncedAt = Date.now();
@@ -942,7 +1016,7 @@
   if (config.enabled && !restoredHomeScreenPairing) connectSync();
 
   window.MitmachWeltSync = {
-    version: "2.7.0",
+    version: "2.8.1",
     getStatus: () => ({ status, detail: statusDetail, enabled: config.enabled, role: config.role, deviceName: config.deviceName, lastIncomingDevice, meta: { ...meta } }),
     open: openPinPrompt,
     reconnect: connectSync

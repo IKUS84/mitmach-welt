@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.7.0";
-  const SCHEMA_VERSION = 6;
+  const APP_VERSION = "2.8.1";
+  const SCHEMA_VERSION = 7;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
@@ -43,6 +43,17 @@
     { id:"modern", icon:"🎧", title:"Cool & modern", description:"Ruhigere Flächen, klare Kanten und weniger Dekoration" },
     { id:"neutral", icon:"◻️", title:"Neutral", description:"Schlicht, übersichtlich und ohne unnötige Animationen" }
   ];
+  const COMPANION_MOTIONS = [
+    { id:"off", title:"Aus", description:"Der Begleiter bleibt ruhig stehen." },
+    { id:"calm", title:"Ruhig", description:"Wenige, langsame Bewegungen." },
+    { id:"lively", title:"Lebendig", description:"Der Begleiter läuft und reagiert häufiger." }
+  ];
+  const COMPANION_SEARCH_OBJECTS = {
+    "🐾":["🦴","🎾","🧸"], "🦊":["🍎","🪶","🧶"], "🐼":["🎋","🍎","⚽"], "🦁":["👑","⚽","🪶"],
+    "🐸":["🪰","🌿","🟢"], "🦄":["⭐","🌈","💎"], "🦖":["🥚","🌿","🪨"], "🤖":["🔩","🔋","💾"],
+    "🦉":["🪶","📘","🔍"], "🐺":["🦴","🌙","🪵"], "🚗":["🔑","🛞","⛽"], "🛹":["🧢","🛞","🎧"],
+    "⚽":["🥅","👟","🏆"]
+  };
   const WORLD_THEMES = [
     { id:"meadow", icon:"🌻", title:"Blumenwiese", description:"Wiese, Bäume und Tiere", starter:"🌱 🌼 🌳 🐞", style:"playful" },
     { id:"magic", icon:"🦄", title:"Zauberwald", description:"Pilze, Sterne und Magie", starter:"🍄 ✨ 🌲 🦋", style:"playful" },
@@ -116,6 +127,10 @@
     { id:"city_light", icon:"🚦", title:"City-Licht", seedCost:26, category:"City", description:"Licht und Farbe für die Stadt.", themes:["city","street"] },
     { id:"sofa", icon:"🛋️", title:"Lounge-Sofa", seedCost:40, category:"Ausstattung", description:"Ein ruhiger Platz zum Abschalten.", themes:["lounge"] },
     { id:"camera", icon:"📸", title:"Kamera", seedCost:34, category:"Kreativ", description:"Für Ideen und kreative Projekte.", themes:["creative","city"] },
+    { id:"companion_bed", icon:"🛏️", title:"Gemütliches Begleiter-Bett", seedCost:18, category:"Begleiter", description:"Ein Schlafplatz für den Begleiter." },
+    { id:"companion_ball", icon:"🎾", title:"Spielball", seedCost:12, category:"Begleiter", description:"Der Begleiter kann damit spielen." },
+    { id:"companion_bowl", icon:"🥣", title:"Futterschale", seedCost:10, category:"Begleiter", description:"Ein freundlicher Futterplatz ohne Pflicht oder Zeitdruck." },
+    { id:"companion_music", icon:"🎵", title:"Musikbox", seedCost:22, category:"Begleiter", description:"Schaltet eine Tanzreaktion frei." },
     { id:"campfire", icon:"🔥", title:"Feuerstelle", seedCost:36, category:"Outdoor", description:"Macht das Camp gemütlich.", themes:["outdoor"] }
   ];
 
@@ -202,7 +217,8 @@
       catalogVersion: CATALOG_VERSION,
       autoApproveEnabled: true,
       autoApproveTime: "21:00",
-      defaultReservationMinutes: 120
+      defaultReservationMinutes: 120,
+      companionSearchEnabled: true
     },
     children: [
       { id:"lucy", name:"Lucy", avatar:"🦄", accent:"#d070ba", theme:"magic", coins:24, seeds:7, stars:0, completed:4, inventory:["lantern"], active:true, createdAt:Date.now()-86400000*10 },
@@ -239,11 +255,13 @@
     childId: null,
     shopTab: "world",
     educatorUnlocked: false,
-    educatorTab: "review",
+    educatorTab: "overview",
     childTaskSearch: "",
     adminTaskSearch: "",
     adminTaskCategory: "all",
     adminTaskStatus: "all",
+    companionAction: "",
+    previewChildId: null,
     avatarCategory: "Tiere",
     editingChildId: null,
     editingTaskId: null,
@@ -256,6 +274,8 @@
   const screenTitle = document.querySelector("#screenTitle");
   const backButton = document.querySelector("#backButton");
   const homeButton = document.querySelector("#homeButton");
+  const helpButton = document.querySelector("#helpButton");
+  const bottomNav = document.querySelector("#bottomNav");
   const modalRoot = document.querySelector("#modalRoot");
   const toast = document.querySelector("#toast");
   const confettiRoot = document.querySelector("#confettiRoot");
@@ -436,6 +456,10 @@
       deletedAt: child.deletedAt ? Number(child.deletedAt) : 0,
       worldName: child.worldName || "Mein Bereich",
       companion: child.companion === "none" ? "none" : (child.companion || "none"),
+      companionMotion: ["off","calm","lively"].includes(child.companionMotion) ? child.companionMotion : "calm",
+      companionSearchEnabled: child.companionSearchEnabled !== false,
+      companionSearch: child.companionSearch && typeof child.companionSearch === "object" ? child.companionSearch : null,
+      companionNextSearchAt: Number(child.companionNextSearchAt || Date.now()),
       interfaceStyle: ["playful","modern","neutral"].includes(child.interfaceStyle) ? child.interfaceStyle : "neutral",
       onboardingPending: child.onboardingPending === true,
       createdAt: Number(child.createdAt || Date.now()),
@@ -1049,14 +1073,49 @@
     render();
   }
 
+  const MANAGEMENT_TABS = ["tasks","goals","wishes","wallet","backup","settings"];
+
+  function currentDeviceRole() {
+    if (document.body.classList.contains("device-role-child")) return "child";
+    if (document.body.classList.contains("device-role-educator")) return "educator";
+    return "both";
+  }
+
+  function isEducatorNavigation() {
+    return ui.screen === "educator" || (currentDeviceRole() === "educator" && !["child","tasks","missions","world","shop","achievements","group","roundSetup","roundPlay","roundSummary"].includes(ui.screen));
+  }
+
+  function renderBottomNavigation() {
+    if (!bottomNav) return;
+    if (isEducatorNavigation()) {
+      const activeTab = MANAGEMENT_TABS.includes(ui.educatorTab) ? "manage" : ui.educatorTab;
+      bottomNav.className = "bottom-nav educator-bottom-nav";
+      bottomNav.innerHTML = [
+        ["educator-overview","🏠","Übersicht","overview"],
+        ["educator-review","✅","Bestätigen","review"],
+        ["educator-children","👧","Kinder","children"],
+        ["educator-manage","⚙️","Verwalten","manage"]
+      ].map(([nav,icon,label,tab]) => `<button type="button" data-nav="${nav}" class="${activeTab === tab ? "active" : ""}"><span>${icon}</span><b>${label}</b></button>`).join("");
+      return;
+    }
+    const active = ui.screen === "group" || ["roundSetup","roundPlay","roundSummary"].includes(ui.screen)
+      ? "group"
+      : ui.screen === "tasks"
+        ? "tasks"
+        : ["world","shop","achievements","missions"].includes(ui.screen)
+          ? "personal"
+          : "home";
+    bottomNav.className = "bottom-nav child-bottom-nav";
+    bottomNav.innerHTML = [
+      ["home","🏠","Start"],
+      ["tasks","✅","Aufgaben"],
+      ["group","👥","Gemeinsam"],
+      ["personal","⭐","Mein Bereich"]
+    ].map(([nav,icon,label]) => `<button type="button" data-nav="${nav}" class="${active === nav ? "active" : ""}"><span>${icon}</span><b>${label}</b></button>`).join("");
+  }
+
   function setNavActive() {
-    document.querySelectorAll(".bottom-nav button").forEach(button => {
-      const nav = button.dataset.nav;
-      const active = (nav === "home" && ["home","child","tasks","missions","world","shop","achievements","roundSetup","roundPlay","roundSummary"].includes(ui.screen))
-        || (nav === "group" && ui.screen === "group")
-        || (nav === "educator" && ui.screen === "educator");
-      button.classList.toggle("active", active);
-    });
+    renderBottomNavigation();
   }
 
   function render() {
@@ -1065,8 +1124,9 @@
     const styledChild = childScreens.includes(ui.screen) ? childById(ui.childId) : null;
     document.body.classList.remove("child-style-playful","child-style-modern","child-style-neutral");
     if (styledChild) document.body.classList.add(`child-style-${styledChild.interfaceStyle || "neutral"}`);
-    backButton.hidden = ui.screen === "home";
-    homeButton.hidden = ui.screen === "home";
+    backButton.hidden = ui.screen === "home" || ui.screen === "educator";
+    homeButton.hidden = true;
+    document.body.dataset.screen = ui.screen;
     setNavActive();
 
     const renderers = {
@@ -1104,6 +1164,7 @@
 
   function renderHome() {
     const children = activeChildren();
+    const deviceRole = currentDeviceRole();
     const reportedCount = data.claims.filter(claim => claim.status === "reported").length;
     const missionCount = data.personalGoals.filter(goal => goal.active).length;
     return `
@@ -1144,18 +1205,7 @@
           <div class="empty-state"><span class="emoji">🌱</span><h3>Noch keine Kinder angelegt</h3><p>Im Erzieherbereich können Kinder mit eigenen Avataren angelegt werden.</p></div>`}
       </section>
 
-      <section class="section">
-        <div class="admin-grid">
-          <button class="card" type="button" data-action="nav-group" style="text-align:left;cursor:pointer;border:0">
-            <h3>🌍 Gruppenbereich</h3>
-            <p class="muted">${data.group.communityPoints} Gemeinschaftspunkte · gemeinsam wächst etwas Neues.</p>
-          </button>
-          <button class="card" type="button" data-action="nav-educator" style="text-align:left;cursor:pointer;border:0">
-            <h3>🔒 Erzieherbereich</h3>
-            <p class="muted">${reportedCount} offene Bestätigung${reportedCount === 1 ? "" : "en"} · ${missionCount} aktive Tagesmission${missionCount === 1 ? "" : "en"}.</p>
-          </button>
-        </div>
-      </section>`;
+      ${deviceRole === "child" ? "" : `<section class="section"><div class="admin-grid"><button class="card" type="button" data-action="nav-educator" style="text-align:left;cursor:pointer;border:0"><h3>🔒 Erzieherbereich</h3><p class="muted">${reportedCount} offene Bestätigung${reportedCount === 1 ? "" : "en"} · ${missionCount} aktive Tagesmission${missionCount === 1 ? "" : "en"}.</p></button></div></section>`}`;
   }
 
   function renderChildHub() {
@@ -1182,13 +1232,10 @@
           <span class="icon">🌱</span><span><h3>Meine Tagesmissionen</h3><p>${goals.length ? `${goals.length} persönliche Mission${goals.length === 1 ? "" : "en"} für heute.` : "Heute ist keine persönliche Mission eingetragen."}</p></span>
         </button>
         <button class="profile-action world" type="button" data-action="child-world">
-          <span class="icon">${worldTheme(child).icon}</span><span><h3>Mein Bereich</h3><p>${escapeHtml(worldTheme(child).title)} ansehen und weiter gestalten.</p></span>
+          <span class="icon">${child.companion && child.companion !== "none" ? child.companion : worldTheme(child).icon}</span><span><h3>Mein Bereich</h3><p>${escapeHtml(worldTheme(child).title)}, Begleiter und Erfolge entdecken.</p></span>
         </button>
         <button class="profile-action shop" type="button" data-action="child-shop">
-          <span class="icon">🛍️</span><span><h3>Mein Laden</h3><p>Samen für deinen Bereich, Münzen für Wünsche und Sterne für Besonderes.</p></span>
-        </button>
-        <button class="profile-action success" type="button" data-action="child-achievements">
-          <span class="icon">🏅</span><span><h3>Meine Erfolge</h3><p>Entdecke deine Meilensteine – ohne Vergleich mit anderen.</p></span>
+          <span class="icon">🎁</span><span><h3>Belohnungen & Gestalten</h3><p>Münzen für Wünsche und Samen für den eigenen Bereich nutzen.</p></span>
         </button>
       </section>`;
   }
@@ -1501,11 +1548,16 @@
         </article>`;
     };
     const taskGroups = [...TASK_CATEGORIES, ...new Set(visibleTasks.map(item => item.task.category).filter(category => !TASK_CATEGORIES.includes(category)))];
-    const availableHtml = visibleTasks.length ? taskGroups.map(category => {
-      const entries = visibleTasks.filter(item => item.task.category === category);
-      if (!entries.length) return "";
-      return `<section class="task-category-section" data-task-category-group="child"><h3 class="task-category-title">${escapeHtml(category)}</h3><div class="task-list">${entries.map(taskCardHtml).join("")}</div></section>`;
-    }).join("") : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine passenden Aufgaben freigeschaltet.</h3><p>Ein Erzieher kann Aufgaben oder Altersregeln anpassen.</p></div>`;
+    const renderAvailableGroups = entries => taskGroups.map(category => {
+      const categoryEntries = entries.filter(item => item.task.category === category);
+      if (!categoryEntries.length) return "";
+      return `<section class="task-category-section" data-task-category-group="child"><h3 class="task-category-title">${escapeHtml(category)}</h3><div class="task-list">${categoryEntries.map(taskCardHtml).join("")}</div></section>`;
+    }).join("");
+    const nowTasks = visibleTasks.filter(({task}) => { const state=taskTimeState(task); return state.visible && state.reservable; });
+    const laterTasks = visibleTasks.filter(({task}) => { const state=taskTimeState(task); return !state.visible || !state.reservable; });
+    const availableHtml = visibleTasks.length ? `
+      <section class="task-status-section"><div class="task-status-heading"><span>🟢</span><div><h3>Jetzt verfügbar</h3><p>${nowTasks.length} Aufgabe${nowTasks.length===1?"":"n"} können jetzt angesehen oder übernommen werden.</p></div></div>${nowTasks.length ? renderAvailableGroups(nowTasks) : `<div class="empty-state compact"><p>Im Moment ist keine weitere Aufgabe freigeschaltet.</p></div>`}</section>
+      ${laterTasks.length ? `<section class="task-status-section later"><div class="task-status-heading"><span>🕒</span><div><h3>Später verfügbar</h3><p>Diese Aufgaben werden erst zur festgelegten Uhrzeit freigegeben.</p></div></div>${renderAvailableGroups(laterTasks)}</section>` : ""}` : `<div class="empty-state"><span class="emoji">🌤️</span><h3>Heute sind keine passenden Aufgaben freigeschaltet.</h3><p>Ein Erzieher kann Aufgaben oder Altersregeln anpassen.</p></div>`;
 
     return `
       <section class="profile-banner" style="--accent:${child.accent}">
@@ -1568,7 +1620,9 @@
     let ev=data.goalEvaluations.find(x=>x.childId===childId&&x.goalId===goalId&&x.date===todayKey());
     if(ev?.result) return showToast("Diese Mission wurde bereits gemeinsam ausgewertet.");
     if(!ev){ ev={id:uid(),childId,goalId,date:todayKey(),result:"",note:"",createdAt:Date.now()}; data.goalEvaluations.push(ev); }
-    ev.childView=result; ev.selfAssessedAt=Date.now(); saveData({snapshot:true}); closeModal(); render(); showToast("Deine Einschätzung wurde gespeichert.");
+    ev.childView=result; ev.selfAssessedAt=Date.now();
+    data.history.push({id:uid(),type:"goal_self_assessed",childId,goalId,result,timestamp:ev.selfAssessedAt});
+    saveData({snapshot:true,notify:true}); closeModal(); render(); showToast("Deine Einschätzung wurde gespeichert und an den Erzieherbereich gemeldet.");
   }
 
   function speakGoal(goalId){ const goal=goalById(goalId); if(!goal||!("speechSynthesis" in window)) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(goal.title); u.lang="de-DE"; speechSynthesis.speak(u); }
@@ -1579,35 +1633,142 @@
     return WORLD_THEMES.find(theme => theme.id === themeId)?.starter || "✨ ◻️ 🌟";
   }
 
+  function worldItemZone(item) {
+    if (!item) return "ground";
+    if (["Pflanzen","Natur","Tiere"].includes(item.category)) return "ground";
+    if (["Bauwerke","Outdoor","City"].includes(item.category)) return "back";
+    if (["Sport","Begleiter"].includes(item.category)) return "play";
+    return "furniture";
+  }
+
+  function companionSearchItems(child) {
+    return COMPANION_SEARCH_OBJECTS[child.companion] || ["🍎","🎾","🧸"];
+  }
+
+  function ensureCompanionSearch(child) {
+    if (!data.settings.companionSearchEnabled || child.companionSearchEnabled === false || !child.companion || child.companion === "none") return null;
+    const now = Date.now();
+    const quest = child.companionSearch;
+    if (quest?.status === "active" && Number(quest.expiresAt || 0) <= now) {
+      quest.status = "selfFound";
+      quest.resolvedAt = now;
+      child.companionNextSearchAt = now + 86400000 * (3 + Math.random() * 4);
+      saveData({ notify:false });
+      return quest;
+    }
+    if (!quest && now >= Number(child.companionNextSearchAt || 0)) {
+      const items = companionSearchItems(child);
+      const locations = ["plant","bed","shelf","play","corner"];
+      child.companionSearch = {
+        id:uid(), status:"active", item:items[Math.floor(Math.random()*items.length)],
+        location:locations[Math.floor(Math.random()*locations.length)], createdAt:now,
+        expiresAt:now + 86400000 * 2
+      };
+      saveData({ notify:false });
+      return child.companionSearch;
+    }
+    return quest;
+  }
+
+  function companionSpeech(child, quest) {
+    if (!child.companion || child.companion === "none") return "";
+    if (quest?.status === "active") return `Ich habe ${quest.item} verlegt. Vielleicht findest du es in meiner Welt.`;
+    if (quest?.status === "selfFound") return `Ich habe ${quest.item} selbst wiedergefunden!`;
+    if (ui.companionAction === "sleep") return "Ich ruhe mich ein bisschen aus. 😴";
+    if (ui.companionAction === "eat") return "Das war lecker! 😊";
+    if (ui.companionAction === "play") return "Das macht Spaß! 🎾";
+    if (ui.companionAction === "dance") return "Musik an – los geht's! 🎵";
+    if (ui.companionAction === "wave") return "Schön, dass du da bist! 👋";
+    return "Tippe mich oder einen Gegenstand an.";
+  }
+
+  function renderWorldZone(items, zone) {
+    const entries = items.filter(item => worldItemZone(item) === zone);
+    if (!entries.length) return "";
+    return entries.slice(-14).map((item,index) => `<button class="placed-world-item item-${zone} item-slot-${index%7}" type="button" data-action="world-item-reaction" data-item-id="${item.id}" title="${escapeHtml(item.title)}"><span>${item.icon}</span><small>${escapeHtml(item.title)}</small></button>`).join("");
+  }
+
   function renderChildWorld() {
     const child = childById(ui.childId);
     if (!child) return renderMissingChild();
     const theme = worldTheme(child);
     const inventoryItems = child.inventory.map(itemById).filter(Boolean);
     const plotLevel = Math.min(6, 1 + Math.floor(child.completed / 8));
+    const quest = ensureCompanionSearch(child);
+    const hasMusic = child.inventory.includes("companion_music");
+    const companion = child.companion && child.companion !== "none";
+    const motion = data.settings.reduceMotion ? "off" : (child.companionMotion || "calm");
     return `
-      <section class="profile-banner" style="--accent:${child.accent}">
+      <section class="profile-banner compact-personal-banner" style="--accent:${child.accent}">
         <div class="profile-avatar">${child.avatar}</div>
-        <div><h2>${escapeHtml(child.worldName || "Mein Bereich")}</h2><p>${theme.icon} ${escapeHtml(theme.title)} · Alles Freigeschaltete wird hier sichtbar.</p><div class="balance-strip">${currencyStats(child)}</div></div>
+        <div><h2>${escapeHtml(child.worldName || "Mein Bereich")}</h2><p>${theme.icon} ${escapeHtml(theme.title)} · Hier lebt dein Begleiter.</p><div class="balance-strip">${currencyStats(child)}</div></div>
       </section>
 
-      <section class="section">
-        <div class="world-scene theme-${theme.id}">
+      <section class="section personal-world-section">
+        <div class="world-scene interactive-world theme-${theme.id}" aria-label="Interaktive Welt von ${escapeHtml(child.name)}">
           <span class="world-title">${theme.icon} ${escapeHtml(theme.title)} · Stufe ${plotLevel}</span>
-          <span class="world-sun">${theme.id === "space" ? "🌙" : "☀️"}</span>
+          <div class="world-zone world-zone-sky"><span class="world-sun">${theme.id === "space" || theme.id === "night" ? "🌙" : "☀️"}</span></div>
+          <div class="world-zone world-zone-back">${renderWorldZone(inventoryItems,"back")}</div>
           <div class="world-ground"></div>
-          ${inventoryItems.length ? `<div class="world-items">${inventoryItems.slice(-24).map((item,index) => `<span class="world-item" style="grid-column:${(index%6)+1}">${item.icon}</span>`).join("")}</div>` : `<div class="world-starter">${worldStarter(theme.id)}</div>`}
-          ${child.companion && child.companion !== "none" ? `<span class="world-companion" aria-label="Begleiter">${child.companion}</span>` : ""}
+          <div class="world-zone world-zone-ground">${renderWorldZone(inventoryItems,"ground")}</div>
+          <div class="world-zone world-zone-furniture">${renderWorldZone(inventoryItems,"furniture")}</div>
+          <div class="world-zone world-zone-play">${renderWorldZone(inventoryItems,"play")}</div>
+
+          <button class="world-interaction world-bed" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="sleep" aria-label="Begleiter schlafen lassen"><span>🛏️</span><small>Ausruhen</small></button>
+          <button class="world-interaction world-bowl" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="eat" aria-label="Begleiter füttern"><span>🥣</span><small>Snack</small></button>
+          <button class="world-interaction world-ball" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="play" aria-label="Mit Begleiter spielen"><span>🎾</span><small>Spielen</small></button>
+          ${hasMusic ? `<button class="world-interaction world-music" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="dance" aria-label="Begleiter tanzen lassen"><span>🎵</span><small>Tanzen</small></button>` : ""}
+
+          ${quest?.status === "active" ? `<button class="hidden-search-object search-location-${quest.location}" type="button" data-action="find-companion-object" data-child-id="${child.id}" aria-label="Verlegten Gegenstand finden">${quest.item}</button>` : ""}
+
+          ${companion ? `<button class="world-companion companion-motion-${motion} companion-action-${ui.companionAction || "idle"}" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="wave" aria-label="Begleiter antippen"><span>${child.companion}</span></button>
+            <div class="companion-speech ${quest?.status === "selfFound" ? "self-found" : ""}"><p>${escapeHtml(companionSpeech(child,quest))}</p>${quest?.status === "selfFound" ? `<button class="ghost-button small-button" type="button" data-action="dismiss-companion-search" data-child-id="${child.id}">Das freut mich</button>` : ""}</div>` : `<div class="choose-companion-card"><span>✨</span><h3>Wähle deinen Begleiter</h3><p>Tier, Fantasiegeschöpf, Roboter oder modernes Maskottchen.</p><button class="primary-button small-button" type="button" data-action="open-companion-picker" data-child-id="${child.id}">Begleiter auswählen</button></div>`}
         </div>
+        <p class="world-gentle-note">Der Begleiter wird nicht krank, verliert keine Fortschritte und wartet ohne Druck auf den nächsten Besuch.</p>
       </section>
 
       <section class="section">
         <div class="admin-grid">
           <div class="card"><h3>📈 Dein Bereich entwickelt sich</h3><p class="muted">Mit bestätigten Aufgaben wird dein Bereich weiter ausgebaut. Noch ${Math.max(0, 8 - (child.completed % 8)) || 8} bestätigte Aufgaben bis zur nächsten Stufe.</p></div>
-          <div class="card"><h3>🎒 Bereits im Bereich</h3><p class="muted">${inventoryItems.length} Gegenstand${inventoryItems.length === 1 ? "" : "e"} · Gegenstände dürfen mehrfach vorkommen.</p></div>
-          <button class="card" style="text-align:left;cursor:pointer;border:0" type="button" data-action="child-shop"><h3>🛍️ Bereich gestalten</h3><p class="muted">Samen für passende Ausstattung ausgeben oder den Sternenschatz entdecken.</p></button>
+          <div class="card"><h3>🎒 Bereits im Bereich</h3><p class="muted">${inventoryItems.length} Gegenstand${inventoryItems.length === 1 ? "" : "e"} · Tippe Gegenstände in der Welt an.</p></div>
+          <button class="card" style="text-align:left;cursor:pointer;border:0" type="button" data-action="child-shop"><h3>🛍️ Bereich gestalten</h3><p class="muted">Samen für Spielzeug, Möbel, Dekoration und neue Reaktionen ausgeben.</p></button>
+          <button class="card" style="text-align:left;cursor:pointer;border:0" type="button" data-action="child-achievements"><h3>🏅 Meine Erfolge</h3><p class="muted">Persönliche Meilensteine ohne Vergleich mit anderen ansehen.</p></button>
+          <button class="card" style="text-align:left;cursor:pointer;border:0" type="button" data-action="open-companion-picker" data-child-id="${child.id}"><h3>🐾 Begleiter anpassen</h3><p class="muted">Begleiter und Bewegungsstufe auswählen.</p></button>
         </div>
       </section>`;
+  }
+
+  function openCompanionPicker(childId) {
+    const child = childById(childId);
+    if (!child) return;
+    const companions = ["🐾","🦊","🐼","🦁","🐸","🦄","🦖","🤖","🦉","🐺","🚗","🛹","⚽"];
+    openModal("Begleiter auswählen", `<div class="companion-picker-grid">${companions.map(icon => `<button class="companion-choice ${child.companion === icon ? "selected" : ""}" type="button" data-action="set-companion" data-child-id="${child.id}" data-companion="${icon}">${icon}</button>`).join("")}</div>
+      <div class="form-field" style="margin-top:16px"><label>Bewegung</label><select id="companionMotionSelect">${COMPANION_MOTIONS.map(item => `<option value="${item.id}" ${(child.companionMotion || "calm") === item.id ? "selected" : ""}>${escapeHtml(item.title)} – ${escapeHtml(item.description)}</option>`).join("")}</select></div>
+      <p class="muted tiny">Die Auswahl kostet keine Samen. Ausstattung und zusätzliche Reaktionen können später im Bereich-Laden freigeschaltet werden.</p>
+      <div class="modal-actions"><button class="ghost-button" type="button" data-action="remove-companion" data-child-id="${child.id}">Kein Begleiter</button><button class="primary-button" type="button" data-action="save-companion-motion" data-child-id="${child.id}">Bewegung speichern</button></div>`, { wide:true });
+  }
+
+  function runCompanionInteraction(childId, action) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
+    ui.companionAction = action;
+    render();
+    window.setTimeout(() => { if (ui.companionAction === action) { ui.companionAction = ""; render(); } }, 1900);
+  }
+
+  function findCompanionObject(childId) {
+    const child = childById(childId);
+    const quest = child?.companionSearch;
+    if (!child || quest?.status !== "active") return;
+    const item = quest.item;
+    child.companionSearch = null;
+    child.companionNextSearchAt = Date.now() + 86400000 * (3 + Math.random() * 4);
+    data.history.push({ id:uid(), type:"companion_object_found", childId, item, timestamp:Date.now() });
+    saveData({ snapshot:true });
+    ui.companionAction = "play";
+    render();
+    window.setTimeout(() => { if (ui.companionAction === "play") { ui.companionAction = ""; render(); } }, 1900);
+    openModal("Gefunden!", `<div class="reward-reveal"><span class="main-emoji">${item}</span><h2>Da ist es ja!</h2><p class="muted">${child.companion} freut sich, dass du beim Suchen geholfen hast.</p><p><b>Es gibt dafür bewusst keine Punkte oder Belohnung.</b> Es war einfach eine freiwillige kleine Überraschung.</p><div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-modal">😊 Schön!</button></div></div>`);
   }
 
   function renderChildShop() {
@@ -1702,6 +1863,13 @@
     });
   }
 
+  function groupMilestoneZone(item) {
+    if (["🌈"].includes(item.icon)) return "sky";
+    if (["🏡","⛲"].includes(item.icon)) return "back";
+    if (["🪑","🎠"].includes(item.icon)) return "play";
+    return "ground";
+  }
+
   function renderGroupWorld() {
     updateGroupMilestones();
     const next = GROUP_MILESTONES.find(item => data.group.communityPoints < item.points);
@@ -1718,9 +1886,8 @@
       </section>
 
       <section class="section">
-        <div class="world-scene">
-          <span class="world-title">🌍 ${escapeHtml(data.settings.groupName)}</span><span class="world-sun">☀️</span><div class="world-ground"></div>
-          ${earnedItems.length ? `<div class="world-items">${earnedItems.map((item,index) => `<span class="world-item" style="grid-column:${(index%6)+1}">${item.icon}</span>`).join("")}</div>` : `<div class="world-starter">🌱 🌼 🏡 🌳</div>`}
+        <div class="world-scene group-world-scene">
+          <span class="world-title">🌍 ${escapeHtml(data.settings.groupName)}</span><div class="world-zone world-zone-sky"><span class="world-sun">☀️</span>${earnedItems.filter(item => groupMilestoneZone(item) === "sky").map(item => `<span class="group-placed-item group-sky-item" title="${escapeHtml(item.title)}">${item.icon}</span>`).join("")}</div><div class="world-zone world-zone-back">${earnedItems.filter(item => groupMilestoneZone(item) === "back").map((item,index) => `<span class="group-placed-item group-back-${index}" title="${escapeHtml(item.title)}">${item.icon}</span>`).join("")}</div><div class="world-ground"></div><div class="world-zone world-zone-ground">${earnedItems.filter(item => groupMilestoneZone(item) === "ground").map((item,index) => `<span class="group-placed-item group-ground-${index}" title="${escapeHtml(item.title)}">${item.icon}</span>`).join("")}</div><div class="world-zone world-zone-play">${earnedItems.filter(item => groupMilestoneZone(item) === "play").map((item,index) => `<span class="group-placed-item group-play-${index}" title="${escapeHtml(item.title)}">${item.icon}</span>`).join("")}</div>${earnedItems.length ? "" : `<div class="world-starter orderly-starter"><span>🌱</span><span>🌼</span><span>🏡</span><span>🌳</span></div>`}
         </div>
       </section>
 
@@ -2010,14 +2177,17 @@
   function evaluateGoal({ childId, goalId, childView, result, note }) {
     const goal = goalById(goalId);
     if (!goal || goal.childId !== childId) return false;
-    if (data.goalEvaluations.some(item => item.childId === childId && item.goalId === goalId && item.date === todayKey())) return false;
+    const existingEvaluation = data.goalEvaluations.find(item => item.childId === childId && item.goalId === goalId && item.date === todayKey());
+    if (existingEvaluation?.result) return false;
     const reward = result === "achieved"
       ? { coins:goal.achievedCoins, seeds:goal.achievedSeeds, stars:goal.achievedStars }
       : result === "partial"
         ? { coins:goal.partialCoins, seeds:goal.partialSeeds, stars:0 }
         : { coins:0, seeds:0, stars:0 };
     applyChildReward(childId, reward, "goal");
-    data.goalEvaluations.push({ id:uid(), childId, goalId, date:todayKey(), childView, result, note:note || "", reward, createdAt:Date.now() });
+    const evaluationRecord = existingEvaluation || { id:uid(), childId, goalId, date:todayKey(), createdAt:Date.now() };
+    Object.assign(evaluationRecord, { childView:childView || existingEvaluation?.childView || "", result, note:note || "", reward, evaluatedAt:Date.now() });
+    if (!existingEvaluation) data.goalEvaluations.push(evaluationRecord);
     const label = GOAL_RESULTS[result]?.label || "Besprochen";
     addNotification(childId, {
       type:"goal", title:"Eure Tagesmission wurde besprochen", message:`${goal.icon} ${goal.title}`,
@@ -2054,28 +2224,97 @@
     if (positiveCount) celebrate(24);
   }
 
+  function helpContextTitle() {
+    if (ui.screen === "tasks") return "Aufgaben finden, reservieren und erledigt melden";
+    if (ui.screen === "missions") return "Tagesmissionen gemeinsam einschätzen";
+    if (ui.screen === "world") return "Begleiter und eigenen Bereich entdecken";
+    if (ui.screen === "group") return "Mitmach-Runde und Gruppenwelt";
+    if (ui.screen === "educator") return "Erzieherbereich sicher bedienen";
+    return "Schnellstart für die Mitmach-Welt";
+  }
+
+  function openHelpCenter() {
+    openModal("❓ Hilfe zur Mitmach-Welt", `
+      <div class="help-context-card"><span>💡</span><div><b>Du bist gerade hier:</b><p>${escapeHtml(helpContextTitle())}</p></div></div>
+      <section class="help-section">
+        <h3>👋 Ich bin neu – in 6 Schritten</h3>
+        <ol class="help-steps">
+          <li><b>Kind auswählen:</b> Das Kind tippt auf seinen Avatar.</li>
+          <li><b>Aufgabe übernehmen:</b> Die Aufgabe wird für das Kind reserviert.</li>
+          <li><b>Aufgabe erledigen:</b> Danach tippt das Kind auf „Erledigt melden“.</li>
+          <li><b>Bestätigen:</b> Ein Erzieher oder die erlaubte Tagesend-Automatik bestätigt.</li>
+          <li><b>Belohnung:</b> Münzen sind für reale Wünsche, Samen für den eigenen Bereich.</li>
+          <li><b>Korrigieren:</b> Falsche Buchungen können im Erzieherbereich zurückgenommen werden.</li>
+        </ol>
+      </section>
+      <div class="help-topic-grid">
+        <section class="help-topic"><h3>✅ Aufgaben</h3><p><b>Reserviert</b> heißt: Das Kind möchte die Aufgabe übernehmen. <b>Erledigt gemeldet</b> heißt: Sie wartet auf Bestätigung. Abgelaufene Reservierungen werden automatisch wieder frei.</p></section>
+        <section class="help-topic"><h3>🌱 Tagesmissionen</h3><p>Das Kind schätzt sich zuerst selbst ein. Die endgültige Auswertung und Belohnung erfolgt gemeinsam mit einem Erzieher.</p></section>
+        <section class="help-topic"><h3>🪙 🌱 ⭐ Bedeutung</h3><p><b>Münzen</b> bezahlen reale Belohnungen. <b>Samen</b> gestalten den eigenen Bereich. <b>Sterne</b> sind seltene besondere Anerkennungen.</p></section>
+        <section class="help-topic"><h3>👥 Gruppenaufgaben</h3><p>Es werden die Kinder ausgewählt, die tatsächlich mitgemacht haben. Die vorgesehene Gesamtbelohnung kann fair auf sie verteilt werden.</p></section>
+        <section class="help-topic"><h3>🔄 Automatik</h3><p>Nur erledigt gemeldete und dafür freigegebene Aufgaben werden am Tagesende automatisch bestätigt. Besondere Aufgaben können weiterhin eine manuelle Prüfung verlangen.</p></section>
+        <section class="help-topic"><h3>🧾 Verlauf</h3><p>Unter „Kinder“ können die Aktivitäten der letzten 3, 7 oder 30 Tage angesehen und fehlerhafte Bestätigungen zurückgenommen werden.</p></section>
+      </div>
+      <div class="callout success"><p><b>Grundsatz:</b> Die App motiviert und wertschätzt – sie kontrolliert nicht.</p></div>
+      <div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-modal">Verstanden</button></div>`, { wide:true });
+  }
+
+  function renderManageTab() {
+    const entries = [
+      ["tasks","📋","Aufgaben verwalten","Aufgaben suchen, anlegen, Zeiten und Belohnungen ändern."],
+      ["goals","🌱","Tagesmissionen","Persönliche Missionen anlegen und bearbeiten."],
+      ["wishes","🎁","Belohnungen","Kleine, mittlere und große Wünsche verwalten."],
+      ["wallet","💰","Konten korrigieren","Münzen, Samen oder Sterne hinzufügen und abziehen."],
+      ["backup","💾","Datensicherung","Daten exportieren, importieren und Momentaufnahmen öffnen."],
+      ["settings","⚙️","Einstellungen","Automatik, PIN, Gruppenziele und weitere Regeln ändern."]
+    ];
+    return `<div class="section-heading"><div><h2>Verwalten</h2><p>Seltener benötigte Funktionen sind hier gesammelt.</p></div></div>
+      <div class="manage-grid">${entries.map(([tab,icon,title,text]) => `<button class="manage-card" type="button" data-action="educator-tab" data-tab="${tab}"><span>${icon}</span><div><h3>${title}</h3><p>${text}</p></div><b>›</b></button>`).join("")}</div>`;
+  }
+
+  function openChildPreview(childId) {
+    const child = childById(childId);
+    if (!child) return showToast("Kinderprofil wurde nicht gefunden.");
+    const available = tasksForToday().filter(task => ["solo","supported"].includes(taskAgeEligibility(child,task).mode) && taskTimeState(task).visible).slice(0,6);
+    const claims = claimsForChild(child.id,todayKey()).filter(claim => ["reserved","reported"].includes(claim.status));
+    const goals = activeGoalsForChild(child.id);
+    openModal(`👁️ Kinderansicht: ${child.name}`, `
+      <div class="preview-lock"><span>🔒</span><div><b>Nur Vorschau</b><p>Hier kann nichts im Namen des Kindes ausgewählt oder verändert werden.</p></div></div>
+      <section class="profile-banner compact-preview" style="--accent:${child.accent}"><div class="profile-avatar">${child.avatar}</div><div><h2>${escapeHtml(child.name)}</h2><div class="balance-strip">${currencyStats(child)}</div></div></section>
+      <div class="preview-summary-grid">
+        <div class="card"><h3>✅ ${claims.length}</h3><p class="muted">heute reserviert oder gemeldet</p></div>
+        <div class="card"><h3>🌱 ${goals.length}</h3><p class="muted">aktive Tagesmissionen</p></div>
+        <div class="card"><h3>📋 ${available.length}</h3><p class="muted">jetzt sichtbare Aufgaben (Auswahl)</p></div>
+      </div>
+      <section class="panel" style="margin-top:14px"><h3>Jetzt sichtbare Aufgaben</h3>${available.length ? `<div class="preview-task-list">${available.map(task => `<div><span>${task.icon}</span><b>${escapeHtml(task.title)}</b><small>🪙 ${task.coins} · 🌱 ${task.seeds}</small></div>`).join("")}</div>` : `<p class="muted">Zurzeit ist keine passende Aufgabe sichtbar.</p>`}</section>
+      <div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-modal">Vorschau schließen</button></div>`, { wide:true });
+  }
+
   function renderEducator() {
     if (!ui.educatorUnlocked) return renderEducatorLogin();
-    const tabs = [
-      ["review","🌙 Abendrunde"], ["overview","📊 Übersicht"], ["children","👧 Kinder"], ["tasks","📋 Aufgaben"],
-      ["goals","🌱 Tagesmissionen"], ["wishes","🪙 Wünsche"], ["wallet","💰 Konten"], ["backup","💾 Datensicherung"], ["settings","⚙️ Einstellungen"]
-    ];
+    const activeMainTab = MANAGEMENT_TABS.includes(ui.educatorTab) ? "manage" : ui.educatorTab;
     const content = ({
       review:renderReviewTab,
       overview:renderOverviewTab,
       children:renderChildrenAdmin,
+      manage:renderManageTab,
       tasks:renderTasksAdmin,
       goals:renderGoalsAdmin,
       wishes:renderWishesAdmin,
       wallet:renderWalletAdmin,
       backup:renderBackupTab,
       settings:renderSettingsTab
-    })[ui.educatorTab]?.() || renderReviewTab();
+    })[ui.educatorTab]?.() || renderOverviewTab();
+    const detailTitle = ({tasks:"Aufgaben",goals:"Tagesmissionen",wishes:"Belohnungen",wallet:"Konten",backup:"Datensicherung",settings:"Einstellungen"})[ui.educatorTab];
     return `
-      <section class="hero"><p class="hero-kicker">Geschützter Bereich</p><h2>Erzieherbereich</h2><p>Hier werden Aufgaben gesammelt bestätigt, persönliche Tagesmissionen gemeinsam ausgewertet und alle Stammdaten verwaltet.</p></section>
-      <section class="section educator-layout">
-        <aside class="side-tabs">${tabs.map(([id,label]) => `<button type="button" class="${ui.educatorTab === id ? "active" : ""}" data-action="educator-tab" data-tab="${id}">${label}</button>`).join("")}<button type="button" data-action="lock-educator">🔒 Sperren</button></aside>
+      <section class="hero educator-hero"><p class="hero-kicker">Geschützter Bereich</p><h2>Was ist heute wichtig?</h2><p>Bestätigungen, Kinder und Verwaltung sind klar voneinander getrennt.</p></section>
+      <section class="section educator-simple-layout">
+        <nav class="educator-main-tabs" aria-label="Erzieher-Menü">
+          ${[["overview","🏠","Übersicht"],["review","✅","Bestätigen"],["children","👧","Kinder"],["manage","⚙️","Verwalten"]].map(([id,icon,label]) => { const reviewCount = id === "review" ? activeChildren().reduce((sum, child) => sum + activeGoalsForChild(child.id).filter(goal => { const ev=data.goalEvaluations.find(item=>item.childId===child.id&&item.goalId===goal.id&&item.date===todayKey()); return ev?.childView && !ev?.result; }).length, 0) : 0; return `<button type="button" class="${activeMainTab === id ? "active" : ""}" data-action="educator-tab" data-tab="${id}"><span>${icon}</span><b>${label}</b>${reviewCount ? `<em class="nav-notice-badge">${reviewCount}</em>` : ""}</button>`; }).join("")}
+        </nav>
+        ${detailTitle ? `<div class="management-breadcrumb"><button class="ghost-button small-button" type="button" data-action="educator-tab" data-tab="manage">← Verwalten</button><b>${escapeHtml(detailTitle)}</b></div>` : ""}
         <div>${content}</div>
+        <div class="educator-footer-actions"><button class="ghost-button" type="button" data-action="open-help-center">❓ Hilfe</button><button class="ghost-button" type="button" data-action="lock-educator">🔒 Sperren</button></div>
       </section>`;
   }
 
@@ -2090,7 +2329,11 @@
   function renderReviewTab() {
     const reported = data.claims.filter(claim => claim.status === "reported").sort((a,b) => a.reportedAt - b.reportedAt);
     const reserved = data.claims.filter(claim => claim.status === "reserved" && claim.date === todayKey()).sort((a,b) => a.createdAt - b.createdAt);
-    const goalsToReview = activeChildren().flatMap(child => activeGoalsForChild(child.id).filter(goal => !data.goalEvaluations.some(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey())).map(goal => ({ child, goal })));
+    const goalsToReview = activeChildren().flatMap(child => activeGoalsForChild(child.id)
+      .filter(goal => !data.goalEvaluations.some(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey() && item.result))
+      .map(goal => ({ child, goal, evaluation:data.goalEvaluations.find(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey()) || null })));
+    const assessedGoalsToReview = goalsToReview.filter(item => item.evaluation?.childView).sort((a,b) => Number(a.evaluation?.selfAssessedAt || 0) - Number(b.evaluation?.selfAssessedAt || 0));
+    const unassessedGoalsToReview = goalsToReview.filter(item => !item.evaluation?.childView);
     const pendingWishes = data.wishRequests.filter(request => request.status === "pending");
     const activityChildren = activeChildren().map(child => ({ child, items:childActivityItems(child.id, 3) }));
     return `
@@ -2123,10 +2366,15 @@
         }).join("")}</div>` : `<div class="empty-state"><span class="emoji">✅</span><h3>Keine offenen Aufgaben</h3><p>Die Kinder können tagsüber weiter Aufgaben erledigt melden.</p></div>`}
       </div>
 
+      <div class="panel mission-review-priority" style="margin-top:16px">
+        <div class="section-heading compact-heading"><div><h3>🔔 Wartet auf Auswertung (${assessedGoalsToReview.length})</h3><p>Diese Kinder haben ihre Tagesmission bereits selbst eingeschätzt.</p></div></div>
+        ${assessedGoalsToReview.length ? `<div class="review-grid">${assessedGoalsToReview.map(({child,goal,evaluation}) => `<article class="task-card goal-card assessed-goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${child.avatar} ${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p><p class="goal-self-result"><b>Selbsteinschätzung:</b> ${GOAL_RESULTS[evaluation.childView]?.icon||"🌱"} ${GOAL_RESULTS[evaluation.childView]?.label||"Eingeschätzt"}</p></div><span class="chip warning">Auswertung offen</span></div><button class="success-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Jetzt gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state compact"><span class="emoji">🌱</span><h3>Keine Selbsteinschätzung wartet.</h3><p>Sobald ein Kind seine Mission einschätzt, erscheint es hier mit Namen.</p></div>`}
+      </div>
+
       <div class="panel" style="margin-top:16px">
-        <h3>Persönliche Tagesmissionen (${goalsToReview.length})</h3>
-        <p class="muted">Kind und Erzieher schauen gemeinsam auf den Tag. Keine Minuspunkte und kein Beschämen.</p>
-        ${goalsToReview.length ? `<div class="review-grid">${goalsToReview.map(({child,goal}) => `<article class="task-card goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p>${(()=>{const ev=data.goalEvaluations.find(x=>x.childId===child.id&&x.goalId===goal.id&&x.date===todayKey()); return ev?.childView?`<p class="tiny"><b>Selbsteinschätzung:</b> ${GOAL_RESULTS[ev.childView]?.icon||""} ${GOAL_RESULTS[ev.childView]?.label||""}</p>`:"";})()}</div></div><button class="primary-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state"><span class="emoji">🌙</span><h3>Alle heutigen Missionen sind besprochen.</h3></div>`}
+        <h3>Weitere heutige Tagesmissionen (${unassessedGoalsToReview.length})</h3>
+        <p class="muted">Diese Missionen wurden vom Kind noch nicht selbst eingeschätzt. Eine gemeinsame Auswertung ist trotzdem möglich.</p>
+        ${unassessedGoalsToReview.length ? `<div class="review-grid">${unassessedGoalsToReview.map(({child,goal}) => `<article class="task-card goal-card" style="--accent:${child.accent}"><div class="task-card-head"><span class="task-icon">${goal.icon}</span><div><h3>${child.avatar} ${escapeHtml(child.name)}</h3><p class="muted tiny">${escapeHtml(goal.title)}</p></div><span class="chip">Noch nicht eingeschätzt</span></div><button class="primary-button full-button small-button" type="button" style="margin-top:12px" data-action="open-goal-review" data-child-id="${child.id}" data-goal-id="${goal.id}">Gemeinsam auswerten</button></article>`).join("")}</div>` : `<div class="empty-state compact"><span class="emoji">🌙</span><h3>Keine weiteren offenen Missionen.</h3></div>`}
       </div>
 
       <div class="panel" style="margin-top:16px">
@@ -2153,25 +2401,38 @@
     const todayClaims = data.claims.filter(claim => claim.date === todayKey());
     const approvedToday = todayClaims.filter(claim => claim.status === "approved");
     const reported = data.claims.filter(claim => claim.status === "reported").length;
+    const reserved = todayClaims.filter(claim => claim.status === "reserved");
+    const expiring = reserved.filter(claim => Number(claim.expiresAt || 0) - Date.now() < 30*60000);
+    const autoApproved = approvedToday.filter(claim => claim.autoApproved).length;
+    const openGoalItems = activeChildren().flatMap(child => activeGoalsForChild(child.id)
+      .filter(goal => !data.goalEvaluations.some(item => item.childId===child.id && item.goalId===goal.id && item.date===todayKey() && item.result))
+      .map(goal => ({ child, goal, evaluation:data.goalEvaluations.find(item => item.childId===child.id && item.goalId===goal.id && item.date===todayKey()) || null })));
+    const openGoals = openGoalItems.length;
+    const assessedGoalItems = openGoalItems.filter(item => item.evaluation?.childView);
     const activeTaskCount = data.tasks.filter(task => task.active).length;
     const activeGoalCount = data.personalGoals.filter(goal => goal.active).length;
     return `
-      <div class="section-heading"><div><h2>Übersicht</h2><p>Ein kompakter Blick auf den aktuellen Stand.</p></div></div>
-      <div class="admin-grid">
+      <div class="section-heading"><div><h2>Übersicht</h2><p>Ein Blick genügt: Das braucht heute Aufmerksamkeit.</p></div><button class="ghost-button small-button" type="button" data-action="open-help-center">❓ Hilfe</button></div>
+      ${assessedGoalItems.length ? `<button class="mission-alert-banner" type="button" data-action="educator-tab" data-tab="review"><span>🔔</span><div><b>${assessedGoalItems.length === 1 ? `${escapeHtml(assessedGoalItems[0].child.name)} wartet auf die Auswertung` : `${assessedGoalItems.length} Tagesmissionen warten auf die Auswertung`}</b><small>${assessedGoalItems.map(item => escapeHtml(item.child.name)).join(", ")} · jetzt gemeinsam bestätigen</small></div><strong>›</strong></button>` : ""}
+      <div class="attention-grid">
+        <button class="attention-card ${reported ? "needs-attention" : ""}" type="button" data-action="educator-tab" data-tab="review"><span>✅</span><div><b>${reported} offene Bestätigung${reported===1?"":"en"}</b><small>${reported ? "Jetzt gemeinsam prüfen" : "Alles erledigt"}</small></div><strong>›</strong></button>
+        <button class="attention-card ${expiring.length ? "needs-attention" : ""}" type="button" data-action="educator-tab" data-tab="review"><span>⏱️</span><div><b>${reserved.length} reserviert</b><small>${expiring.length ? `${expiring.length} läuft bald ab` : "Keine läuft bald ab"}</small></div><strong>›</strong></button>
+        <button class="attention-card ${openGoals ? "needs-attention" : ""}" type="button" data-action="educator-tab" data-tab="review"><span>🌱</span><div><b>${openGoals} Mission${openGoals===1?"":"en"} offen</b><small>${assessedGoalItems.length ? `${assessedGoalItems.length} davon eingeschätzt` : "Gemeinsam auswerten"}</small></div><strong>›</strong></button>
+        <button class="attention-card" type="button" data-action="educator-tab" data-tab="review"><span>🔄</span><div><b>${autoApproved} automatisch bestätigt</b><small>Heute im Verlauf prüfen</small></div><strong>›</strong></button>
+      </div>
+      <div class="section-heading quick-heading"><div><h3>Schnellzugriff</h3></div></div>
+      <div class="quick-action-grid">
+        <button type="button" data-action="open-task-editor"><span>＋</span><b>Aufgabe anlegen</b></button>
+        <button type="button" data-action="open-goal-editor"><span>🌱</span><b>Mission erstellen</b></button>
+        <button type="button" data-action="educator-tab" data-tab="wallet"><span>💰</span><b>Punkte korrigieren</b></button>
+        <button type="button" data-action="educator-tab" data-tab="children"><span>👧</span><b>Kinder ansehen</b></button>
+      </div>
+      <div class="admin-grid" style="margin-top:16px">
         <div class="card"><h3>👧 ${activeChildren().length}</h3><p class="muted">aktive Kinderprofile</p></div>
         <div class="card"><h3>📋 ${activeTaskCount}</h3><p class="muted">aktive Aufgaben</p></div>
-        <div class="card"><h3>⏳ ${reported}</h3><p class="muted">offene Bestätigungen</p></div>
         <div class="card"><h3>🌱 ${activeGoalCount}</h3><p class="muted">aktive Tagesmissionen</p></div>
         <div class="card"><h3>✅ ${approvedToday.length}</h3><p class="muted">heute bestätigte Aufgaben</p></div>
         <div class="card"><h3>🤝 ${data.group.communityPoints}</h3><p class="muted">Gemeinschaftspunkte</p></div>
-      </div>
-      <div class="panel" style="margin-top:16px">
-        <h3>So entstehen Gemeinschaftspunkte</h3>
-        <div class="milestone-list">
-          <div class="milestone"><span class="milestone-icon">🤝</span><div><b>Gemeinsame Aufgaben</b><p class="muted tiny">Wenn mindestens zwei Kinder dieselbe Aufgabe gemeinsam erledigen, entsteht mindestens ein Gemeinschaftspunkt.</p></div></div>
-          <div class="milestone"><span class="milestone-icon">🌱</span><div><b>Gemeinsam Samen verdienen</b><p class="muted tiny">Je ${data.settings.communitySeedThreshold} verdiente Samen entsteht ein Gemeinschaftspunkt.</p></div><b>${data.group.seedProgress}/${data.settings.communitySeedThreshold}</b></div>
-          <div class="milestone"><span class="milestone-icon">🪙</span><div><b>Gemeinsam Münzen verdienen</b><p class="muted tiny">Je ${data.settings.communityCoinThreshold} verdiente Münzen entsteht ein Gemeinschaftspunkt.</p></div><b>${data.group.coinProgress}/${data.settings.communityCoinThreshold}</b></div>
-        </div>
       </div>`;
   }
 
@@ -2220,7 +2481,7 @@
     const trashed = data.children.filter(child => child.deletedAt);
     const row = (child, mode) => {
       const age = childAge(child);
-      return `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${mode === "active" ? "Aktiv" : mode === "archived" ? "Archiviert" : `Papierkorb seit ${formatDateTime(child.deletedAt)}`} · 🎂 ${escapeHtml(childBirthLabel(child))}${age === null ? " · Alter fehlt" : ` · ${age} Jahre`} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}${child.onboardingPending ? " · Einrichtung offen" : ""}</p></div><div class="inline-actions">${mode !== "trash" ? `<button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">${child.onboardingPending ? "Gemeinsam einrichten" : "Bearbeiten"}</button>` : ""}${mode === "active" ? `<button class="ghost-button small-button" type="button" data-action="archive-child" data-child-id="${child.id}">Archivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : mode === "archived" ? `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Aktivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Wiederherstellen</button><button class="danger-button small-button" type="button" data-action="delete-child-prompt" data-child-id="${child.id}">Endgültig löschen</button>`}</div></div>`;
+      return `<div class="admin-row"><span class="admin-row-icon" style="background:${child.accent}22">${child.avatar}</span><div><h4>${escapeHtml(child.name)}</h4><p>${mode === "active" ? "Aktiv" : mode === "archived" ? "Archiviert" : `Papierkorb seit ${formatDateTime(child.deletedAt)}`} · 🎂 ${escapeHtml(childBirthLabel(child))}${age === null ? " · Alter fehlt" : ` · ${age} Jahre`} · 🪙 ${child.coins} · 🌱 ${child.seeds} · ⭐ ${child.stars}${child.onboardingPending ? " · Einrichtung offen" : ""}</p></div><div class="inline-actions">${mode !== "trash" ? `<button class="ghost-button small-button" type="button" data-action="open-child-preview" data-child-id="${child.id}">👁️ Vorschau</button><button class="ghost-button small-button" type="button" data-action="open-child-editor" data-child-id="${child.id}">${child.onboardingPending ? "Gemeinsam einrichten" : "Bearbeiten"}</button>` : ""}${mode === "active" ? `<button class="ghost-button small-button" type="button" data-action="archive-child" data-child-id="${child.id}">Archivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : mode === "archived" ? `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Aktivieren</button><button class="danger-button small-button" type="button" data-action="trash-child" data-child-id="${child.id}">Papierkorb</button>` : `<button class="success-button small-button" type="button" data-action="restore-child" data-child-id="${child.id}">Wiederherstellen</button><button class="danger-button small-button" type="button" data-action="delete-child-prompt" data-child-id="${child.id}">Endgültig löschen</button>`}</div></div>`;
     };
     const missingAges = active.filter(child => childAge(child) === null).length;
     return `
@@ -2312,6 +2573,7 @@
           <div class="form-field"><label>Münzen beim Tausch</label><input name="exchangeCoins" type="number" min="1" max="500" value="${data.settings.exchangeCoins}"></div>
           <div class="form-field"><label>Samen beim Tausch</label><input name="exchangeSeeds" type="number" min="1" max="500" value="${data.settings.exchangeSeeds}"></div>
           <div class="form-field full"><label><input name="allowCoinSeedExchange" type="checkbox" ${data.settings.allowCoinSeedExchange ? "checked" : ""} style="width:auto"> Münzen dürfen freiwillig in Samen getauscht werden</label></div>
+          <div class="form-field full"><label><input name="companionSearchEnabled" type="checkbox" ${data.settings.companionSearchEnabled !== false ? "checked" : ""} style="width:auto"> Freiwillige Suchspiele der Begleiter grundsätzlich erlauben</label><p class="tiny muted">Suchspiele geben keine Punkte. Nicht gefundene Gegenstände werden nach etwa zwei Tagen vom Begleiter selbst gefunden.</p></div>
         </div>
         <div class="modal-actions"><button class="primary-button" type="submit">Einstellungen speichern</button></div>
       </form>`;
@@ -2342,6 +2604,8 @@
           <div class="form-field"><label>Bereich / Thema</label><select name="theme">${WORLD_THEMES.map(theme => `<option value="${theme.id}" ${selectedTheme === theme.id ? "selected" : ""}>${theme.icon} ${escapeHtml(theme.title)} – ${escapeHtml(theme.description)}</option>`).join("")}</select></div>
           <div class="form-field"><label>Name des eigenen Bereichs</label><input name="worldName" maxlength="40" value="${escapeHtml(child?.worldName || "Mein Bereich")}"></div>
           <div class="form-field"><label>Begleiter (freiwillig)</label><select name="companion"><option value="none" ${(child?.companion || "none") === "none" ? "selected" : ""}>Kein Begleiter</option>${["🐾","🦊","🐼","🦁","🐸","🦄","🦖","🤖","🦉","🐺","🚗","🛹","⚽"].map(icon => `<option value="${icon}" ${child?.companion === icon ? "selected" : ""}>${icon}</option>`).join("")}</select></div>
+          <div class="form-field"><label>Bewegung des Begleiters</label><select name="companionMotion">${COMPANION_MOTIONS.map(item => `<option value="${item.id}" ${(child?.companionMotion || "calm") === item.id ? "selected" : ""}>${escapeHtml(item.title)} – ${escapeHtml(item.description)}</option>`).join("")}</select></div>
+          <div class="form-field full"><label><input type="checkbox" name="companionSearchEnabled" style="width:auto" ${child?.companionSearchEnabled !== false ? "checked" : ""}> Freiwillige Suchspiele in der eigenen Welt erlauben</label><p class="tiny muted">Ohne Belohnung, Zeitdruck oder negative Folgen. Nach etwa zwei Tagen findet der Begleiter den Gegenstand selbst.</p></div>
           <div class="form-field full"><label>Farbe</label><div class="color-picker">${ACCENT_COLORS.map(color => `<button type="button" class="color-option ${color === selectedAccent ? "selected" : ""}" style="background:${color}" data-action="select-child-color" data-color="${color}" aria-label="Farbe auswählen"></button>`).join("")}</div></div>
           <div class="form-field full"><label>Avatar-Kategorie</label><div class="tabbar">${Object.keys(AVATARS).map(category => `<button type="button" class="${ui.avatarCategory === category ? "active" : ""}" data-action="avatar-category" data-category="${category}">${escapeHtml(category)}</button>`).join("")}</div><div class="avatar-picker" id="avatarPicker">${renderAvatarOptions(selectedAvatar)}</div><p class="muted tiny">Derselbe Avatar darf mehreren Kindern gehören.</p></div>
         </div>
@@ -2393,6 +2657,9 @@
     child.theme = values.theme || "meadow";
     child.worldName = String(values.worldName || "Mein Bereich").trim() || "Mein Bereich";
     child.companion = values.companion || "none";
+    child.companionMotion = ["off","calm","lively"].includes(values.companionMotion) ? values.companionMotion : "calm";
+    child.companionSearchEnabled = formData.has("companionSearchEnabled");
+    if (!child.companionNextSearchAt) child.companionNextSearchAt = Date.now();
     child.interfaceStyle = ["playful","modern","neutral"].includes(values.interfaceStyle) ? values.interfaceStyle : "neutral";
     child.onboardingPending = false;
     child.deletedAt = 0;
@@ -2438,7 +2705,7 @@
   function setupFreshGroup({ keepTasks = true, keepWishes = true } = {}) {
     const colors = ACCENT_COLORS.slice(0,6);
     const avatars = ["🌟","🌱","🌈","🦊","🐼","🦁"];
-    data.children = Array.from({length:6}, (_,i) => ({ id:uid(), name:`Kind ${i+1}`, avatar:avatars[i], accent:colors[i], theme:WORLD_THEMES[i % WORLD_THEMES.length].id, worldName:"Mein Bereich", companion:"none", interfaceStyle:"neutral", coins:0, seeds:0, stars:0, completed:0, inventory:[], active:true, deletedAt:0, onboardingPending:true, birthMonth:0, birthYear:0, createdAt:Date.now()+i, lastFirstAt:0 }));
+    data.children = Array.from({length:6}, (_,i) => ({ id:uid(), name:`Kind ${i+1}`, avatar:avatars[i], accent:colors[i], theme:WORLD_THEMES[i % WORLD_THEMES.length].id, worldName:"Mein Bereich", companion:"none", companionMotion:"calm", companionSearchEnabled:true, companionSearch:null, companionNextSearchAt:Date.now(), interfaceStyle:"neutral", coins:0, seeds:0, stars:0, completed:0, inventory:[], active:true, deletedAt:0, onboardingPending:true, birthMonth:0, birthYear:0, createdAt:Date.now()+i, lastFirstAt:0 }));
     data.claims=[]; data.personalGoals=[]; data.goalEvaluations=[]; data.notifications=[]; data.wishRequests=[]; data.rounds=[]; data.lastOrders=[]; data.history=[];
     data.group = clone(DEFAULTS.group);
     if (!keepTasks) data.tasks = clone(DEFAULTS.tasks);
@@ -2928,11 +3195,13 @@
   function openGoalReview(childId, goalId) {
     const child = childById(childId); const goal = goalById(goalId);
     if (!child || !goal) return;
+    const evaluation = data.goalEvaluations.find(item => item.childId === childId && item.goalId === goalId && item.date === todayKey());
+    const selectedChildView = evaluation?.childView || "";
     openModal(`Tagesmission mit ${child.name}`, `
       <form id="goalReviewForm">
         <input type="hidden" name="childId" value="${child.id}"><input type="hidden" name="goalId" value="${goal.id}">
         <div class="reward-reveal"><span class="main-emoji">${goal.icon}</span><h2>${escapeHtml(goal.title)}</h2><p class="muted">Zuerst schätzt das Kind den Tag ein. Danach trefft ihr gemeinsam eine wertschätzende Entscheidung.</p></div>
-        <div class="form-field"><label>So sieht das Kind seinen Tag</label><select name="childView" required><option value="">Bitte gemeinsam auswählen</option><option value="achieved">🌟 Das hat gut geklappt</option><option value="partial">🌱 Teilweise – einiges hat schon geklappt</option><option value="notYet">🌤️ Heute war es noch schwierig</option></select></div>
+        <div class="form-field"><label>So sieht das Kind seinen Tag</label><select name="childView" required><option value="" ${selectedChildView ? "" : "selected"}>Bitte gemeinsam auswählen</option><option value="achieved" ${selectedChildView === "achieved" ? "selected" : ""}>🌟 Das hat gut geklappt</option><option value="partial" ${selectedChildView === "partial" ? "selected" : ""}>🌱 Teilweise – einiges hat schon geklappt</option><option value="notYet" ${selectedChildView === "notYet" ? "selected" : ""}>🌤️ Heute war es noch schwierig</option></select>${selectedChildView ? `<p class="field-hint success-hint">Die Selbsteinschätzung des Kindes wurde automatisch übernommen.</p>` : ""}</div>
         <div class="form-field" style="margin-top:14px"><label>Gemeinsame Entscheidung</label><select name="result" required><option value="">Bitte gemeinsam auswählen</option><option value="achieved">🌟 Geschafft</option><option value="partial">🌱 Teilweise geschafft</option><option value="notYet">🌤️ Heute noch nicht</option></select></div>
         <div class="form-field" style="margin-top:14px"><label>Kurze wertschätzende Rückmeldung (optional)</label><textarea name="note" placeholder="Was ist heute schon gut gelungen? Was kann morgen helfen?"></textarea></div>
         <div class="callout success" style="margin-top:14px"><p><b>Belohnung:</b> Geschafft = 🪙 ${goal.achievedCoins}, 🌱 ${goal.achievedSeeds}${goal.achievedStars ? `, ⭐ ${goal.achievedStars}` : ""}. Teilweise = 🪙 ${goal.partialCoins}, 🌱 ${goal.partialSeeds}. Heute noch nicht = keine Abzüge.</p></div>
@@ -3072,11 +3341,20 @@
 
     switch (action) {
       case "close-modal": closeModal(); break;
+      case "open-help-center": openHelpCenter(); break;
       case "go-home": goHome(); break;
       case "open-child": ui.childId = actionElement.dataset.childId; navigate("child", { childId:ui.childId }); break;
       case "child-tasks": navigate("tasks", { childId:ui.childId }); break;
       case "child-missions": navigate("missions", { childId:ui.childId }); break;
       case "child-world": navigate("world", { childId:ui.childId }); break;
+      case "open-companion-picker": openCompanionPicker(actionElement.dataset.childId || ui.childId); break;
+      case "set-companion": { const child=childById(actionElement.dataset.childId); if(child){ child.companion=actionElement.dataset.companion; child.companionSearch=null; child.companionNextSearchAt=Date.now(); saveData({snapshot:true}); openCompanionPicker(child.id); showToast("Begleiter wurde ausgewählt."); } break; }
+      case "remove-companion": { const child=childById(actionElement.dataset.childId); if(child){ child.companion="none"; child.companionSearch=null; saveData({snapshot:true}); closeModal(); render(); showToast("Begleiter wurde ausgeblendet."); } break; }
+      case "save-companion-motion": { const child=childById(actionElement.dataset.childId); const select=document.querySelector("#companionMotionSelect"); if(child&&select){ child.companionMotion=["off","calm","lively"].includes(select.value)?select.value:"calm"; saveData({snapshot:true}); closeModal(); render(); showToast("Bewegung wurde gespeichert."); } break; }
+      case "companion-interact": runCompanionInteraction(actionElement.dataset.childId, actionElement.dataset.companionAction || "wave"); break;
+      case "find-companion-object": findCompanionObject(actionElement.dataset.childId); break;
+      case "dismiss-companion-search": { const child=childById(actionElement.dataset.childId); if(child){ child.companionSearch=null; child.companionNextSearchAt=Date.now()+86400000*(3+Math.random()*4); saveData({snapshot:true}); render(); } break; }
+      case "world-item-reaction": { const item=itemById(actionElement.dataset.itemId); showToast(item ? `${item.icon} ${item.title} gehört zu deinem Bereich.` : "Gegenstand"); break; }
       case "child-shop": navigate("shop", { childId:ui.childId }); break;
       case "child-achievements": navigate("achievements", { childId:ui.childId }); break;
       case "nav-group": navigate("group"); break;
@@ -3171,10 +3449,11 @@
       case "clear-child-task-search": { ui.childTaskSearch = ""; const input=document.querySelector("#childTaskSearch"); if(input){ input.value=""; input.focus(); } applyTaskSearchFilters("child"); break; }
       case "clear-admin-task-search": { ui.adminTaskSearch=""; ui.adminTaskCategory="all"; ui.adminTaskStatus="all"; const input=document.querySelector("#adminTaskSearch"); const category=document.querySelector("#adminTaskCategory"); const status=document.querySelector("#adminTaskStatus"); if(input) input.value=""; if(category) category.value="all"; if(status) status.value="all"; applyTaskSearchFilters("admin"); input?.focus(); break; }
       case "open-child-activities": openChildActivities(actionElement.dataset.childId, Number(actionElement.dataset.days ?? 3)); break;
+      case "open-child-preview": openChildPreview(actionElement.dataset.childId); break;
       case "open-wallet-editor": openWalletEditor(actionElement.dataset.childId); break;
       case "save-wallet-correction": saveWalletCorrection(); break;
       case "confirm-wallet-correction": { const child=childById(actionElement.dataset.childId); const amount=Math.trunc(Number(actionElement.dataset.amount)); const currency=actionElement.dataset.currency; if(child && amount<0 && Number(child[currency]||0)+amount>=0){ child[currency]=Number(child[currency]||0)+amount; data.ledger=data.ledger||[]; data.ledger.push({id:uid(),childId:child.id,currency,amount,reason:actionElement.dataset.reason||"Korrektur",note:actionElement.dataset.note||"",timestamp:Date.now()}); saveData({snapshot:true}); closeModal(); ui.educatorTab="wallet"; render(); showToast("Kontostand wurde korrigiert."); } break; }
-      case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "review"; render(); break;
+      case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "overview"; render(); break;
       case "educator-confirm-reserved": {
         const claim=data.claims.find(x=>x.id===actionElement.dataset.claimId); if(claim&&claim.status==="reserved"){ claim.status="reported"; claim.reportedAt=Date.now(); claim.actualParticipantIds=[...claim.childIds]; claim.rewardAllocations=buildRewardAllocations(taskById(claim.taskId),claim.childIds,plannedChildrenForClaim(claim,taskById(claim.taskId))); saveData({snapshot:true}); openClaimApprovalEditor(claim.id); } break;
       }
@@ -3335,13 +3614,28 @@
     }
   });
 
-  document.querySelectorAll(".bottom-nav button").forEach(button => button.addEventListener("click", () => {
-    if (button.dataset.nav === "home") goHome();
-    if (button.dataset.nav === "group") navigate("group");
-    if (button.dataset.nav === "educator") navigate("educator");
-  }));
+  bottomNav?.addEventListener("click", event => {
+    const button = event.target.closest("[data-nav]");
+    if (!button) return;
+    const nav = button.dataset.nav;
+    if (nav === "home") return goHome();
+    if (nav === "group") return navigate("group");
+    if (nav === "tasks") {
+      if (!ui.childId || !childById(ui.childId)) return showToast("Wähle zuerst deinen Avatar aus.");
+      return navigate("tasks", { childId:ui.childId });
+    }
+    if (nav === "personal") {
+      if (!ui.childId || !childById(ui.childId)) return showToast("Wähle zuerst deinen Avatar aus.");
+      return navigate("world", { childId:ui.childId });
+    }
+    if (nav?.startsWith("educator-")) {
+      ui.educatorTab = nav.replace("educator-", "");
+      return navigate("educator", { push:false });
+    }
+  });
   backButton.addEventListener("click", goBack);
   homeButton.addEventListener("click", goHome);
+  helpButton?.addEventListener("click", () => openHelpCenter());
 
   document.addEventListener("submit", event => {
     const form = event.target;
@@ -3351,7 +3645,7 @@
       const pin = new FormData(form).get("pin");
       if (String(pin) === String(data.settings.pin)) {
         ui.educatorUnlocked = true;
-        ui.educatorTab = "review";
+        ui.educatorTab = "overview";
         showToast("Erzieherbereich entsperrt.");
         render();
       } else {
@@ -3393,6 +3687,7 @@
       data.settings.exchangeCoins = clamp(values.exchangeCoins,1,500);
       data.settings.exchangeSeeds = clamp(values.exchangeSeeds,1,500);
       data.settings.allowCoinSeedExchange = formData.has("allowCoinSeedExchange");
+      data.settings.companionSearchEnabled = formData.has("companionSearchEnabled");
       saveData({ snapshot:true }); showToast("Einstellungen wurden gespeichert."); render();
       return;
     }

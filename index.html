@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./styles.css">
-  <title>Mitmach-Welt 2.7.0</title>
+  <title>Mitmach-Welt 2.8.1</title>
 </head>
 <body>
   <div class="app-shell" id="appShell">
@@ -21,23 +21,20 @@
       <div class="brand-block">
         <span class="brand-flower" aria-hidden="true">🌻</span>
         <div>
-          <p class="eyebrow">Projekt Sonnenblume · Version 2.7.0</p>
+          <p class="eyebrow">Projekt Sonnenblume · Version 2.8.1</p>
           <h1 id="screenTitle">Mitmach-Welt</h1>
         </div>
       </div>
       <div class="topbar-actions">
+        <button class="round-icon-button help-icon-button" id="helpButton" type="button" aria-label="Hilfe zur Mitmach-Welt" title="Hilfe">?</button>
         <button class="round-icon-button sync-icon-button" id="syncButton" type="button" aria-label="Geräte & Synchronisierung" title="Geräte & Synchronisierung">☁️</button>
-        <button class="round-icon-button" id="homeButton" type="button" aria-label="Startseite">⌂</button>
+        <button class="round-icon-button hidden-home-button" id="homeButton" type="button" aria-label="Startseite" hidden>⌂</button>
       </div>
     </header>
 
     <main id="app" class="screen" aria-live="polite"></main>
 
-    <nav class="bottom-nav" aria-label="Hauptnavigation">
-      <button type="button" data-nav="home"><span>🏠</span><b>Start</b></button>
-      <button type="button" data-nav="group"><span>🌍</span><b>Gruppe</b></button>
-      <button type="button" data-nav="educator"><span>🔒</span><b>Erzieher</b></button>
-    </nav>
+    <nav class="bottom-nav" id="bottomNav" aria-label="Hauptnavigation"></nav>
   </div>
 
   <div id="modalRoot"></div>
