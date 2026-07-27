@@ -1016,7 +1016,7 @@
   if (config.enabled && !restoredHomeScreenPairing) connectSync();
 
   window.MitmachWeltSync = {
-    version: "2.8.1",
+    version: "2.8.2",
     getStatus: () => ({ status, detail: statusDetail, enabled: config.enabled, role: config.role, deviceName: config.deviceName, lastIncomingDevice, meta: { ...meta } }),
     open: openPinPrompt,
     reconnect: connectSync

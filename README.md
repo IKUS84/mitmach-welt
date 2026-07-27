@@ -1,4 +1,4 @@
-# Mitmach-Welt 2.8.1 – vereinfachte Führung und Begleiter
+# Mitmach-Welt 2.8.2 – Navigations-Hotfix
 
 ## Neu in dieser Version
 
@@ -23,7 +23,7 @@
 
 1. ZIP-Datei entpacken.
 2. Alle zehn Dateien dieses Ordners in das GitHub-Repository übernehmen und die bisherigen Dateien ersetzen.
-3. Commit-Vorschlag: `Mitmach-Welt 2.8.1 – vereinfachte Führung und Begleiter`
+3. Commit-Vorschlag: `Mitmach-Welt 2.8.2 – Navigations-Hotfix`
 4. Veröffentlichung von GitHub Pages abwarten.
 5. Die App auf allen Geräten neu laden und eine angebotene Aktualisierung installieren.
 
@@ -33,3 +33,14 @@ Eine Datensicherung vor dem Update ist optional. Vorhandene Kinder, Aufgaben, Ko
 ## Hotfix 2.8.1
 
 Selbsteingeschätzte Tagesmissionen werden im Erzieherbereich deutlich mit Kindname angezeigt und können direkt ausgewertet werden.
+
+
+## Hotfix 2.8.2
+
+- Die PIN-Seite ist kein Sackgassen-Menü mehr.
+- Auf der gesperrten PIN-Seite bleiben Zurück-Button und Kinder-Navigation nutzbar.
+- Zusätzlich gibt es „Zurück zur Kinderansicht“.
+- Nach korrekter PIN bleibt der Erzieherbereich während der laufenden App-Sitzung entsperrt.
+- Übersicht, Bestätigen, Kinder und Verwalten können ohne erneute PIN gewechselt werden.
+- Die doppelte Erzieher-Menüleiste im Seiteninhalt wurde entfernt; es bleibt nur die feste untere Navigation.
+- Eine Zahl am Menüpunkt „Bestätigen“ zeigt offene Aufgaben und eingeschätzte Missionen an.

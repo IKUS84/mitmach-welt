@@ -889,3 +889,14 @@ body.child-style-neutral .world-item { animation:none; }
   .mission-alert-banner small { font-size:.78rem; }
   .nav-notice-badge { top:3px; right:4px; }
 }
+
+
+/* Version 2.8.2: PIN-Navigation und eindeutiges Erzieher-Menü */
+.bottom-nav button { position:relative; }
+.educator-login-panel { max-width:520px; margin:7vh auto 0; text-align:center; }
+.educator-login-cancel { margin-top:12px; }
+.educator-login-hint { margin:10px 6px 0; line-height:1.45; }
+body[data-screen="educator"] .educator-simple-layout { padding-top:0; }
+@media (max-width:620px) {
+  .educator-login-panel { margin-top:3vh; }
+}

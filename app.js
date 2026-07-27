@@ -1,12 +1,13 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.8.1";
+  const APP_VERSION = "2.8.2";
   const SCHEMA_VERSION = 7;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
   const BACKUP_RING_KEY = "mitmach_welt_backup_ring_v2";
+  const EDUCATOR_SESSION_KEY = "mitmach_welt_educator_unlocked_v1";
   const DAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const FULL_DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
   const MONTH_NAMES = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -254,7 +255,7 @@
     navStack: [],
     childId: null,
     shopTab: "world",
-    educatorUnlocked: false,
+    educatorUnlocked: (() => { try { return sessionStorage.getItem(EDUCATOR_SESSION_KEY) === "1"; } catch { return false; } })(),
     educatorTab: "overview",
     childTaskSearch: "",
     adminTaskSearch: "",
@@ -1082,20 +1083,30 @@
   }
 
   function isEducatorNavigation() {
-    return ui.screen === "educator" || (currentDeviceRole() === "educator" && !["child","tasks","missions","world","shop","achievements","group","roundSetup","roundPlay","roundSummary"].includes(ui.screen));
+    return (ui.screen === "educator" && ui.educatorUnlocked) || (currentDeviceRole() === "educator" && ui.educatorUnlocked && !["child","tasks","missions","world","shop","achievements","group","roundSetup","roundPlay","roundSummary"].includes(ui.screen));
+  }
+
+  function pendingEducatorReviewCount() {
+    const taskCount = data.claims.filter(claim => claim.status === "reported").length;
+    const missionCount = activeChildren().reduce((sum, child) => sum + activeGoalsForChild(child.id).filter(goal => {
+      const evaluation = data.goalEvaluations.find(item => item.childId === child.id && item.goalId === goal.id && item.date === todayKey());
+      return evaluation?.childView && !evaluation?.result;
+    }).length, 0);
+    return taskCount + missionCount;
   }
 
   function renderBottomNavigation() {
     if (!bottomNav) return;
     if (isEducatorNavigation()) {
       const activeTab = MANAGEMENT_TABS.includes(ui.educatorTab) ? "manage" : ui.educatorTab;
+      const reviewCount = pendingEducatorReviewCount();
       bottomNav.className = "bottom-nav educator-bottom-nav";
       bottomNav.innerHTML = [
-        ["educator-overview","🏠","Übersicht","overview"],
-        ["educator-review","✅","Bestätigen","review"],
-        ["educator-children","👧","Kinder","children"],
-        ["educator-manage","⚙️","Verwalten","manage"]
-      ].map(([nav,icon,label,tab]) => `<button type="button" data-nav="${nav}" class="${activeTab === tab ? "active" : ""}"><span>${icon}</span><b>${label}</b></button>`).join("");
+        ["educator-overview","🏠","Übersicht","overview",0],
+        ["educator-review","✅","Bestätigen","review",reviewCount],
+        ["educator-children","👧","Kinder","children",0],
+        ["educator-manage","⚙️","Verwalten","manage",0]
+      ].map(([nav,icon,label,tab,count]) => `<button type="button" data-nav="${nav}" class="${activeTab === tab ? "active" : ""}"><span>${icon}</span><b>${label}</b>${count ? `<em class="nav-notice-badge">${count}</em>` : ""}</button>`).join("");
       return;
     }
     const active = ui.screen === "group" || ["roundSetup","roundPlay","roundSummary"].includes(ui.screen)
@@ -1124,7 +1135,7 @@
     const styledChild = childScreens.includes(ui.screen) ? childById(ui.childId) : null;
     document.body.classList.remove("child-style-playful","child-style-modern","child-style-neutral");
     if (styledChild) document.body.classList.add(`child-style-${styledChild.interfaceStyle || "neutral"}`);
-    backButton.hidden = ui.screen === "home" || ui.screen === "educator";
+    backButton.hidden = ui.screen === "home" || (ui.screen === "educator" && ui.educatorUnlocked);
     homeButton.hidden = true;
     document.body.dataset.screen = ui.screen;
     setNavActive();
@@ -2309,9 +2320,6 @@
     return `
       <section class="hero educator-hero"><p class="hero-kicker">Geschützter Bereich</p><h2>Was ist heute wichtig?</h2><p>Bestätigungen, Kinder und Verwaltung sind klar voneinander getrennt.</p></section>
       <section class="section educator-simple-layout">
-        <nav class="educator-main-tabs" aria-label="Erzieher-Menü">
-          ${[["overview","🏠","Übersicht"],["review","✅","Bestätigen"],["children","👧","Kinder"],["manage","⚙️","Verwalten"]].map(([id,icon,label]) => { const reviewCount = id === "review" ? activeChildren().reduce((sum, child) => sum + activeGoalsForChild(child.id).filter(goal => { const ev=data.goalEvaluations.find(item=>item.childId===child.id&&item.goalId===goal.id&&item.date===todayKey()); return ev?.childView && !ev?.result; }).length, 0) : 0; return `<button type="button" class="${activeMainTab === id ? "active" : ""}" data-action="educator-tab" data-tab="${id}"><span>${icon}</span><b>${label}</b>${reviewCount ? `<em class="nav-notice-badge">${reviewCount}</em>` : ""}</button>`; }).join("")}
-        </nav>
         ${detailTitle ? `<div class="management-breadcrumb"><button class="ghost-button small-button" type="button" data-action="educator-tab" data-tab="manage">← Verwalten</button><b>${escapeHtml(detailTitle)}</b></div>` : ""}
         <div>${content}</div>
         <div class="educator-footer-actions"><button class="ghost-button" type="button" data-action="open-help-center">❓ Hilfe</button><button class="ghost-button" type="button" data-action="lock-educator">🔒 Sperren</button></div>
@@ -2320,9 +2328,11 @@
 
   function renderEducatorLogin() {
     return `
-      <section class="panel" style="max-width:520px;margin:7vh auto 0;text-align:center">
+      <section class="panel educator-login-panel">
         <div style="font-size:4rem">🔒</div><h2>Erzieherbereich</h2><p class="muted">Bitte die vierstellige PIN eingeben.</p>
         <form id="pinForm"><div class="form-field"><input name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="PIN" required style="text-align:center;font-size:1.5rem;letter-spacing:.3em"></div><button class="primary-button full-button" type="submit" style="margin-top:12px">Entsperren</button></form>
+        <button class="ghost-button full-button educator-login-cancel" type="button" data-action="cancel-educator-login">← Zurück zur Kinderansicht</button>
+        <p class="tiny muted educator-login-hint">Die untere Leiste bleibt in der Kinderansicht bedienbar. Ohne richtige PIN werden keine Erzieherfunktionen geöffnet.</p>
       </section>`;
   }
 
@@ -3446,6 +3456,7 @@
         break;
       }
       case "educator-tab": ui.educatorTab = actionElement.dataset.tab; render(); break;
+      case "cancel-educator-login": ui.educatorUnlocked = false; try { sessionStorage.removeItem(EDUCATOR_SESSION_KEY); } catch {} goHome(); break;
       case "clear-child-task-search": { ui.childTaskSearch = ""; const input=document.querySelector("#childTaskSearch"); if(input){ input.value=""; input.focus(); } applyTaskSearchFilters("child"); break; }
       case "clear-admin-task-search": { ui.adminTaskSearch=""; ui.adminTaskCategory="all"; ui.adminTaskStatus="all"; const input=document.querySelector("#adminTaskSearch"); const category=document.querySelector("#adminTaskCategory"); const status=document.querySelector("#adminTaskStatus"); if(input) input.value=""; if(category) category.value="all"; if(status) status.value="all"; applyTaskSearchFilters("admin"); input?.focus(); break; }
       case "open-child-activities": openChildActivities(actionElement.dataset.childId, Number(actionElement.dataset.days ?? 3)); break;
@@ -3453,7 +3464,7 @@
       case "open-wallet-editor": openWalletEditor(actionElement.dataset.childId); break;
       case "save-wallet-correction": saveWalletCorrection(); break;
       case "confirm-wallet-correction": { const child=childById(actionElement.dataset.childId); const amount=Math.trunc(Number(actionElement.dataset.amount)); const currency=actionElement.dataset.currency; if(child && amount<0 && Number(child[currency]||0)+amount>=0){ child[currency]=Number(child[currency]||0)+amount; data.ledger=data.ledger||[]; data.ledger.push({id:uid(),childId:child.id,currency,amount,reason:actionElement.dataset.reason||"Korrektur",note:actionElement.dataset.note||"",timestamp:Date.now()}); saveData({snapshot:true}); closeModal(); ui.educatorTab="wallet"; render(); showToast("Kontostand wurde korrigiert."); } break; }
-      case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "overview"; render(); break;
+      case "lock-educator": ui.educatorUnlocked = false; ui.educatorTab = "overview"; try { sessionStorage.removeItem(EDUCATOR_SESSION_KEY); } catch {} render(); break;
       case "educator-confirm-reserved": {
         const claim=data.claims.find(x=>x.id===actionElement.dataset.claimId); if(claim&&claim.status==="reserved"){ claim.status="reported"; claim.reportedAt=Date.now(); claim.actualParticipantIds=[...claim.childIds]; claim.rewardAllocations=buildRewardAllocations(taskById(claim.taskId),claim.childIds,plannedChildrenForClaim(claim,taskById(claim.taskId))); saveData({snapshot:true}); openClaimApprovalEditor(claim.id); } break;
       }
@@ -3646,6 +3657,7 @@
       if (String(pin) === String(data.settings.pin)) {
         ui.educatorUnlocked = true;
         ui.educatorTab = "overview";
+        try { sessionStorage.setItem(EDUCATOR_SESSION_KEY, "1"); } catch {}
         showToast("Erzieherbereich entsperrt.");
         render();
       } else {

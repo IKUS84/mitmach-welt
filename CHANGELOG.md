@@ -1,3 +1,13 @@
+# Version 2.8.2 – Navigations- und PIN-Hotfix
+
+- Gesperrter Erzieherbereich kann jederzeit über Zurück, Start oder „Zurück zur Kinderansicht“ verlassen werden.
+- Auf der PIN-Seite wird nicht mehr die unbedienbare Erzieher-Navigation angezeigt.
+- Erfolgreiche PIN-Eingabe entsperrt die Erzieher-Menüs für die aktuelle App-Sitzung.
+- Manuelles Sperren löscht die Sitzungsfreigabe sofort.
+- Doppelte Menüleiste im Erzieherbereich entfernt.
+- Offene Bestätigungen und eingeschätzte Tagesmissionen werden als Zahl am unteren Menüpunkt „Bestätigen“ angezeigt.
+- Versionsanzeigen, Manifest, Synchronisierung und Offline-Cache auf 2.8.2 aktualisiert.
+
 # Version 2.8.1 – Tagesmissionen-Auswertung Hotfix
 
 - Selbsteingeschätzte Tagesmissionen erscheinen jetzt im Erzieherbereich ganz oben unter **„Wartet auf Auswertung“**.
