@@ -900,3 +900,136 @@ body[data-screen="educator"] .educator-simple-layout { padding-top:0; }
 @media (max-width:620px) {
   .educator-login-panel { margin-top:3vh; }
 }
+
+/* Version 2.9.0: schnellere Darstellung und erweiterter Begleiter */
+.task-card,.admin-row,.shop-card,.activity-card,.manage-card {
+  content-visibility:auto;
+  contain-intrinsic-size:120px;
+}
+.world-interaction:disabled,.world-companion:disabled {
+  opacity:.48;
+  cursor:default;
+  filter:grayscale(.25);
+}
+.world-companion.companion-action-sleep {
+  background:rgba(237,242,255,.72);
+}
+.companion-zzz {
+  position:absolute;
+  top:-14px;
+  right:-10px;
+  font-style:normal;
+  font-size:1.05rem;
+  font-weight:950;
+  letter-spacing:.05em;
+  color:#536a9b;
+  text-shadow:0 2px 7px rgba(255,255,255,.9);
+  animation:companion-zzz-float 2.2s ease-in-out infinite;
+}
+@keyframes companion-zzz-float {
+  0%,100% { transform:translateY(3px) scale(.92); opacity:.65; }
+  50% { transform:translateY(-8px) scale(1.08); opacity:1; }
+}
+.companion-choice-intro {
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:12px 14px;
+  margin-bottom:13px;
+  border-radius:18px;
+  background:#f5f8f5;
+}
+.companion-choice-intro > span { font-size:2.8rem; }
+.companion-choice-intro p { margin:0; font-weight:850; }
+.rest-choice-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.rest-choice,.food-choice {
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  color:var(--ink);
+  min-height:96px;
+  padding:13px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:5px;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:var(--shadow-soft);
+}
+.rest-choice > span,.food-choice > span { font-size:2rem; line-height:1; }
+.rest-choice b,.food-choice b { font-size:.92rem; }
+.food-choice-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.food-choice small { color:var(--muted); font-size:.7rem; line-height:1.35; }
+
+.companion-game { display:grid; gap:12px; }
+.companion-game-score {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:10px 13px;
+  border-radius:16px;
+  background:#f5f8f5;
+}
+.companion-game-score span { font-weight:850; }
+.companion-game-score b { white-space:nowrap; }
+.companion-game-arena {
+  position:relative;
+  min-height:360px;
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid rgba(65,105,79,.18);
+  background:
+    radial-gradient(circle at 25% 20%,rgba(255,255,255,.72),transparent 23%),
+    linear-gradient(#bfe8ff 0 58%,#b7dd8f 58% 100%);
+  touch-action:manipulation;
+}
+.game-companion {
+  position:absolute;
+  left:50%;
+  bottom:12%;
+  transform:translateX(-50%);
+  font-size:4.6rem;
+  filter:drop-shadow(0 10px 8px rgba(30,45,35,.22));
+}
+.game-companion-jump { animation:game-companion-jump .38s ease-out; }
+@keyframes game-companion-jump {
+  50% { transform:translateX(-50%) translateY(-16px) rotate(5deg); }
+}
+.companion-game-ball {
+  position:absolute;
+  left:16%;
+  top:18%;
+  transform:translate(-50%,-50%);
+  width:62px;
+  height:62px;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.82);
+  box-shadow:0 8px 18px rgba(30,45,35,.18);
+  display:grid;
+  place-items:center;
+  font-size:2.3rem;
+  cursor:pointer;
+  transition:left .18s ease,top .18s ease,transform .12s ease;
+  touch-action:manipulation;
+}
+.companion-game-ball:active { transform:translate(-50%,-50%) scale(.88); }
+.companion-game-hint { margin:0; color:var(--muted); text-align:center; font-size:.84rem; }
+
+.reduce-motion .companion-zzz,
+.reduce-motion .game-companion-jump,
+.reduce-motion .companion-game-ball { animation:none!important; transition:none!important; }
+
+@media (max-width:620px) {
+  .food-choice-grid { grid-template-columns:1fr; }
+  .food-choice { min-height:82px; grid-template-columns:auto 1fr; justify-items:start; text-align:left; }
+  .food-choice > span { grid-row:1 / span 2; }
+  .rest-choice-grid { grid-template-columns:repeat(2,1fr); }
+  .companion-game-arena { min-height:310px; }
+}

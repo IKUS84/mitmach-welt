@@ -1,3 +1,18 @@
+# Version 2.9.0 – Tempo und Begleiter-Interaktionen
+
+- Vollständige automatische Neudarstellung im Minutentakt entfernt; die Ansicht wird nur noch aktualisiert, wenn sich wirklich etwas geändert hat.
+- Wetterdaten werden 45 Minuten lokal zwischengespeichert.
+- Live-Suche wird über den nächsten Darstellungsrahmen gebündelt.
+- Häufige Speicherungen führen weniger redundante Backup- und Prüfzugriffe aus.
+- Untere Navigation wird nur neu aufgebaut, wenn sich Inhalt oder aktiver Bereich geändert haben.
+- Schlafauswahl für Begleiter mit 1, 4, 8 und 12 Stunden ergänzt.
+- Schlafzustand bleibt nach dem Schließen der App erhalten und zeigt Zzz sowie die Restdauer.
+- Begleiter können jederzeit sanft geweckt werden.
+- Essensauswahl mit Süßem, Obst/Gemüse und Hauptgericht ergänzt; ohne Kosten, Hungerwert oder Belohnung.
+- Ball-Minispiel ohne Zeitdruck, Punkte, Rangliste oder Vergleich ergänzt.
+- Begleiteraktionen werden direkt im sichtbaren Bereich animiert, ohne unnötige vollständige Seitenwechsel.
+- Datenschema, Versionsanzeigen, Manifest, Synchronisierung und Offline-Cache auf 2.9.0 aktualisiert.
+
 # Version 2.8.2 – Navigations- und PIN-Hotfix
 
 - Gesperrter Erzieherbereich kann jederzeit über Zurück, Start oder „Zurück zur Kinderansicht“ verlassen werden.

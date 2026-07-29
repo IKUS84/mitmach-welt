@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.8.2";
-  const SCHEMA_VERSION = 7;
+  const APP_VERSION = "2.9.0";
+  const SCHEMA_VERSION = 8;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const PRE_V2_BACKUP_KEY = "mitmach_welt_state_pre_v2";
@@ -19,6 +19,8 @@
 
   const WEATHER_LAT = 51.9413;
   const WEATHER_LON = 13.8985;
+  const WEATHER_CACHE_KEY = "mitmach_welt_weather_cache_v1";
+  const WEATHER_CACHE_MAX_AGE = 45 * 60 * 1000;
   const CATALOG_VERSION = 1;
   const TASK_CATEGORIES = ["Haushalt","Zimmer & Ordnung","Außenbereich","Schule & Lernen","Sonstiges"];
   const WISH_CATEGORIES = ["Kleine Belohnungen","Mittlere Belohnungen","Große Belohnungen"];
@@ -55,6 +57,12 @@
     "🦉":["🪶","📘","🔍"], "🐺":["🦴","🌙","🪵"], "🚗":["🔑","🛞","⛽"], "🛹":["🧢","🛞","🎧"],
     "⚽":["🥅","👟","🏆"]
   };
+  const COMPANION_FOOD_CHOICES = {
+    sweet: { icon:"🍪", title:"Etwas Süßes", items:["Keks","Eis","kleines Stück Kuchen"] },
+    healthy: { icon:"🥕", title:"Obst oder Gemüse", items:["Apfel","Karotte","Erdbeeren"] },
+    meal: { icon:"🍝", title:"Hauptgericht", items:["Nudeln","Suppe","Pizza"] }
+  };
+  const COMPANION_REST_OPTIONS = [1,4,8,12];
   const WORLD_THEMES = [
     { id:"meadow", icon:"🌻", title:"Blumenwiese", description:"Wiese, Bäume und Tiere", starter:"🌱 🌼 🌳 🐞", style:"playful" },
     { id:"magic", icon:"🦄", title:"Zauberwald", description:"Pilze, Sterne und Magie", starter:"🍄 ✨ 🌲 🦋", style:"playful" },
@@ -219,7 +227,8 @@
       autoApproveEnabled: true,
       autoApproveTime: "21:00",
       defaultReservationMinutes: 120,
-      companionSearchEnabled: true
+      companionSearchEnabled: true,
+      lightweightMode: true
     },
     children: [
       { id:"lucy", name:"Lucy", avatar:"🦄", accent:"#d070ba", theme:"magic", coins:24, seeds:7, stars:0, completed:4, inventory:["lantern"], active:true, createdAt:Date.now()-86400000*10 },
@@ -262,6 +271,7 @@
     adminTaskCategory: "all",
     adminTaskStatus: "all",
     companionAction: "",
+    companionGame: null,
     previewChildId: null,
     avatarCategory: "Tiere",
     editingChildId: null,
@@ -461,6 +471,10 @@
       companionSearchEnabled: child.companionSearchEnabled !== false,
       companionSearch: child.companionSearch && typeof child.companionSearch === "object" ? child.companionSearch : null,
       companionNextSearchAt: Number(child.companionNextSearchAt || Date.now()),
+      companionRestUntil: Math.max(0, Number(child.companionRestUntil || 0)),
+      companionRestStartedAt: Math.max(0, Number(child.companionRestStartedAt || 0)),
+      companionLastFood: child.companionLastFood && typeof child.companionLastFood === "object" ? child.companionLastFood : null,
+      companionLastPlayAt: Math.max(0, Number(child.companionLastPlayAt || 0)),
       interfaceStyle: ["playful","modern","neutral"].includes(child.interfaceStyle) ? child.interfaceStyle : "neutral",
       onboardingPending: child.onboardingPending === true,
       createdAt: Number(child.createdAt || Date.now()),
@@ -608,22 +622,20 @@
     const serialized = JSON.stringify(data);
     const changed = serialized !== lastSavedSerialized;
     try {
-      // Immer lokal sichern. Synchronisations-Listener werden aber nur bei echten
-      // Inhaltsänderungen informiert, damit ein schließendes Zweitgerät keinen
-      // älteren unveränderten Stand erneut überträgt.
+      // Der Hauptstand wird immer sofort geschrieben. Die zweite Sicherung und
+      // die Lesekontrolle erfolgen gezielt, damit häufige kleine Interaktionen
+      // auf iPhone und Tablet nicht unnötig blockieren.
       localStorage.setItem(STORAGE_KEY, serialized);
-      localStorage.setItem(BACKUP_KEY, serialized);
-      const verified = localStorage.getItem(STORAGE_KEY);
-      if (verified !== serialized) throw new Error("Speicherprüfung fehlgeschlagen");
+      if (changed) saveCounter += 1;
+      const needsBackup = snapshot || saveCounter % 10 === 0 || !localStorage.getItem(BACKUP_KEY);
+      if (needsBackup) localStorage.setItem(BACKUP_KEY, serialized);
+      if (snapshot && localStorage.getItem(STORAGE_KEY) !== serialized) throw new Error("Speicherprüfung fehlgeschlagen");
       lastSavedSerialized = serialized;
-      if (changed) {
-        saveCounter += 1;
-        if (snapshot || saveCounter % 12 === 0) saveSnapshot(serialized);
-      }
+      if (changed && (snapshot || saveCounter % 12 === 0)) saveSnapshot(serialized);
       applyPreferences();
       if (notify && changed) {
         saveListeners.forEach(listener => {
-          try { listener(clone(data)); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
+          try { listener(); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
         });
       }
       return true;
@@ -1095,18 +1107,29 @@
     return taskCount + missionCount;
   }
 
+  let lastBottomNavSignature = "";
+  let lastRenderedScreen = "";
+
+  function setBottomNavigation(className, html) {
+    const signature = `${className}|${html}`;
+    if (signature === lastBottomNavSignature) return;
+    bottomNav.className = className;
+    bottomNav.innerHTML = html;
+    lastBottomNavSignature = signature;
+  }
+
   function renderBottomNavigation() {
     if (!bottomNav) return;
     if (isEducatorNavigation()) {
       const activeTab = MANAGEMENT_TABS.includes(ui.educatorTab) ? "manage" : ui.educatorTab;
       const reviewCount = pendingEducatorReviewCount();
-      bottomNav.className = "bottom-nav educator-bottom-nav";
-      bottomNav.innerHTML = [
+      const html = [
         ["educator-overview","🏠","Übersicht","overview",0],
         ["educator-review","✅","Bestätigen","review",reviewCount],
         ["educator-children","👧","Kinder","children",0],
         ["educator-manage","⚙️","Verwalten","manage",0]
       ].map(([nav,icon,label,tab,count]) => `<button type="button" data-nav="${nav}" class="${activeTab === tab ? "active" : ""}"><span>${icon}</span><b>${label}</b>${count ? `<em class="nav-notice-badge">${count}</em>` : ""}</button>`).join("");
+      setBottomNavigation("bottom-nav educator-bottom-nav", html);
       return;
     }
     const active = ui.screen === "group" || ["roundSetup","roundPlay","roundSummary"].includes(ui.screen)
@@ -1116,13 +1139,13 @@
         : ["world","shop","achievements","missions"].includes(ui.screen)
           ? "personal"
           : "home";
-    bottomNav.className = "bottom-nav child-bottom-nav";
-    bottomNav.innerHTML = [
+    const html = [
       ["home","🏠","Start"],
       ["tasks","✅","Aufgaben"],
       ["group","👥","Gemeinsam"],
       ["personal","⭐","Mein Bereich"]
     ].map(([nav,icon,label]) => `<button type="button" data-nav="${nav}" class="${active === nav ? "active" : ""}"><span>${icon}</span><b>${label}</b></button>`).join("");
+    setBottomNavigation("bottom-nav child-bottom-nav", html);
   }
 
   function setNavActive() {
@@ -1130,6 +1153,7 @@
   }
 
   function render() {
+    const screenChanged = lastRenderedScreen !== ui.screen;
     screenTitle.textContent = screenLabel(ui.screen);
     const childScreens = ["child","tasks","missions","world","shop","achievements"];
     const styledChild = childScreens.includes(ui.screen) ? childById(ui.childId) : null;
@@ -1159,7 +1183,8 @@
     if (ui.screen === "home") setTimeout(loadWeatherForecast, 0);
     if (ui.screen === "tasks") setTimeout(() => applyTaskSearchFilters("child"), 0);
     if (ui.screen === "educator" && ui.educatorTab === "tasks") setTimeout(() => applyTaskSearchFilters("admin"), 0);
-    window.scrollTo({ top:0, behavior:data.settings.reduceMotion ? "auto" : "smooth" });
+    if (screenChanged) window.scrollTo({ top:0, behavior:"auto" });
+    lastRenderedScreen = ui.screen;
 
     if (ui.screen === "child" && ui.childId) {
       setTimeout(() => maybeShowNotifications(ui.childId), 100);
@@ -1681,13 +1706,31 @@
     return quest;
   }
 
+  function companionRestRemaining(child, now = Date.now()) {
+    return Math.max(0, Number(child?.companionRestUntil || 0) - now);
+  }
+
+  function companionIsResting(child) {
+    return companionRestRemaining(child) > 0;
+  }
+
+  function formatCompanionRest(ms) {
+    const minutes = Math.max(1, Math.ceil(Number(ms || 0) / 60000));
+    const hours = Math.floor(minutes / 60);
+    const restMinutes = minutes % 60;
+    if (!hours) return `${minutes} Min.`;
+    if (!restMinutes) return `${hours} Std.`;
+    return `${hours} Std. ${restMinutes} Min.`;
+  }
+
   function companionSpeech(child, quest) {
     if (!child.companion || child.companion === "none") return "";
+    const remaining = companionRestRemaining(child);
+    if (remaining > 0) return `Ich schlafe noch ungefähr ${formatCompanionRest(remaining)}. Du kannst mich sanft aufwecken.`;
     if (quest?.status === "active") return `Ich habe ${quest.item} verlegt. Vielleicht findest du es in meiner Welt.`;
     if (quest?.status === "selfFound") return `Ich habe ${quest.item} selbst wiedergefunden!`;
-    if (ui.companionAction === "sleep") return "Ich ruhe mich ein bisschen aus. 😴";
-    if (ui.companionAction === "eat") return "Das war lecker! 😊";
-    if (ui.companionAction === "play") return "Das macht Spaß! 🎾";
+    if (ui.companionAction === "eat") return child.companionLastFood?.item ? `${child.companionLastFood.item} war lecker! 😊` : "Das war lecker! 😊";
+    if (ui.companionAction === "play") return "Das hat Spaß gemacht! 🎾";
     if (ui.companionAction === "dance") return "Musik an – los geht's! 🎵";
     if (ui.companionAction === "wave") return "Schön, dass du da bist! 👋";
     return "Tippe mich oder einen Gegenstand an.";
@@ -1708,7 +1751,9 @@
     const quest = ensureCompanionSearch(child);
     const hasMusic = child.inventory.includes("companion_music");
     const companion = child.companion && child.companion !== "none";
-    const motion = data.settings.reduceMotion ? "off" : (child.companionMotion || "calm");
+    const resting = companionIsResting(child);
+    const motion = data.settings.reduceMotion || resting ? "off" : (child.companionMotion || "calm");
+    const companionAction = resting ? "sleep" : (ui.companionAction || "idle");
     return `
       <section class="profile-banner compact-personal-banner" style="--accent:${child.accent}">
         <div class="profile-avatar">${child.avatar}</div>
@@ -1725,15 +1770,15 @@
           <div class="world-zone world-zone-furniture">${renderWorldZone(inventoryItems,"furniture")}</div>
           <div class="world-zone world-zone-play">${renderWorldZone(inventoryItems,"play")}</div>
 
-          <button class="world-interaction world-bed" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="sleep" aria-label="Begleiter schlafen lassen"><span>🛏️</span><small>Ausruhen</small></button>
-          <button class="world-interaction world-bowl" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="eat" aria-label="Begleiter füttern"><span>🥣</span><small>Snack</small></button>
-          <button class="world-interaction world-ball" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="play" aria-label="Mit Begleiter spielen"><span>🎾</span><small>Spielen</small></button>
-          ${hasMusic ? `<button class="world-interaction world-music" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="dance" aria-label="Begleiter tanzen lassen"><span>🎵</span><small>Tanzen</small></button>` : ""}
+          <button class="world-interaction world-bed" type="button" data-action="${resting ? "wake-companion" : "open-companion-rest"}" data-child-id="${child.id}" aria-label="${resting ? "Begleiter sanft aufwecken" : "Schlafdauer auswählen"}"><span>${resting ? "⏰" : "🛏️"}</span><small>${resting ? "Aufwecken" : "Ausruhen"}</small></button>
+          <button class="world-interaction world-bowl" type="button" data-action="open-companion-food" data-child-id="${child.id}" aria-label="Essen auswählen" ${resting ? "disabled" : ""}><span>🥣</span><small>Essen</small></button>
+          <button class="world-interaction world-ball" type="button" data-action="open-companion-game" data-child-id="${child.id}" aria-label="Ballspiel öffnen" ${resting ? "disabled" : ""}><span>🎾</span><small>Spielen</small></button>
+          ${hasMusic ? `<button class="world-interaction world-music" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="dance" aria-label="Begleiter tanzen lassen" ${resting ? "disabled" : ""}><span>🎵</span><small>Tanzen</small></button>` : ""}
 
           ${quest?.status === "active" ? `<button class="hidden-search-object search-location-${quest.location}" type="button" data-action="find-companion-object" data-child-id="${child.id}" aria-label="Verlegten Gegenstand finden">${quest.item}</button>` : ""}
 
-          ${companion ? `<button class="world-companion companion-motion-${motion} companion-action-${ui.companionAction || "idle"}" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="wave" aria-label="Begleiter antippen"><span>${child.companion}</span></button>
-            <div class="companion-speech ${quest?.status === "selfFound" ? "self-found" : ""}"><p>${escapeHtml(companionSpeech(child,quest))}</p>${quest?.status === "selfFound" ? `<button class="ghost-button small-button" type="button" data-action="dismiss-companion-search" data-child-id="${child.id}">Das freut mich</button>` : ""}</div>` : `<div class="choose-companion-card"><span>✨</span><h3>Wähle deinen Begleiter</h3><p>Tier, Fantasiegeschöpf, Roboter oder modernes Maskottchen.</p><button class="primary-button small-button" type="button" data-action="open-companion-picker" data-child-id="${child.id}">Begleiter auswählen</button></div>`}
+          ${companion ? `<button class="world-companion companion-motion-${motion} companion-action-${companionAction}" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="wave" aria-label="Begleiter antippen" ${resting ? "disabled" : ""}><span>${child.companion}</span>${resting ? `<i class="companion-zzz" aria-hidden="true">Zzz</i>` : ""}</button>
+            <div class="companion-speech ${quest?.status === "selfFound" ? "self-found" : ""}"><p data-companion-speech>${escapeHtml(companionSpeech(child,quest))}</p>${resting ? `<button class="ghost-button small-button" type="button" data-action="wake-companion" data-child-id="${child.id}">Sanft aufwecken</button>` : quest?.status === "selfFound" ? `<button class="ghost-button small-button" type="button" data-action="dismiss-companion-search" data-child-id="${child.id}">Das freut mich</button>` : ""}</div>` : `<div class="choose-companion-card"><span>✨</span><h3>Wähle deinen Begleiter</h3><p>Tier, Fantasiegeschöpf, Roboter oder modernes Maskottchen.</p><button class="primary-button small-button" type="button" data-action="open-companion-picker" data-child-id="${child.id}">Begleiter auswählen</button></div>`}
         </div>
         <p class="world-gentle-note">Der Begleiter wird nicht krank, verliert keine Fortschritte und wartet ohne Druck auf den nächsten Besuch.</p>
       </section>
@@ -1759,12 +1804,138 @@
       <div class="modal-actions"><button class="ghost-button" type="button" data-action="remove-companion" data-child-id="${child.id}">Kein Begleiter</button><button class="primary-button" type="button" data-action="save-companion-motion" data-child-id="${child.id}">Bewegung speichern</button></div>`, { wide:true });
   }
 
+  function setCompanionAction(childId, action, speech = "", duration = 1900) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return;
+    ui.companionAction = action;
+    const button = document.querySelector(".world-companion");
+    if (button) {
+      [...button.classList].filter(name => name.startsWith("companion-action-")).forEach(name => button.classList.remove(name));
+      button.classList.add(`companion-action-${action}`);
+    }
+    const speechNode = document.querySelector("[data-companion-speech]");
+    if (speechNode && speech) speechNode.textContent = speech;
+    clearTimeout(setCompanionAction.timer);
+    setCompanionAction.timer = window.setTimeout(() => {
+      if (ui.companionAction !== action || ui.screen !== "world" || ui.childId !== childId) return;
+      ui.companionAction = "";
+      const activeButton = document.querySelector(".world-companion");
+      if (activeButton) {
+        activeButton.classList.remove(`companion-action-${action}`);
+        activeButton.classList.add("companion-action-idle");
+      }
+      const activeSpeech = document.querySelector("[data-companion-speech]");
+      if (activeSpeech) activeSpeech.textContent = companionSpeech(child, child.companionSearch);
+    }, duration);
+  }
+
   function runCompanionInteraction(childId, action) {
     const child = childById(childId);
     if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
-    ui.companionAction = action;
+    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade. Du kannst ihn sanft aufwecken.");
+    const texts = { wave:"Schön, dass du da bist! 👋", dance:"Musik an – los geht's! 🎵" };
+    setCompanionAction(childId, action, texts[action] || "Das macht Spaß!");
+  }
+
+  function openCompanionRestPicker(childId) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
+    openModal("Ausruhen", `<div class="companion-choice-intro"><span>${child.companion}</span><p>Wie lange soll dein Begleiter schlafen?</p></div><div class="rest-choice-grid">${COMPANION_REST_OPTIONS.map(hours => `<button class="rest-choice" type="button" data-action="start-companion-rest" data-child-id="${child.id}" data-hours="${hours}"><span>${hours >= 8 ? "🌙" : "😴"}</span><b>${hours} Stunde${hours === 1 ? "" : "n"}</b></button>`).join("")}</div><p class="tiny muted">Du kannst deinen Begleiter jederzeit sanft aufwecken. Es entstehen keine Nachteile.</p>`);
+  }
+
+  function startCompanionRest(childId, hours) {
+    const child = childById(childId);
+    const duration = COMPANION_REST_OPTIONS.includes(Number(hours)) ? Number(hours) : 1;
+    if (!child) return;
+    const now = Date.now();
+    child.companionRestStartedAt = now;
+    child.companionRestUntil = now + duration * 3600000;
+    data.history.push({ id:uid(), type:"companion_rest_started", childId, hours:duration, timestamp:now });
+    saveData({ snapshot:false });
+    closeModal();
+    ui.companionAction = "";
     render();
-    window.setTimeout(() => { if (ui.companionAction === action) { ui.companionAction = ""; render(); } }, 1900);
+    showToast(`${child.companion} schläft jetzt ${duration} Stunde${duration === 1 ? "" : "n"}.`);
+  }
+
+  function wakeCompanion(childId) {
+    const child = childById(childId);
+    if (!child) return;
+    const wasResting = companionIsResting(child);
+    child.companionRestUntil = 0;
+    child.companionRestStartedAt = 0;
+    if (wasResting) data.history.push({ id:uid(), type:"companion_rest_ended", childId, timestamp:Date.now() });
+    saveData({ snapshot:false });
+    render();
+    setCompanionAction(childId, "wave", "Ich bin wieder wach! 👋");
+  }
+
+  function openCompanionFoodPicker(childId) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
+    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade.");
+    openModal("Essen auswählen", `<div class="companion-choice-intro"><span>${child.companion}</span><p>Was möchtest du deinem Begleiter geben?</p></div><div class="food-choice-grid">${Object.entries(COMPANION_FOOD_CHOICES).map(([id,choice]) => `<button class="food-choice" type="button" data-action="feed-companion" data-child-id="${child.id}" data-food-type="${id}"><span>${choice.icon}</span><b>${escapeHtml(choice.title)}</b><small>${choice.items.map(escapeHtml).join(" · ")}</small></button>`).join("")}</div><p class="tiny muted">Essen ist freiwillig. Es gibt keine Hungeranzeige, keine Kosten und keine Belohnung.</p>`);
+  }
+
+  function feedCompanion(childId, foodType) {
+    const child = childById(childId);
+    const choice = COMPANION_FOOD_CHOICES[foodType];
+    if (!child || !choice || companionIsResting(child)) return;
+    const item = choice.items[Math.floor(Math.random() * choice.items.length)];
+    child.companionLastFood = { type:foodType, item, at:Date.now() };
+    data.history.push({ id:uid(), type:"companion_fed", childId, foodType, item, timestamp:Date.now() });
+    saveData({ snapshot:false });
+    closeModal();
+    setCompanionAction(childId, "eat", `${item} war lecker! 😊`, 2300);
+  }
+
+  function companionGameMarkup(child) {
+    return `<div class="companion-game" data-companion-game><div class="companion-game-score"><span>${child.companion} Ballspiel</span><b><span data-game-hits>0</span> / 8 Treffer</b></div><div class="companion-game-arena"><span class="game-companion">${child.companion}</span><button class="companion-game-ball" type="button" data-action="hit-companion-game-ball" aria-label="Ball antippen">🎾</button></div><p class="companion-game-hint">Tippe den Ball an. Es gibt keinen Zeitdruck, keine Punkte und keine Rangliste.</p><div class="modal-actions"><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
+  }
+
+  function positionCompanionGameBall() {
+    const game = ui.companionGame;
+    const ball = document.querySelector(".companion-game-ball");
+    if (!game || !ball) return;
+    const positions = [[15,18],[72,16],[42,28],[80,52],[18,58],[58,66],[35,78],[76,80],[48,48]];
+    let next = Math.floor(Math.random() * positions.length);
+    if (next === game.position) next = (next + 1) % positions.length;
+    game.position = next;
+    ball.style.left = `${positions[next][0]}%`;
+    ball.style.top = `${positions[next][1]}%`;
+  }
+
+  function openCompanionGame(childId) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
+    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade.");
+    ui.companionGame = { childId, hits:0, goal:8, position:-1 };
+    openModal("Ballspiel", companionGameMarkup(child), { wide:true });
+    requestAnimationFrame(positionCompanionGameBall);
+  }
+
+  function hitCompanionGameBall() {
+    const game = ui.companionGame;
+    if (!game) return;
+    game.hits += 1;
+    const counter = document.querySelector("[data-game-hits]");
+    if (counter) counter.textContent = String(game.hits);
+    const companion = document.querySelector(".game-companion");
+    companion?.classList.remove("game-companion-jump");
+    requestAnimationFrame(() => companion?.classList.add("game-companion-jump"));
+    if (game.hits >= game.goal) return finishCompanionGame(true);
+    positionCompanionGameBall();
+  }
+
+  function finishCompanionGame(completed = false) {
+    const game = ui.companionGame;
+    const child = game ? childById(game.childId) : null;
+    ui.companionGame = null;
+    if (!child) return closeModal();
+    child.companionLastPlayAt = Date.now();
+    data.history.push({ id:uid(), type:"companion_game_played", childId:child.id, completed:Boolean(completed), timestamp:Date.now() });
+    saveData({ snapshot:false });
+    openModal(completed ? "Geschafft!" : "Spiel beendet", `<div class="reward-reveal"><span class="main-emoji">${child.companion}🎾</span><h2>${completed ? "Das war eine schöne Runde!" : "Danke fürs Mitspielen!"}</h2><p class="muted">Das Spiel war nur zum Spaß. Es gibt bewusst keine Münzen, Samen, Sterne oder Rangliste.</p><div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-companion-game-result" data-child-id="${child.id}">Zurück in meine Welt</button></div></div>`);
   }
 
   function findCompanionObject(childId) {
@@ -1776,9 +1947,7 @@
     child.companionNextSearchAt = Date.now() + 86400000 * (3 + Math.random() * 4);
     data.history.push({ id:uid(), type:"companion_object_found", childId, item, timestamp:Date.now() });
     saveData({ snapshot:true });
-    ui.companionAction = "play";
-    render();
-    window.setTimeout(() => { if (ui.companionAction === "play") { ui.companionAction = ""; render(); } }, 1900);
+    setCompanionAction(childId, "play", "Da ist es ja! Danke! 😊", 2300);
     openModal("Gefunden!", `<div class="reward-reveal"><span class="main-emoji">${item}</span><h2>Da ist es ja!</h2><p class="muted">${child.companion} freut sich, dass du beim Suchen geholfen hast.</p><p><b>Es gibt dafür bewusst keine Punkte oder Belohnung.</b> Es war einfach eine freiwillige kleine Überraschung.</p><div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-modal">😊 Schön!</button></div></div>`);
   }
 
@@ -2468,14 +2637,23 @@
     if(amount<0) confirmModal({title:'Belohnung wirklich abziehen?',message:`${Math.abs(amount)} ${v.currency==='coins'?'Münzen':v.currency==='seeds'?'Samen':'Sterne'} werden bei ${escapeHtml(child.name)} abgezogen.`,confirmText:'Jetzt abziehen',confirmAction:'confirm-wallet-correction',payload:{'child-id':child.id,'currency':v.currency,'amount':String(amount),'reason':v.reason,'note':String(v.note||'')}}); else execute();
   }
 
+  function weatherCardsMarkup(json) {
+    const d=json?.daily, labels=['Heute','Morgen','Übermorgen'];
+    if (!d?.time?.length) return "";
+    return d.time.slice(0,3).map((date,i)=>{ const info=weatherInfo(d.weather_code[i],d.precipitation_probability_max[i],d.temperature_2m_max[i]); const min=Math.round(d.temperature_2m_min[i]); const max=Math.round(d.temperature_2m_max[i]); const rain=Math.round(d.precipitation_probability_max[i]||0); return `<details class="weather-card"><summary><b>${labels[i]}</b><span class="weather-icon">${info.icon}</span><strong>${min}–${max}°</strong><small>💧 ${rain}%</small></summary><div class="weather-detail"><p>${escapeHtml(info.short)}</p><small>${escapeHtml(info.text)}</small></div></details>`; }).join('');
+  }
+
   async function loadWeatherForecast() {
     const host=document.querySelector('#weatherStrip'); if(!host) return;
+    const cached=readJson(WEATHER_CACHE_KEY);
+    if(cached?.json){ const markup=weatherCardsMarkup(cached.json); if(markup) host.innerHTML=markup; }
+    if(cached?.timestamp && Date.now()-Number(cached.timestamp)<WEATHER_CACHE_MAX_AGE) return;
     try {
       const url=`https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=3`;
       const response=await fetch(url); if(!response.ok) throw new Error('weather'); const json=await response.json();
-      const d=json.daily; const labels=['Heute','Morgen','Übermorgen'];
-      host.innerHTML=d.time.slice(0,3).map((date,i)=>{ const info=weatherInfo(d.weather_code[i],d.precipitation_probability_max[i],d.temperature_2m_max[i]); const min=Math.round(d.temperature_2m_min[i]); const max=Math.round(d.temperature_2m_max[i]); const rain=Math.round(d.precipitation_probability_max[i]||0); return `<details class="weather-card"><summary><b>${labels[i]}</b><span class="weather-icon">${info.icon}</span><strong>${min}–${max}°</strong><small>💧 ${rain}%</small></summary><div class="weather-detail"><p>${escapeHtml(info.short)}</p><small>${escapeHtml(info.text)}</small></div></details>`; }).join('');
-    } catch { host.innerHTML='<div class="weather-loading">🌤️ Die Wettervorschau ist gerade nicht erreichbar. Die Mitmach-Welt funktioniert trotzdem weiter.</div>'; }
+      try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({timestamp:Date.now(),json})); } catch {}
+      if(document.querySelector('#weatherStrip')===host){ const markup=weatherCardsMarkup(json); if(markup) host.innerHTML=markup; }
+    } catch { if(!cached?.json) host.innerHTML='<div class="weather-loading">🌤️ Die Wettervorschau ist gerade nicht erreichbar. Die Mitmach-Welt funktioniert trotzdem weiter.</div>'; }
   }
   function weatherInfo(code,rain,max){
     if([95,96,99].includes(code)) return {icon:'⛈️',short:'Gewitter möglich',text:'Bei dunklen Wolken bleibt ihr besser in der Nähe.'};
@@ -3362,6 +3540,15 @@
       case "remove-companion": { const child=childById(actionElement.dataset.childId); if(child){ child.companion="none"; child.companionSearch=null; saveData({snapshot:true}); closeModal(); render(); showToast("Begleiter wurde ausgeblendet."); } break; }
       case "save-companion-motion": { const child=childById(actionElement.dataset.childId); const select=document.querySelector("#companionMotionSelect"); if(child&&select){ child.companionMotion=["off","calm","lively"].includes(select.value)?select.value:"calm"; saveData({snapshot:true}); closeModal(); render(); showToast("Bewegung wurde gespeichert."); } break; }
       case "companion-interact": runCompanionInteraction(actionElement.dataset.childId, actionElement.dataset.companionAction || "wave"); break;
+      case "open-companion-rest": openCompanionRestPicker(actionElement.dataset.childId); break;
+      case "start-companion-rest": startCompanionRest(actionElement.dataset.childId, Number(actionElement.dataset.hours)); break;
+      case "wake-companion": wakeCompanion(actionElement.dataset.childId); break;
+      case "open-companion-food": openCompanionFoodPicker(actionElement.dataset.childId); break;
+      case "feed-companion": feedCompanion(actionElement.dataset.childId, actionElement.dataset.foodType); break;
+      case "open-companion-game": openCompanionGame(actionElement.dataset.childId); break;
+      case "hit-companion-game-ball": hitCompanionGameBall(); break;
+      case "finish-companion-game": finishCompanionGame(false); break;
+      case "close-companion-game-result": { const childId=actionElement.dataset.childId; closeModal(); if(ui.screen==="world"&&ui.childId===childId) setCompanionAction(childId,"play","Das hat Spaß gemacht! 🎾",2300); break; }
       case "find-companion-object": findCompanionObject(actionElement.dataset.childId); break;
       case "dismiss-companion-search": { const child=childById(actionElement.dataset.childId); if(child){ child.companionSearch=null; child.companionNextSearchAt=Date.now()+86400000*(3+Math.random()*4); saveData({snapshot:true}); render(); } break; }
       case "world-item-reaction": { const item=itemById(actionElement.dataset.itemId); showToast(item ? `${item.icon} ${item.title} gehört zu deinem Bereich.` : "Gegenstand"); break; }
@@ -3711,9 +3898,15 @@
     }
   });
 
+  let taskSearchFrame = 0;
+  function scheduleTaskSearch(scope) {
+    cancelAnimationFrame(taskSearchFrame);
+    taskSearchFrame = requestAnimationFrame(() => applyTaskSearchFilters(scope));
+  }
+
   document.addEventListener("input", event => {
-    if (event.target.id === "childTaskSearch") { ui.childTaskSearch = event.target.value; applyTaskSearchFilters("child"); }
-    if (event.target.id === "adminTaskSearch") { ui.adminTaskSearch = event.target.value; applyTaskSearchFilters("admin"); }
+    if (event.target.id === "childTaskSearch") { ui.childTaskSearch = event.target.value; scheduleTaskSearch("child"); }
+    if (event.target.id === "adminTaskSearch") { ui.adminTaskSearch = event.target.value; scheduleTaskSearch("admin"); }
   });
 
   document.addEventListener("change", event => {
@@ -3729,6 +3922,22 @@
     });
     if(data.settings.autoApproveEnabled){ const [h,m]=String(data.settings.autoApproveTime||"21:00").split(":").map(Number); const cutoff=h*60+m; if(minutesNow()>=cutoff){ data.claims.filter(c=>c.status==="reported"&&c.date===todayKey()).forEach(claim=>{ const task=taskById(claim.taskId); if(task && task.autoApprove!==false && !task.requiresManualReview && Number(task.stars||0)===0 && claim.childIds.length===plannedChildrenForClaim(claim,task)){ if(reviewClaim(claim.id,"approve")){ claim.autoApproved=true; data.history.push({id:uid(),type:"task_auto_approved",claimId:claim.id,timestamp:now}); changed=true; } } }); } }
     if(changed) saveData({snapshot:true,notify:true});
+    return changed;
+  }
+
+  function refreshCompanionMinuteDisplay() {
+    if (ui.screen !== "world" || !ui.childId) return;
+    const child = childById(ui.childId);
+    if (!child) return;
+    const remaining = companionRestRemaining(child);
+    const speech = document.querySelector("[data-companion-speech]");
+    if (remaining > 0 && speech) speech.textContent = companionSpeech(child, child.companionSearch);
+    if (remaining <= 0 && Number(child.companionRestUntil || 0) > 0) {
+      child.companionRestUntil = 0;
+      child.companionRestStartedAt = 0;
+      saveData({ notify:false });
+      render();
+    }
   }
 
   function registerServiceWorker() {
@@ -3754,7 +3963,7 @@
   applyPreferences();
   registerServiceWorker();
   runDailyAutomation();
-  setInterval(()=>{ runDailyAutomation(); render(); },60000);
+  setInterval(()=>{ if (runDailyAutomation()) render(); else refreshCompanionMinuteDisplay(); },60000);
   render();
 
   // Kleine Diagnosehilfe für lokale Tests. Enthält keine personenbezogenen Daten.
