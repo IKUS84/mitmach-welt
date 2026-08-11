@@ -1,23 +1,24 @@
-# Mitmach-Welt 2.9.0 – Tempo und Begleiter-Interaktionen
+# Mitmach-Welt 2.9.1 – Aufgaben-Sync und 12-Stunden-Automatik
 
 ## Neu in dieser Version
 
-- Die App reagiert schneller: keine vollständige Neudarstellung mehr jede Minute, weniger blockierende Speicherzugriffe, zwischengespeichertes Wetter und verzögerte Live-Suche.
-- Begleiter können für **1, 4, 8 oder 12 Stunden** schlafen.
-- Während des Schlafens erscheint **Zzz** über dem Begleiter und die verbleibende Zeit wird angezeigt.
-- Ein Begleiter kann jederzeit ohne Nachteile sanft geweckt werden.
-- Beim Essen stehen drei freiwillige Bereiche zur Auswahl: **etwas Süßes**, **Obst oder Gemüse** und **ein Hauptgericht**.
-- Essen kostet keine Samen oder Münzen und erzeugt keine Hungeranzeige.
-- Neues freiwilliges **Ball-Minispiel** ohne Zeitdruck, Rangliste oder Belohnung.
-- Begleiteraktionen aktualisieren die Welt möglichst direkt, ohne jedes Mal die komplette Seite neu aufzubauen.
-- Alle Funktionen aus Version 2.8.2 bleiben erhalten.
+- Erledigt gemeldete Aufgaben werden nicht mehr nur am selben Kalendertag um 21:00 Uhr automatisch geprüft.
+- Normale, dafür freigegebene Aufgaben werden **12 Stunden nach der Erledigt-Meldung automatisch bestätigt**, wenn vorher kein Erzieher reagiert hat.
+- Die Prüfung wird beim Öffnen der App, beim Zurückkehren in die App und anschließend regelmäßig nachgeholt. War kein Gerät aktiv, erfolgt die Gutschrift beim nächsten Öffnen.
+- Gruppenaufgaben, die bewusst von weniger Kindern oder von einem Kind allein erledigt wurden, können ebenfalls nach 12 Stunden automatisch bestätigt werden, sofern die tatsächlichen Teilnehmer beim Erledigt-Melden eindeutig festgelegt wurden.
+- Aufgaben mit Sternen, ausdrücklich deaktivierter Automatik oder der Einstellung **„Immer manuell prüfen“** bleiben von der automatischen Bestätigung ausgenommen.
+- Der Geräteabgleich schützt jetzt reservierte und erledigt gemeldete Aufgaben des Kinder-Tablets davor, durch einen parallel neueren, aber unvollständigen Datenstand des Erziehergeräts überschrieben zu werden.
+- Dadurch erscheinen erledigt gemeldete Aufgaben zuverlässig im Erzieherbereich unter **Bestätigen**.
+- Bereits auf dem Kinder-Tablet vorhandene offene Meldungen werden beim erneuten Geräteabgleich wieder in den gemeinsamen Stand übernommen.
+- Offline-Cache und Versionsanzeige wurden auf **2.9.1** aktualisiert.
+- Alle Funktionen aus Version 2.9.0 bleiben erhalten.
 
-## Installation
+## Nach dem Update
 
-1. ZIP-Datei entpacken.
-2. Alle zehn Dateien in das GitHub-Repository übernehmen und die bisherigen Dateien ersetzen.
-3. Commit-Vorschlag: `Mitmach-Welt 2.9.0 – Tempo und Begleiter-Interaktionen`
-4. Veröffentlichung von GitHub Pages abwarten.
-5. Die App auf Diensthandy und Kinder-Tablet neu öffnen und eine angebotene Aktualisierung installieren.
+1. GitHub Pages die neue Version veröffentlichen lassen.
+2. App auf Kinder-Tablet und Erziehergerät vollständig öffnen.
+3. Eine angebotene Aktualisierung mit **„Jetzt laden“** übernehmen.
+4. Beide Geräte für einen Moment gleichzeitig online lassen, damit vorhandene offene Aufgaben zusammengeführt werden können.
+5. Im Erzieherbereich unter **Bestätigen** prüfen, ob die vom Kinder-Tablet erledigt gemeldeten Aufgaben erscheinen.
 
-Eine Datensicherung ist optional. Vorhandene Kinder, Aufgaben, Kontostände, Missionen, Belohnungen, Welten und Verläufe werden übernommen.
+Vorhandene Kinder, Aufgaben, Kontostände, Missionen, Belohnungen, Welten und Verläufe bleiben erhalten.
