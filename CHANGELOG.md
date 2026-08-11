@@ -1,3 +1,14 @@
+# Version 3.0.1 – Aufgaben-Sync & 12-Stunden-Bestätigung
+
+- Vollständiger Funktionsstand aus Version 3.0.0 bleibt erhalten.
+- Automatische Aufgabenbestätigung jetzt 12 Stunden nach der Erledigt-Meldung statt nur am selben Tag ab 21:00 Uhr.
+- Überfällige Bestätigungen werden beim nächsten App-Start beziehungsweise bei der nächsten regelmäßigen Prüfung nachgeholt.
+- Offene Erledigt-Meldungen bleiben für Kinder über den Tageswechsel hinaus sichtbar.
+- Geräte-Synchronisierung führt Aufgaben-Claims gezielt zusammen; offene Reservierungen und Erledigt-Meldungen können nicht mehr allein durch einen neueren vollständigen Datenstand des anderen Geräts verschwinden.
+- Zusammengeführte Aufgabenstände werden wieder an die verbundenen Geräte veröffentlicht.
+- Tagesmissionen-Sync aus 2.8.1 bleibt erhalten.
+- Versionsanzeige und Offline-Cache auf 3.0.1 aktualisiert.
+
 # Version 3.0.0 – neue Begleiter-Minispiele
 
 - Neuer Spiele-Auswahldialog in der persönlichen Welt.

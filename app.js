@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "3.0.0";
+  const APP_VERSION = "3.0.1";
   const SCHEMA_VERSION = 8;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -826,7 +826,7 @@
       const allocation = allocationForChild(claim, task, childId);
       items.push({
         id:`task-${claim.id}`, type:"task", timestamp:claim.reviewedAt, icon:task.icon, title:task.title,
-        detail:claim.autoApproved ? "Automatisch am Tagesende bestätigt" : "Aufgabe bestätigt",
+        detail:claim.autoApproved ? "Automatisch nach 12 Stunden bestätigt" : "Aufgabe bestätigt",
         reward:allocation, claimId:claim.id, undoable:true
       });
     });
@@ -1504,7 +1504,7 @@
   function renderChildTasks() {
     const child = childById(ui.childId);
     if (!child) return renderMissingChild();
-    const todaysClaims = claimsForChild(child.id, todayKey()).filter(claim => ["reserved","reported"].includes(claim.status));
+    const todaysClaims = data.claims.filter(claim => claim.childIds.includes(child.id) && ["reserved","reported"].includes(claim.status));
     const allToday = tasksForToday();
     const visibleTasks = allToday
       .map(task => ({ task, eligibility:taskAgeEligibility(child, task) }))
@@ -1539,7 +1539,7 @@
                 <span class="chip">pro Kind: 🪙 ${task.coins} · 🌱 ${task.seeds}${task.stars ? ` · ⭐ ${task.stars}` : ""}</span>${readiness.required > 1 ? `<span class="chip team">Gesamt: ${allocationText(groupRewardTotals(task, readiness.required))}</span>` : ""}
               </div>
             </div>
-            <span class="chip ${claim.status === "reported" ? "pending" : "warning"}">${claim.status === "reported" ? "Wartet auf Abendrunde" : "Ausgewählt"}</span>
+            <span class="chip ${claim.status === "reported" ? "pending" : "warning"}">${claim.status === "reported" ? "Wartet auf Bestätigung" : "Ausgewählt"}</span>
           </div>
           ${readiness.required > 1 || claim.ageSupportRequired ? `
             <div style="margin-top:12px">
@@ -1602,7 +1602,7 @@
       </section>
       <div class="section">
         <div class="priority-task-block">
-          <div class="section-heading"><div><h2>Meine ausgewählten Aufgaben</h2><p>Das steht jetzt zuerst: Was noch zu tun ist und was schon auf die Abendrunde wartet.</p></div>${todaysClaims.length ? `<span class="chip pending">${todaysClaims.length} offen</span>` : ""}</div>
+          <div class="section-heading"><div><h2>Meine ausgewählten Aufgaben</h2><p>Das steht jetzt zuerst: Was noch zu tun ist und was bereits auf Bestätigung wartet.</p></div>${todaysClaims.length ? `<span class="chip pending">${todaysClaims.length} offen</span>` : ""}</div>
           <div class="task-list">${selectedHtml}</div>
         </div>
         <div class="available-task-block">
@@ -2661,7 +2661,7 @@
         <section class="help-topic"><h3>🌱 Tagesmissionen</h3><p>Das Kind schätzt sich zuerst selbst ein. Die endgültige Auswertung und Belohnung erfolgt gemeinsam mit einem Erzieher.</p></section>
         <section class="help-topic"><h3>🪙 🌱 ⭐ Bedeutung</h3><p><b>Münzen</b> bezahlen reale Belohnungen. <b>Samen</b> gestalten den eigenen Bereich. <b>Sterne</b> sind seltene besondere Anerkennungen.</p></section>
         <section class="help-topic"><h3>👥 Gruppenaufgaben</h3><p>Es werden die Kinder ausgewählt, die tatsächlich mitgemacht haben. Die vorgesehene Gesamtbelohnung kann fair auf sie verteilt werden.</p></section>
-        <section class="help-topic"><h3>🔄 Automatik</h3><p>Nur erledigt gemeldete und dafür freigegebene Aufgaben werden am Tagesende automatisch bestätigt. Besondere Aufgaben können weiterhin eine manuelle Prüfung verlangen.</p></section>
+        <section class="help-topic"><h3>🔄 Automatik</h3><p>Erledigt gemeldete und dafür freigegebene Aufgaben werden nach 12 Stunden automatisch bestätigt, wenn vorher kein Erzieher entscheidet. Besondere Aufgaben können weiterhin eine manuelle Prüfung verlangen.</p></section>
         <section class="help-topic"><h3>🧾 Verlauf</h3><p>Unter „Kinder“ können die Aktivitäten der letzten 3, 7 oder 30 Tage angesehen und fehlerhafte Bestätigungen zurückgenommen werden.</p></section>
         <section class="help-topic"><h3>🐾 Begleiter & Spiele</h3><p>Im eigenen Bereich kann das Kind freiwillig mit dem Begleiter interagieren. Ballspiel, Memory, Hindernislauf und Tanzspiel geben bewusst keine Münzen, Samen oder Sterne.</p></section>
       </div>
@@ -2746,7 +2746,7 @@
     const pendingWishes = data.wishRequests.filter(request => request.status === "pending");
     const activityChildren = activeChildren().map(child => ({ child, items:childActivityItems(child.id, 3) }));
     return `
-      <div class="section-heading"><div><h2>🌙 Abendrunde</h2><p>Offene und erledigt gemeldete Aufgaben stehen bewusst ganz oben.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
+      <div class="section-heading"><div><h2>✅ Offene Bestätigungen</h2><p>Erledigt gemeldete Aufgaben stehen bewusst ganz oben.</p></div>${reported.length ? `<button class="success-button small-button" type="button" data-action="approve-all-claims">Alle ${reported.length} bestätigen</button>` : ""}</div>
 
       <div class="panel priority-panel">
         <h3>📌 Aktuell ausgewählte Aufgaben (${reserved.length})</h3>
@@ -3166,7 +3166,7 @@
           <div class="form-field"><label>Erledigt meldbar ab</label><input name="reportableFrom" type="time" value="${task?.reportableFrom || task?.reservableFrom || "00:00"}"></div>
           <div class="form-field"><label>Verfügbar bis</label><input name="availableUntil" type="time" value="${task?.availableUntil || "23:59"}"></div>
           <div class="form-field"><label>Reservierung läuft ab nach</label><select name="reservationMinutes">${[30,60,90,120,180,240,360].map(m=>`<option value="${m}" ${Number(task?.reservationMinutes || 120)===m?"selected":""}>${m<60?`${m} Minuten`:`${m/60} Stunde${m===60?"":"n"}`}</option>`).join("")}</select></div>
-          <div class="form-field"><label><input name="autoApprove" type="checkbox" ${task?.autoApprove !== false ? "checked" : ""} style="width:auto"> Tagesend-Bestätigung erlauben</label></div>
+          <div class="form-field"><label><input name="autoApprove" type="checkbox" ${task?.autoApprove !== false ? "checked" : ""} style="width:auto"> Automatische Bestätigung nach 12 Stunden erlauben</label></div>
           <div class="form-field full"><label><input name="requiresManualReview" type="checkbox" ${task?.requiresManualReview ? "checked" : ""} style="width:auto"> Immer manuell prüfen (z. B. Gruppen-, Bonus- oder Sternaufgabe)</label></div>
           <div class="form-field full"><label>Verfügbar an</label><div class="checkbox-grid">${DAY_NAMES.map((day,index) => `<label class="check-chip"><input type="checkbox" name="days" value="${index}" ${(task?.days || [0,1,2,3,4,5,6]).includes(index) ? "checked" : ""}><span>${day}</span></label>`).join("")}</div></div>
         </div>
@@ -4156,7 +4156,23 @@
     data.claims.forEach(claim=>{
       if(claim.status==="reserved" && claim.expiresAt && claim.expiresAt<=now){ claim.status="released"; claim.releasedAt=now; data.history.push({id:uid(),type:"reservation_auto_released",claimId:claim.id,timestamp:now}); changed=true; }
     });
-    if(data.settings.autoApproveEnabled){ const [h,m]=String(data.settings.autoApproveTime||"21:00").split(":").map(Number); const cutoff=h*60+m; if(minutesNow()>=cutoff){ data.claims.filter(c=>c.status==="reported"&&c.date===todayKey()).forEach(claim=>{ const task=taskById(claim.taskId); if(task && task.autoApprove!==false && !task.requiresManualReview && Number(task.stars||0)===0 && claim.childIds.length===plannedChildrenForClaim(claim,task)){ if(reviewClaim(claim.id,"approve")){ claim.autoApproved=true; data.history.push({id:uid(),type:"task_auto_approved",claimId:claim.id,timestamp:now}); changed=true; } } }); } }
+    if(data.settings.autoApproveEnabled){
+      const delayMs = 12 * 60 * 60 * 1000;
+      data.claims.filter(claim => claim.status === "reported" && Number(claim.reportedAt || 0) > 0 && now - Number(claim.reportedAt || 0) >= delayMs).forEach(claim=>{
+        const task=taskById(claim.taskId);
+        if(task && task.autoApprove!==false && !task.requiresManualReview && Number(task.stars||0)===0 && Array.isArray(claim.childIds) && claim.childIds.length){
+          const reportedAt = Number(claim.reportedAt || 0);
+          if(reviewClaim(claim.id,"approve","Automatisch bestätigt: 12 Stunden nach der Erledigt-Meldung ohne Erzieherentscheidung.")){
+            claim.autoApproved=true;
+            claim.autoApprovedAfterHours=12;
+            claim.autoApprovedAt=Number(claim.reviewedAt || now);
+            claim.autoApprovalSource="reported-plus-12h";
+            data.history.push({id:uid(),type:"task_auto_approved_12h",claimId:claim.id,reportedAt,approvedAt:Number(claim.reviewedAt || now),delayHours:12,timestamp:now});
+            changed=true;
+          }
+        }
+      });
+    }
     if(changed) saveData({snapshot:true,notify:true});
     return changed;
   }

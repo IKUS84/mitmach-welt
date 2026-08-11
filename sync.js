@@ -777,6 +777,74 @@
     }
   }
 
+  function claimMoment(claim) {
+    return Math.max(
+      Number(claim?.reportedAt || 0),
+      Number(claim?.createdAt || 0)
+    );
+  }
+
+  function mergePendingTaskClaims(baseEntries, otherEntries) {
+    const result = (Array.isArray(baseEntries) ? baseEntries : []).map(claim => ({ ...claim }));
+    const byId = new Map(result.map((claim,index) => [claim?.id,index]).filter(([id]) => Boolean(id)));
+    (Array.isArray(otherEntries) ? otherEntries : []).forEach(other => {
+      if (!other?.id || !["reserved","reported"].includes(other.status)) return;
+      const index = byId.get(other.id);
+      if (index === undefined) {
+        result.push({ ...other });
+        byId.set(other.id, result.length - 1);
+        return;
+      }
+      const base = result[index];
+      if (!["reserved","reported"].includes(base?.status)) return;
+      if (base.status === "reserved" && other.status === "reported") {
+        result[index] = { ...base, ...other };
+        return;
+      }
+      if (base.status === other.status && claimMoment(other) > claimMoment(base)) {
+        result[index] = { ...base, ...other };
+      }
+    });
+    return result;
+  }
+
+  function sameTaskClaims(left, right) {
+    try {
+      const normalize = entries => (Array.isArray(entries) ? entries : [])
+        .map(claim => ({
+          id:claim?.id || "", taskId:claim?.taskId || "", status:claim?.status || "",
+          childIds:[...(claim?.childIds || [])].sort(),
+          reportedAt:Number(claim?.reportedAt || 0), createdAt:Number(claim?.createdAt || 0)
+        }))
+        .sort((a,b) => String(a.id).localeCompare(String(b.id)));
+      return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+    } catch {
+      return false;
+    }
+  }
+
+  function mergeClaimHistory(baseHistory, otherHistory, claimIds) {
+    const result = Array.isArray(baseHistory) ? baseHistory.map(entry => ({ ...entry })) : [];
+    const seenIds = new Set(result.map(entry => entry?.id).filter(Boolean));
+    const signature = entry => `${entry?.type || ""}|${entry?.claimId || ""}|${Number(entry?.timestamp || 0)}|${entry?.childId || ""}`;
+    const seenSignatures = new Set(result.map(signature));
+    (Array.isArray(otherHistory) ? otherHistory : []).forEach(entry => {
+      if (!entry?.claimId || !claimIds.has(entry.claimId)) return;
+      if ((entry.id && seenIds.has(entry.id)) || seenSignatures.has(signature(entry))) return;
+      result.push({ ...entry });
+      if (entry.id) seenIds.add(entry.id);
+      seenSignatures.add(signature(entry));
+    });
+    return result.sort((a,b) => Number(a?.timestamp || 0) - Number(b?.timestamp || 0));
+  }
+
+  function applyPendingClaimMerge(baseState, otherState, mergedClaims) {
+    const merged = { ...baseState, claims:mergedClaims };
+    const pendingIds = new Set(mergedClaims.filter(claim => ["reserved","reported"].includes(claim?.status)).map(claim => claim.id));
+    merged.history = mergeClaimHistory(baseState?.history, otherState?.history, pendingIds);
+    return merged;
+  }
+
   async function handleRemotePayload(payload) {
     try {
       const remote = await decryptState(payload);
@@ -800,28 +868,43 @@
       const goalEvaluationsChangedRemotely = !sameGoalEvaluations(remote.state?.goalEvaluations, mergedGoalEvaluations);
       const shouldTakeRemote = config.forceRemote || remote.timestamp > meta.updatedAt || (!meta.dirty && wasInitial);
       if (shouldTakeRemote) {
-        const remoteWithMergedGoals = { ...remote.state, goalEvaluations:mergedGoalEvaluations };
-        const saved = API.replaceData(remoteWithMergedGoals, { snapshot: true, notify: false, render: true });
+        const mergedRemoteClaims = mergePendingTaskClaims(remote.state?.claims, localState.claims);
+        const claimsChangedRemotely = !sameTaskClaims(remote.state?.claims, mergedRemoteClaims);
+        let mergedRemoteState = { ...remote.state, goalEvaluations:mergedGoalEvaluations };
+        if (claimsChangedRemotely) mergedRemoteState = applyPendingClaimMerge(mergedRemoteState, localState, mergedRemoteClaims);
+        const saved = API.replaceData(mergedRemoteState, { snapshot: true, notify: false, render: true });
         if (!saved) throw new Error("Der empfangene Datenstand konnte lokal nicht gespeichert werden.");
-        meta.updatedAt = remote.timestamp;
-        meta.lastSyncedAt = Date.now();
-        meta.dirty = false;
         config.forceRemote = false;
-        saveConfig();
-        saveMeta();
-        setStatus("online", `Von ${remote.deviceName} aktualisiert · ${formatTime(meta.lastSyncedAt)}`);
+        meta.lastSyncedAt = Date.now();
+        if (goalEvaluationsChangedRemotely || claimsChangedRemotely) {
+          meta.updatedAt = Math.max(Date.now(), remote.timestamp + 1, meta.updatedAt + 1);
+          meta.dirty = true;
+          saveConfig();
+          saveMeta();
+          setStatus("online", `Änderungen von ${remote.deviceName} zusammengeführt · ${formatTime(meta.lastSyncedAt)}`);
+          publishCurrent({ force:true });
+        } else {
+          meta.updatedAt = remote.timestamp;
+          meta.dirty = false;
+          saveConfig();
+          saveMeta();
+          setStatus("online", `Von ${remote.deviceName} aktualisiert · ${formatTime(meta.lastSyncedAt)}`);
+        }
         API.showToast(`Daten von ${remote.deviceName} wurden übernommen.`);
         return;
       }
 
-      if (goalEvaluationsChangedLocally) {
-        const mergedLocalState = { ...localState, goalEvaluations:mergedGoalEvaluations };
+      const mergedLocalClaims = mergePendingTaskClaims(localState.claims, remote.state?.claims);
+      const claimsChangedLocally = !sameTaskClaims(localState.claims, mergedLocalClaims);
+      if (goalEvaluationsChangedLocally || claimsChangedLocally) {
+        let mergedLocalState = { ...localState, goalEvaluations:mergedGoalEvaluations };
+        if (claimsChangedLocally) mergedLocalState = applyPendingClaimMerge(mergedLocalState, remote.state, mergedLocalClaims);
         const saved = API.replaceData(mergedLocalState, { snapshot:true, notify:false, render:true });
-        if (!saved) throw new Error("Die Tagesmission-Auswertung konnte nicht zusammengeführt werden.");
+        if (!saved) throw new Error("Offene Aufgaben oder Tagesmissionen konnten nicht zusammengeführt werden.");
         meta.updatedAt = Math.max(Date.now(), meta.updatedAt + 1, remote.timestamp + 1);
         meta.dirty = true;
         saveMeta();
-        setStatus("online", `Tagesmission von ${remote.deviceName} übernommen · ${formatTime(Date.now())}`);
+        setStatus("online", `Änderungen von ${remote.deviceName} zusammengeführt · ${formatTime(Date.now())}`);
         publishCurrent({ force:true });
       } else if (meta.dirty && meta.updatedAt >= remote.timestamp) {
         publishCurrent({ force: true });
@@ -1016,7 +1099,7 @@
   if (config.enabled && !restoredHomeScreenPairing) connectSync();
 
   window.MitmachWeltSync = {
-    version: "3.0.0",
+    version: "3.0.1",
     getStatus: () => ({ status, detail: statusDetail, enabled: config.enabled, role: config.role, deviceName: config.deviceName, lastIncomingDevice, meta: { ...meta } }),
     open: openPinPrompt,
     reconnect: connectSync

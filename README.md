@@ -1,3 +1,19 @@
+# Mitmach-Welt 3.0.1 – Aufgaben-Sync & 12-Stunden-Bestätigung
+
+## Korrekturen
+
+- Baut vollständig auf Version 3.0.0 mit allen Begleiter-Spielen auf.
+- Erledigt gemeldete, freigegebene Aufgaben werden 12 Stunden nach der Meldung automatisch bestätigt, wenn vorher kein Erzieher entscheidet.
+- Die Prüfung wird beim Öffnen der App und danach regelmäßig nachgeholt; sie ist nicht mehr an 21:00 Uhr oder den Kalendertag gebunden.
+- Gemeldete Aufgaben bleiben im Kinderbereich sichtbar, auch wenn inzwischen der nächste Tag begonnen hat.
+- Der Geräteabgleich führt Aufgabenstände gezielt zusammen, damit Reservierungen und Erledigt-Meldungen vom Kinder-Tablet nicht durch einen neueren Gesamtstand des Erziehergeräts verloren gehen.
+- Tagesmissionen werden weiterhin gezielt zusammengeführt.
+- Besondere Aufgaben mit Sternen, manueller Prüfung oder ausgeschalteter Automatik bleiben von der automatischen Bestätigung ausgenommen.
+
+## Installation
+
+Alle zehn Dateien im Repository ersetzen. Vorhandene Kinder, Aufgaben, Kontostände, Missionen, Belohnungen und Welten bleiben erhalten.
+
 # Mitmach-Welt 3.0.0 – vier Spiele mit dem Begleiter
 
 ## Neu in dieser Version
