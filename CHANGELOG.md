@@ -1,3 +1,14 @@
+# Version 3.0.2 – iPad-Speicher & Geräte-Sync Hotfix
+
+- Speicherfehler auf iPad/Safari behoben, wenn redundante lokale Vollsicherungen die Browser-Speichergrenze erreichen.
+- Hauptspeicherung und optionale Backup-Speicherung technisch getrennt.
+- Ein Backup-Fehler blockiert nicht mehr den Save-Listener und damit nicht mehr den Geräte-Sync.
+- Bei Quota-Fehlern werden nur ersetzbare Backup-Snapshots und Cache-Daten bereinigt und der Hauptstand erneut geschrieben.
+- Snapshot-Ring auf eine zusätzliche Vollsicherung reduziert; Backup-Intervalle vergrößert.
+- Offene reservierte und erledigt gemeldete Aufgaben bleiben beim Geräteabgleich erhalten und werden zusammengeführt.
+- 12-Stunden-Autobestätigung sowie sämtliche Funktionen aus 3.0.1 und 3.0.0 bleiben erhalten.
+- Versionsanzeigen, Manifest, Synchronisierung und Offline-Cache auf 3.0.2 aktualisiert.
+
 # Version 3.0.1 – Aufgaben-Sync & 12-Stunden-Bestätigung
 
 - Vollständiger Funktionsstand aus Version 3.0.0 bleibt erhalten.

@@ -1,3 +1,13 @@
+# Mitmach-Welt 3.0.2 – iPad-Speicher & Geräte-Sync Hotfix
+
+- Behebt den Fehler „Speichern war nicht möglich. Bitte Browser-Speicher prüfen.“ auf dem Kinder-Tablet.
+- Ein erfolgreich gespeicherter Hauptstand gilt jetzt auch dann als gespeichert, wenn nur eine optionale Zusatzsicherung wegen knappen Browser-Speichers scheitert.
+- Dadurch wird der Sync-Listener wieder zuverlässig ausgelöst und erledigt gemeldete Aufgaben werden an das Erziehergerät übertragen.
+- Bei Speicherknappheit werden ausschließlich ersetzbare Backup-Snapshots und Wettercache automatisch bereinigt; Kinder-, Aufgaben-, Punkte- und Verlaufsdaten werden nicht gelöscht.
+- Der Snapshot-Ring wurde von fünf vollständigen Kopien auf eine zusätzliche Vollsicherung reduziert.
+- Bereits auf dem Kinder-Tablet vorhandene offene Aufgaben aus 3.0.1 bleiben erhalten und werden beim nächsten erfolgreichen Geräteabgleich zusammengeführt.
+- 12-Stunden-Autobestätigung aus 3.0.1 und alle Begleiter-Spiele aus 3.0.0 bleiben vollständig erhalten.
+
 # Mitmach-Welt 3.0.1 – Aufgaben-Sync & 12-Stunden-Bestätigung
 
 ## Korrekturen

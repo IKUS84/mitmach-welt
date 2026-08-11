@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "3.0.1";
+  const APP_VERSION = "3.0.2";
   const SCHEMA_VERSION = 8;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -616,43 +616,108 @@
   let lastSavedSerialized = localStorage.getItem(STORAGE_KEY) || "";
   const saveListeners = new Set();
 
+  function isStorageQuotaError(error) {
+    return Boolean(error && (
+      error.name === "QuotaExceededError" ||
+      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      Number(error.code) === 22 ||
+      Number(error.code) === 1014
+    ));
+  }
+
+  function freeRedundantStorage() {
+    // Nur ersetzbare Kopien/Caches entfernen – niemals den aktuellen Hauptstand.
+    // Auf iPad/Safari kann localStorage durch mehrere vollständige Sicherungen
+    // an die Speichergrenze geraten.
+    try { localStorage.removeItem(BACKUP_RING_KEY); } catch {}
+    try { localStorage.removeItem(WEATHER_CACHE_KEY); } catch {}
+  }
+
+  function writePrimaryState(serialized) {
+    try {
+      localStorage.setItem(STORAGE_KEY, serialized);
+      return true;
+    } catch (error) {
+      if (!isStorageQuotaError(error)) throw error;
+      freeRedundantStorage();
+      // Die einfache Sicherung ist ebenfalls nur eine Kopie. Wenn der
+      // Hauptstand wegen Platzmangel nicht geschrieben werden kann, darf sie
+      // für den Rettungsversuch weichen.
+      try { localStorage.removeItem(BACKUP_KEY); } catch {}
+      localStorage.setItem(STORAGE_KEY, serialized);
+      return true;
+    }
+  }
+
+  function writeBackupBestEffort(serialized) {
+    try {
+      localStorage.setItem(BACKUP_KEY, serialized);
+      return true;
+    } catch (error) {
+      if (isStorageQuotaError(error)) {
+        // Ein fehlgeschlagenes Backup darf einen bereits erfolgreich
+        // gespeicherten Hauptstand nicht mehr als Fehler behandeln und vor
+        // allem die Gerätesynchronisierung nicht blockieren.
+        freeRedundantStorage();
+        try { localStorage.setItem(BACKUP_KEY, serialized); return true; } catch {}
+      }
+      console.warn("Mitmach-Welt: Zusatzsicherung konnte nicht geschrieben werden", error);
+      return false;
+    }
+  }
+
   function saveData({ snapshot = false, notify = true } = {}) {
     data.schemaVersion = SCHEMA_VERSION;
     data.appVersion = APP_VERSION;
     const serialized = JSON.stringify(data);
     const changed = serialized !== lastSavedSerialized;
+
     try {
-      // Der Hauptstand wird immer sofort geschrieben. Die zweite Sicherung und
-      // die Lesekontrolle erfolgen gezielt, damit häufige kleine Interaktionen
-      // auf iPhone und Tablet nicht unnötig blockieren.
-      localStorage.setItem(STORAGE_KEY, serialized);
-      if (changed) saveCounter += 1;
-      const needsBackup = snapshot || saveCounter % 10 === 0 || !localStorage.getItem(BACKUP_KEY);
-      if (needsBackup) localStorage.setItem(BACKUP_KEY, serialized);
+      // Kritisch ist nur der Hauptstand. Zusatzsicherungen laufen getrennt und
+      // dürfen einen erfolgreichen Speichervorgang nicht mehr in einen Fehler
+      // verwandeln. Das ist besonders wichtig für den Sync-Listener.
+      writePrimaryState(serialized);
       if (snapshot && localStorage.getItem(STORAGE_KEY) !== serialized) throw new Error("Speicherprüfung fehlgeschlagen");
-      lastSavedSerialized = serialized;
-      if (changed && (snapshot || saveCounter % 12 === 0)) saveSnapshot(serialized);
-      applyPreferences();
-      if (notify && changed) {
-        saveListeners.forEach(listener => {
-          try { listener(); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
-        });
-      }
-      return true;
     } catch (error) {
-      console.error("Mitmach-Welt: Speichern fehlgeschlagen", error);
+      console.error("Mitmach-Welt: Hauptstand konnte nicht gespeichert werden", error);
       showToast("Speichern war nicht möglich. Bitte Browser-Speicher prüfen.");
       applyPreferences();
       return false;
     }
+
+    if (changed) saveCounter += 1;
+    const needsBackup = snapshot || saveCounter % 25 === 0 || !localStorage.getItem(BACKUP_KEY);
+    if (needsBackup) writeBackupBestEffort(serialized);
+
+    lastSavedSerialized = serialized;
+    if (changed && (snapshot || saveCounter % 30 === 0)) saveSnapshot(serialized);
+    applyPreferences();
+
+    // Sobald der Hauptstand sicher geschrieben wurde, muss der Sync immer
+    // informiert werden – auch wenn eine optionale Sicherung keinen Platz hatte.
+    if (notify && changed) {
+      saveListeners.forEach(listener => {
+        try { listener(); } catch (error) { console.error("Mitmach-Welt: Speicher-Listener fehlgeschlagen", error); }
+      });
+    }
+    return true;
   }
 
   function saveSnapshot(serialized = JSON.stringify(data)) {
+    const snapshot = { createdAt:Date.now(), appVersion:APP_VERSION, data:JSON.parse(serialized) };
     try {
       const ring = readJson(BACKUP_RING_KEY) || [];
-      ring.unshift({ createdAt:Date.now(), appVersion:APP_VERSION, data:JSON.parse(serialized) });
-      localStorage.setItem(BACKUP_RING_KEY, JSON.stringify(ring.slice(0,5)));
-    } catch {}
+      ring.unshift(snapshot);
+      // Eine zusätzliche Vollsicherung genügt; Hauptstand + BACKUP_KEY bleiben
+      // davon unberührt. Das vermeidet das Aufblähen von iPad-localStorage.
+      localStorage.setItem(BACKUP_RING_KEY, JSON.stringify(ring.slice(0,1)));
+    } catch (error) {
+      if (!isStorageQuotaError(error)) return;
+      try {
+        localStorage.removeItem(BACKUP_RING_KEY);
+        localStorage.setItem(BACKUP_RING_KEY, JSON.stringify([snapshot]));
+      } catch {}
+    }
   }
 
   function applyPreferences() {
