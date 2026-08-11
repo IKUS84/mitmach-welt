@@ -1,3 +1,17 @@
+# Version 3.0.0 – neue Begleiter-Minispiele
+
+- Neuer Spiele-Auswahldialog in der persönlichen Welt.
+- Ballspiel bleibt vollständig erhalten.
+- Neues Memory mit sechs Bildpaaren.
+- Neuer freiwilliger Hindernislauf ohne Zeitdruck oder Verlieren.
+- Neues Tanzspiel mit drei kurzen Bewegungsrunden.
+- Alle Minispiele bleiben ohne Münzen, Samen, Sterne, Rangliste oder tägliche Serie.
+- Spiele werden nur bei Bedarf geöffnet und belasten die normale Menüführung nicht dauerhaft.
+- Versionsanzeigen, Manifest, Synchronisierung und Offline-Cache auf 3.0.0 aktualisiert.
+- Alle Funktionen aus Version 2.9.0 bleiben erhalten.
+
+---
+
 # Version 2.9.0 – Tempo und Begleiter-Interaktionen
 
 - Vollständige automatische Neudarstellung im Minutentakt entfernt; die Ansicht wird nur noch aktualisiert, wenn sich wirklich etwas geändert hat.

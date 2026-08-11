@@ -1033,3 +1033,192 @@ body[data-screen="educator"] .educator-simple-layout { padding-top:0; }
   .rest-choice-grid { grid-template-columns:repeat(2,1fr); }
   .companion-game-arena { min-height:310px; }
 }
+
+/* Version 3.0.0: Begleiter-Spielauswahl und weitere Minispiele */
+.companion-game-menu { display:grid; gap:14px; }
+.companion-game-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.companion-game-choice {
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+  color:var(--ink);
+  padding:16px 14px;
+  min-height:148px;
+  display:grid;
+  grid-template-rows:auto auto 1fr;
+  place-items:center;
+  align-content:start;
+  gap:7px;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:var(--shadow-soft);
+}
+.companion-game-choice > span { font-size:2.55rem; line-height:1; }
+.companion-game-choice > b { font-size:1rem; }
+.companion-game-choice > small { color:var(--muted); font-size:.76rem; line-height:1.35; }
+.companion-game-choice:active { transform:scale(.985); }
+
+.companion-memory-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.companion-memory-card {
+  position:relative;
+  min-height:82px;
+  border:1px solid rgba(65,105,79,.18);
+  border-radius:17px;
+  background:linear-gradient(145deg,#f7cf63,#f3bd38);
+  color:var(--ink);
+  box-shadow:var(--shadow-soft);
+  cursor:pointer;
+  overflow:hidden;
+}
+.companion-memory-card > span {
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  transition:opacity .16s ease,transform .16s ease;
+}
+.memory-card-back { font-size:1.5rem; font-weight:950; }
+.memory-card-face { font-size:2rem; opacity:0; transform:scale(.78); background:#fffdf5; }
+.companion-memory-card.revealed .memory-card-back,
+.companion-memory-card.matched .memory-card-back { opacity:0; transform:scale(.78); }
+.companion-memory-card.revealed .memory-card-face,
+.companion-memory-card.matched .memory-card-face { opacity:1; transform:scale(1); }
+.companion-memory-card.matched { outline:2px solid rgba(85,165,213,.34); }
+
+.companion-obstacle-arena {
+  position:relative;
+  min-height:300px;
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid rgba(65,105,79,.18);
+  background:linear-gradient(#c8eaff 0 58%,#b7dd8f 58% 100%);
+}
+.obstacle-track {
+  position:absolute;
+  left:0; right:0; bottom:20%;
+  height:4px;
+  background:rgba(72,88,73,.18);
+}
+.obstacle-companion {
+  position:absolute;
+  left:22%;
+  bottom:21%;
+  transform:translateX(-50%);
+  font-size:4.6rem;
+  z-index:3;
+  filter:drop-shadow(0 9px 8px rgba(30,45,35,.18));
+}
+.obstacle-item {
+  position:absolute;
+  left:62%;
+  bottom:22%;
+  font-size:2.9rem;
+  z-index:2;
+}
+.obstacle-finish {
+  position:absolute;
+  right:7%;
+  bottom:24%;
+  font-size:2.5rem;
+  opacity:.86;
+}
+.obstacle-companion-jump { animation:obstacle-companion-jump .52s ease-in-out; }
+.obstacle-item-pass { animation:obstacle-item-pass .52s linear; }
+@keyframes obstacle-companion-jump {
+  0%,100% { transform:translateX(-50%) translateY(0) rotate(0); }
+  48% { transform:translateX(55%) translateY(-88px) rotate(8deg); }
+}
+@keyframes obstacle-item-pass {
+  0% { transform:translateX(0); opacity:1; }
+  100% { transform:translateX(-115px); opacity:.25; }
+}
+.obstacle-jump-button { min-height:56px; font-size:1rem; }
+
+.companion-dance-stage {
+  min-height:285px;
+  border-radius:24px;
+  border:1px solid rgba(65,105,79,.18);
+  background:linear-gradient(145deg,#f7f0ff,#e7f5ff);
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:16px;
+  padding:20px;
+  text-align:center;
+  overflow:hidden;
+}
+.dance-companion {
+  font-size:5rem;
+  line-height:1;
+  filter:drop-shadow(0 10px 8px rgba(30,45,35,.18));
+}
+.dance-sequence { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+.dance-sequence span {
+  width:48px; height:48px;
+  border-radius:15px;
+  background:rgba(255,255,255,.82);
+  display:grid;
+  place-items:center;
+  font-size:1.55rem;
+  box-shadow:0 6px 14px rgba(30,45,35,.08);
+}
+.dance-sequence-pulse span { animation:dance-sequence-pulse .7s ease-in-out; }
+@keyframes dance-sequence-pulse { 50% { transform:scale(1.13); } }
+.companion-dance-stage p { margin:0; color:var(--muted); font-size:.86rem; }
+.dance-controls {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.dance-controls button {
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  border-radius:16px;
+  min-height:74px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:2px;
+  cursor:pointer;
+  box-shadow:var(--shadow-soft);
+}
+.dance-controls button span { font-size:1.6rem; }
+.dance-controls button small { font-size:.66rem; font-weight:850; color:var(--muted); }
+.dance-move-clap { animation:dance-clap .4s ease; }
+.dance-move-jump { animation:dance-jump .4s ease; }
+.dance-move-turn { animation:dance-turn .4s ease; }
+.dance-move-step { animation:dance-step .4s ease; }
+@keyframes dance-clap { 50% { transform:scale(1.18); } }
+@keyframes dance-jump { 50% { transform:translateY(-34px); } }
+@keyframes dance-turn { 100% { transform:rotate(360deg); } }
+@keyframes dance-step { 50% { transform:translateX(34px); } }
+
+.reduce-motion .companion-game-choice,
+.reduce-motion .companion-memory-card > span,
+.reduce-motion .obstacle-companion-jump,
+.reduce-motion .obstacle-item-pass,
+.reduce-motion .dance-sequence-pulse span,
+.reduce-motion .dance-move-clap,
+.reduce-motion .dance-move-jump,
+.reduce-motion .dance-move-turn,
+.reduce-motion .dance-move-step { animation:none!important; transition:none!important; }
+
+@media (max-width:620px) {
+  .companion-game-grid { grid-template-columns:1fr 1fr; }
+  .companion-game-choice { min-height:132px; padding:13px 10px; }
+  .companion-game-choice > span { font-size:2.25rem; }
+  .companion-memory-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .companion-memory-card { min-height:72px; }
+  .companion-obstacle-arena { min-height:260px; }
+  .dance-controls { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .companion-dance-stage { min-height:245px; }
+}

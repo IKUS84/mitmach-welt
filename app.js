@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2.9.0";
+  const APP_VERSION = "3.0.0";
   const SCHEMA_VERSION = 8;
   const STORAGE_KEY = "mitmach_welt_state_v1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
@@ -1033,7 +1033,7 @@
       </div>`;
   }
 
-  function closeModal() { modalRoot.innerHTML = ""; }
+  function closeModal() { modalRoot.innerHTML = ""; ui.companionGame = null; }
 
   function confirmModal({ title, message, confirmText = "Bestätigen", confirmAction, confirmClass = "primary-button", payload = {} }) {
     const payloadAttrs = Object.entries(payload).map(([key,value]) => `data-${key}="${escapeHtml(value)}"`).join(" ");
@@ -1730,7 +1730,7 @@
     if (quest?.status === "active") return `Ich habe ${quest.item} verlegt. Vielleicht findest du es in meiner Welt.`;
     if (quest?.status === "selfFound") return `Ich habe ${quest.item} selbst wiedergefunden!`;
     if (ui.companionAction === "eat") return child.companionLastFood?.item ? `${child.companionLastFood.item} war lecker! 😊` : "Das war lecker! 😊";
-    if (ui.companionAction === "play") return "Das hat Spaß gemacht! 🎾";
+    if (ui.companionAction === "play") return "Das hat Spaß gemacht! 🎮";
     if (ui.companionAction === "dance") return "Musik an – los geht's! 🎵";
     if (ui.companionAction === "wave") return "Schön, dass du da bist! 👋";
     return "Tippe mich oder einen Gegenstand an.";
@@ -1772,7 +1772,7 @@
 
           <button class="world-interaction world-bed" type="button" data-action="${resting ? "wake-companion" : "open-companion-rest"}" data-child-id="${child.id}" aria-label="${resting ? "Begleiter sanft aufwecken" : "Schlafdauer auswählen"}"><span>${resting ? "⏰" : "🛏️"}</span><small>${resting ? "Aufwecken" : "Ausruhen"}</small></button>
           <button class="world-interaction world-bowl" type="button" data-action="open-companion-food" data-child-id="${child.id}" aria-label="Essen auswählen" ${resting ? "disabled" : ""}><span>🥣</span><small>Essen</small></button>
-          <button class="world-interaction world-ball" type="button" data-action="open-companion-game" data-child-id="${child.id}" aria-label="Ballspiel öffnen" ${resting ? "disabled" : ""}><span>🎾</span><small>Spielen</small></button>
+          <button class="world-interaction world-ball" type="button" data-action="open-companion-game" data-child-id="${child.id}" aria-label="Spiele mit dem Begleiter öffnen" ${resting ? "disabled" : ""}><span>🎾</span><small>Spielen</small></button>
           ${hasMusic ? `<button class="world-interaction world-music" type="button" data-action="companion-interact" data-child-id="${child.id}" data-companion-action="dance" aria-label="Begleiter tanzen lassen" ${resting ? "disabled" : ""}><span>🎵</span><small>Tanzen</small></button>` : ""}
 
           ${quest?.status === "active" ? `<button class="hidden-search-object search-location-${quest.location}" type="button" data-action="find-companion-object" data-child-id="${child.id}" aria-label="Verlegten Gegenstand finden">${quest.item}</button>` : ""}
@@ -1889,14 +1889,49 @@
     setCompanionAction(childId, "eat", `${item} war lecker! 😊`, 2300);
   }
 
-  function companionGameMarkup(child) {
-    return `<div class="companion-game" data-companion-game><div class="companion-game-score"><span>${child.companion} Ballspiel</span><b><span data-game-hits>0</span> / 8 Treffer</b></div><div class="companion-game-arena"><span class="game-companion">${child.companion}</span><button class="companion-game-ball" type="button" data-action="hit-companion-game-ball" aria-label="Ball antippen">🎾</button></div><p class="companion-game-hint">Tippe den Ball an. Es gibt keinen Zeitdruck, keine Punkte und keine Rangliste.</p><div class="modal-actions"><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
+  const COMPANION_GAME_INFO = {
+    ball: { icon:"🎾", title:"Ballspiel", description:"Tippe den Ball an, wenn er durch die Welt springt." },
+    memory: { icon:"🃏", title:"Memory", description:"Finde die passenden Bildpaare aus deiner Welt." },
+    obstacle: { icon:"🏃", title:"Hindernislauf", description:"Springe gemeinsam mit deinem Begleiter über kleine Hindernisse." },
+    dance: { icon:"🎵", title:"Tanzspiel", description:"Merke dir kurze Bewegungsfolgen und tanze sie nach." }
+  };
+
+  function companionGameMenuMarkup(child) {
+    return `<div class="companion-game-menu">
+      <div class="companion-choice-intro"><span>${child.companion}</span><p>Was möchtest du mit deinem Begleiter spielen?</p></div>
+      <div class="companion-game-grid">
+        ${Object.entries(COMPANION_GAME_INFO).map(([id,game]) => `<button class="companion-game-choice" type="button" data-action="start-companion-game" data-child-id="${child.id}" data-game-type="${id}"><span>${game.icon}</span><b>${escapeHtml(game.title)}</b><small>${escapeHtml(game.description)}</small></button>`).join("")}
+      </div>
+      <p class="tiny muted">Alle Spiele sind freiwillig und nur zum Spaß. Es gibt keine Münzen, Samen, Sterne, Ranglisten oder täglichen Serien.</p>
+    </div>`;
+  }
+
+  function openCompanionGame(childId) {
+    const child = childById(childId);
+    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
+    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade.");
+    ui.companionGame = null;
+    openModal("Mit meinem Begleiter spielen", companionGameMenuMarkup(child), { wide:true });
+  }
+
+  function startCompanionGame(childId, gameType) {
+    const child = childById(childId);
+    if (!child || !COMPANION_GAME_INFO[gameType]) return;
+    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade.");
+    if (gameType === "ball") return startCompanionBallGame(child);
+    if (gameType === "memory") return startCompanionMemoryGame(child);
+    if (gameType === "obstacle") return startCompanionObstacleGame(child);
+    if (gameType === "dance") return startCompanionDanceGame(child);
+  }
+
+  function companionBallGameMarkup(child) {
+    return `<div class="companion-game" data-companion-game><div class="companion-game-score"><span>${child.companion} Ballspiel</span><b><span data-game-hits>0</span> / 8 Treffer</b></div><div class="companion-game-arena"><span class="game-companion">${child.companion}</span><button class="companion-game-ball" type="button" data-action="hit-companion-game-ball" aria-label="Ball antippen">🎾</button></div><p class="companion-game-hint">Tippe den Ball an. Es gibt keinen Zeitdruck.</p><div class="modal-actions"><button class="ghost-button" type="button" data-action="back-to-companion-games" data-child-id="${child.id}">Andere Spiele</button><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
   }
 
   function positionCompanionGameBall() {
     const game = ui.companionGame;
     const ball = document.querySelector(".companion-game-ball");
-    if (!game || !ball) return;
+    if (!game || game.type !== "ball" || !ball) return;
     const positions = [[15,18],[72,16],[42,28],[80,52],[18,58],[58,66],[35,78],[76,80],[48,48]];
     let next = Math.floor(Math.random() * positions.length);
     if (next === game.position) next = (next + 1) % positions.length;
@@ -1905,18 +1940,15 @@
     ball.style.top = `${positions[next][1]}%`;
   }
 
-  function openCompanionGame(childId) {
-    const child = childById(childId);
-    if (!child || !child.companion || child.companion === "none") return showToast("Wähle zuerst einen Begleiter aus.");
-    if (companionIsResting(child)) return showToast("Dein Begleiter schläft gerade.");
-    ui.companionGame = { childId, hits:0, goal:8, position:-1 };
-    openModal("Ballspiel", companionGameMarkup(child), { wide:true });
+  function startCompanionBallGame(child) {
+    ui.companionGame = { type:"ball", childId:child.id, hits:0, goal:8, position:-1 };
+    openModal("Ballspiel", companionBallGameMarkup(child), { wide:true });
     requestAnimationFrame(positionCompanionGameBall);
   }
 
   function hitCompanionGameBall() {
     const game = ui.companionGame;
-    if (!game) return;
+    if (!game || game.type !== "ball") return;
     game.hits += 1;
     const counter = document.querySelector("[data-game-hits]");
     if (counter) counter.textContent = String(game.hits);
@@ -1927,15 +1959,212 @@
     positionCompanionGameBall();
   }
 
+  function shuffled(values) {
+    const output = [...values];
+    for (let i = output.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [output[i], output[j]] = [output[j], output[i]];
+    }
+    return output;
+  }
+
+  function companionMemoryMarkup(child, game) {
+    return `<div class="companion-game memory-game"><div class="companion-game-score"><span>${child.companion} Memory</span><b><span data-memory-pairs>${game.matched}</span> / ${game.goal} Paare</b></div><div class="companion-memory-grid">${game.cards.map((card,index) => `<button class="companion-memory-card ${card.matched ? "matched" : ""}" type="button" data-action="flip-companion-memory" data-card-index="${index}" aria-label="Memorykarte ${index+1}"><span class="memory-card-back">?</span><span class="memory-card-face">${card.icon}</span></button>`).join("")}</div><p class="companion-game-hint" data-memory-hint>Finde immer zwei gleiche Bilder. Ohne Zeitdruck und ohne Punktestand.</p><div class="modal-actions"><button class="ghost-button" type="button" data-action="back-to-companion-games" data-child-id="${child.id}">Andere Spiele</button><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
+  }
+
+  function startCompanionMemoryGame(child) {
+    const pool = ["🎾","🍎","🧸","⭐","🌻","🎵","🦋","🍪","🌈","🪁"];
+    const chosen = shuffled(pool).slice(0,6);
+    const cards = shuffled([...chosen,...chosen]).map((icon,index) => ({ id:`memory_${index}_${icon}`, icon, matched:false }));
+    ui.companionGame = { type:"memory", childId:child.id, cards, firstIndex:null, secondIndex:null, lock:false, matched:0, goal:chosen.length };
+    openModal("Memory", companionMemoryMarkup(child,ui.companionGame), { wide:true });
+  }
+
+  function setMemoryCardVisual(index, revealed) {
+    const card = document.querySelector(`.companion-memory-card[data-card-index="${index}"]`);
+    if (!card) return;
+    card.classList.toggle("revealed", Boolean(revealed));
+  }
+
+  function flipCompanionMemory(index) {
+    const game = ui.companionGame;
+    if (!game || game.type !== "memory" || game.lock) return;
+    const cardIndex = Number(index);
+    const card = game.cards[cardIndex];
+    if (!card || card.matched || cardIndex === game.firstIndex) return;
+    setMemoryCardVisual(cardIndex,true);
+    if (game.firstIndex === null) {
+      game.firstIndex = cardIndex;
+      return;
+    }
+    game.secondIndex = cardIndex;
+    const first = game.cards[game.firstIndex];
+    const second = game.cards[game.secondIndex];
+    const firstIndex = game.firstIndex;
+    const secondIndex = game.secondIndex;
+    if (first.icon === second.icon) {
+      first.matched = true;
+      second.matched = true;
+      game.matched += 1;
+      document.querySelector(`.companion-memory-card[data-card-index="${firstIndex}"]`)?.classList.add("matched");
+      document.querySelector(`.companion-memory-card[data-card-index="${secondIndex}"]`)?.classList.add("matched");
+      const counter = document.querySelector("[data-memory-pairs]");
+      if (counter) counter.textContent = String(game.matched);
+      const hint = document.querySelector("[data-memory-hint]");
+      if (hint) hint.textContent = "Gefunden! 😊 Such das nächste Paar.";
+      game.firstIndex = null;
+      game.secondIndex = null;
+      if (game.matched >= game.goal) window.setTimeout(() => { if (ui.companionGame === game) finishCompanionGame(true); }, 450);
+      return;
+    }
+    game.lock = true;
+    const hint = document.querySelector("[data-memory-hint]");
+    if (hint) hint.textContent = "Fast! Schau noch einmal genau hin.";
+    window.setTimeout(() => {
+      if (ui.companionGame !== game) return;
+      setMemoryCardVisual(firstIndex,false);
+      setMemoryCardVisual(secondIndex,false);
+      game.firstIndex = null;
+      game.secondIndex = null;
+      game.lock = false;
+      const currentHint = document.querySelector("[data-memory-hint]");
+      if (currentHint) currentHint.textContent = "Finde immer zwei gleiche Bilder. Ohne Zeitdruck und ohne Punktestand.";
+    }, 750);
+  }
+
+  const OBSTACLE_ICONS = ["🪵","🪨","🌿","📦","🧸","⚽"];
+
+  function companionObstacleMarkup(child, game) {
+    return `<div class="companion-game obstacle-game"><div class="companion-game-score"><span>${child.companion} Hindernislauf</span><b><span data-obstacle-count>${game.jumps}</span> / ${game.goal}</b></div><div class="companion-obstacle-arena"><div class="obstacle-track"></div><span class="obstacle-companion">${child.companion}</span><span class="obstacle-item" data-obstacle-item>${game.obstacles[0]}</span><span class="obstacle-finish">🏁</span></div><p class="companion-game-hint" data-obstacle-hint>Tippe auf „Springen“, wenn ihr bereit seid. Es gibt kein Verlieren.</p><button class="primary-button full-button obstacle-jump-button" type="button" data-action="jump-companion-obstacle">⬆️ Springen</button><div class="modal-actions"><button class="ghost-button" type="button" data-action="back-to-companion-games" data-child-id="${child.id}">Andere Spiele</button><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
+  }
+
+  function startCompanionObstacleGame(child) {
+    const goal = 6;
+    ui.companionGame = { type:"obstacle", childId:child.id, jumps:0, goal, obstacles:Array.from({length:goal}, () => OBSTACLE_ICONS[Math.floor(Math.random()*OBSTACLE_ICONS.length)]), lock:false };
+    openModal("Hindernislauf", companionObstacleMarkup(child,ui.companionGame), { wide:true });
+  }
+
+  function jumpCompanionObstacle() {
+    const game = ui.companionGame;
+    if (!game || game.type !== "obstacle" || game.lock) return;
+    game.lock = true;
+    const companion = document.querySelector(".obstacle-companion");
+    const obstacle = document.querySelector("[data-obstacle-item]");
+    companion?.classList.remove("obstacle-companion-jump");
+    obstacle?.classList.remove("obstacle-item-pass");
+    requestAnimationFrame(() => {
+      companion?.classList.add("obstacle-companion-jump");
+      obstacle?.classList.add("obstacle-item-pass");
+    });
+    window.setTimeout(() => {
+      if (ui.companionGame !== game) return;
+      game.jumps += 1;
+      const counter = document.querySelector("[data-obstacle-count]");
+      if (counter) counter.textContent = String(game.jumps);
+      if (game.jumps >= game.goal) return finishCompanionGame(true);
+      const next = document.querySelector("[data-obstacle-item]");
+      if (next) next.textContent = game.obstacles[game.jumps];
+      companion?.classList.remove("obstacle-companion-jump");
+      next?.classList.remove("obstacle-item-pass");
+      const hint = document.querySelector("[data-obstacle-hint]");
+      if (hint) hint.textContent = `${game.goal-game.jumps} Hindernis${game.goal-game.jumps === 1 ? "" : "se"} noch – ihr schafft das gemeinsam.`;
+      game.lock = false;
+    }, 520);
+  }
+
+  const DANCE_MOVES = [
+    { id:"clap", icon:"👏", label:"Klatschen" },
+    { id:"jump", icon:"⬆️", label:"Hüpfen" },
+    { id:"turn", icon:"🔄", label:"Drehen" },
+    { id:"step", icon:"↔️", label:"Schritt" }
+  ];
+
+  function companionDanceMarkup(child, game) {
+    return `<div class="companion-game dance-game"><div class="companion-game-score"><span>${child.companion} Tanzspiel</span><b>Runde <span data-dance-round>${game.round}</span> / ${game.goalRounds}</b></div><div class="companion-dance-stage"><span class="dance-companion" data-dance-companion>${child.companion}</span><div class="dance-sequence" data-dance-sequence>${game.sequence.map(moveId => `<span>${DANCE_MOVES.find(move => move.id===moveId)?.icon || "✨"}</span>`).join("")}</div><p data-dance-hint>Merke dir die Reihenfolge und tippe sie unten nach.</p></div><div class="dance-controls">${DANCE_MOVES.map(move => `<button type="button" data-action="dance-move" data-dance-move="${move.id}"><span>${move.icon}</span><small>${move.label}</small></button>`).join("")}</div><div class="modal-actions"><button class="ghost-button" type="button" data-action="replay-dance-sequence">Noch einmal zeigen</button><button class="ghost-button" type="button" data-action="back-to-companion-games" data-child-id="${child.id}">Andere Spiele</button><button class="ghost-button" type="button" data-action="finish-companion-game">Spiel beenden</button></div></div>`;
+  }
+
+  function makeDanceSequence(length) {
+    return Array.from({length}, () => DANCE_MOVES[Math.floor(Math.random()*DANCE_MOVES.length)].id);
+  }
+
+  function startCompanionDanceGame(child) {
+    ui.companionGame = { type:"dance", childId:child.id, round:1, goalRounds:3, sequence:makeDanceSequence(2), inputIndex:0, lock:false };
+    openModal("Tanzspiel", companionDanceMarkup(child,ui.companionGame), { wide:true });
+  }
+
+  function animateDanceMove(moveId) {
+    const node = document.querySelector("[data-dance-companion]");
+    if (!node) return;
+    [...node.classList].filter(name => name.startsWith("dance-move-")).forEach(name => node.classList.remove(name));
+    requestAnimationFrame(() => node.classList.add(`dance-move-${moveId}`));
+    window.setTimeout(() => node?.classList.remove(`dance-move-${moveId}`), 420);
+  }
+
+  function replayDanceSequence() {
+    const game = ui.companionGame;
+    if (!game || game.type !== "dance") return;
+    game.inputIndex = 0;
+    const sequenceNode = document.querySelector("[data-dance-sequence]");
+    const hint = document.querySelector("[data-dance-hint]");
+    if (sequenceNode) sequenceNode.classList.add("dance-sequence-pulse");
+    if (hint) hint.textContent = "Schau dir die Reihenfolge in Ruhe noch einmal an.";
+    window.setTimeout(() => {
+      if (ui.companionGame !== game) return;
+      sequenceNode?.classList.remove("dance-sequence-pulse");
+      if (hint) hint.textContent = "Jetzt du: Tippe die Bewegungen in derselben Reihenfolge.";
+    }, 750);
+  }
+
+  function playDanceMove(moveId) {
+    const game = ui.companionGame;
+    if (!game || game.type !== "dance" || game.lock) return;
+    const expected = game.sequence[game.inputIndex];
+    const hint = document.querySelector("[data-dance-hint]");
+    animateDanceMove(moveId);
+    if (moveId !== expected) {
+      game.inputIndex = 0;
+      if (hint) hint.textContent = "Macht nichts – probier die Folge einfach noch einmal. 😊";
+      window.setTimeout(() => { if (ui.companionGame === game && hint) hint.textContent = "Jetzt du: Tippe die Bewegungen in derselben Reihenfolge."; }, 900);
+      return;
+    }
+    game.inputIndex += 1;
+    if (game.inputIndex < game.sequence.length) {
+      if (hint) hint.textContent = "Genau! Weiter so …";
+      return;
+    }
+    game.lock = true;
+    if (hint) hint.textContent = "Geschafft! Gemeinsam eine Runde weiter. 🎉";
+    window.setTimeout(() => {
+      if (ui.companionGame !== game) return;
+      if (game.round >= game.goalRounds) return finishCompanionGame(true);
+      game.round += 1;
+      game.sequence = makeDanceSequence(Math.min(4,game.round+1));
+      game.inputIndex = 0;
+      game.lock = false;
+      const roundNode = document.querySelector("[data-dance-round]");
+      const sequenceNode = document.querySelector("[data-dance-sequence]");
+      if (roundNode) roundNode.textContent = String(game.round);
+      if (sequenceNode) sequenceNode.innerHTML = game.sequence.map(id => `<span>${DANCE_MOVES.find(move => move.id===id)?.icon || "✨"}</span>`).join("");
+      if (hint) hint.textContent = "Neue Folge: Merk sie dir und tanze sie nach.";
+    }, 750);
+  }
+
+  function backToCompanionGames(childId) {
+    ui.companionGame = null;
+    openCompanionGame(childId);
+  }
+
   function finishCompanionGame(completed = false) {
     const game = ui.companionGame;
     const child = game ? childById(game.childId) : null;
+    const gameType = game?.type || "unknown";
+    const info = COMPANION_GAME_INFO[gameType] || { icon:"🎮", title:"Spiel" };
     ui.companionGame = null;
     if (!child) return closeModal();
     child.companionLastPlayAt = Date.now();
-    data.history.push({ id:uid(), type:"companion_game_played", childId:child.id, completed:Boolean(completed), timestamp:Date.now() });
+    data.history.push({ id:uid(), type:"companion_game_played", childId:child.id, gameType, completed:Boolean(completed), timestamp:Date.now() });
     saveData({ snapshot:false });
-    openModal(completed ? "Geschafft!" : "Spiel beendet", `<div class="reward-reveal"><span class="main-emoji">${child.companion}🎾</span><h2>${completed ? "Das war eine schöne Runde!" : "Danke fürs Mitspielen!"}</h2><p class="muted">Das Spiel war nur zum Spaß. Es gibt bewusst keine Münzen, Samen, Sterne oder Rangliste.</p><div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-companion-game-result" data-child-id="${child.id}">Zurück in meine Welt</button></div></div>`);
+    openModal(completed ? "Geschafft!" : "Spiel beendet", `<div class="reward-reveal"><span class="main-emoji">${child.companion}${info.icon}</span><h2>${completed ? "Das war eine schöne Runde!" : "Danke fürs Mitspielen!"}</h2><p class="muted">${escapeHtml(info.title)} war nur zum Spaß. Es gibt bewusst keine Münzen, Samen, Sterne, Rangliste oder tägliche Serie.</p><div class="modal-actions"><button class="ghost-button" type="button" data-action="back-to-companion-games" data-child-id="${child.id}">Noch etwas spielen</button><button class="primary-button" type="button" data-action="close-companion-game-result" data-child-id="${child.id}">Zurück in meine Welt</button></div></div>`);
   }
 
   function findCompanionObject(childId) {
@@ -2434,6 +2663,7 @@
         <section class="help-topic"><h3>👥 Gruppenaufgaben</h3><p>Es werden die Kinder ausgewählt, die tatsächlich mitgemacht haben. Die vorgesehene Gesamtbelohnung kann fair auf sie verteilt werden.</p></section>
         <section class="help-topic"><h3>🔄 Automatik</h3><p>Nur erledigt gemeldete und dafür freigegebene Aufgaben werden am Tagesende automatisch bestätigt. Besondere Aufgaben können weiterhin eine manuelle Prüfung verlangen.</p></section>
         <section class="help-topic"><h3>🧾 Verlauf</h3><p>Unter „Kinder“ können die Aktivitäten der letzten 3, 7 oder 30 Tage angesehen und fehlerhafte Bestätigungen zurückgenommen werden.</p></section>
+        <section class="help-topic"><h3>🐾 Begleiter & Spiele</h3><p>Im eigenen Bereich kann das Kind freiwillig mit dem Begleiter interagieren. Ballspiel, Memory, Hindernislauf und Tanzspiel geben bewusst keine Münzen, Samen oder Sterne.</p></section>
       </div>
       <div class="callout success"><p><b>Grundsatz:</b> Die App motiviert und wertschätzt – sie kontrolliert nicht.</p></div>
       <div class="modal-actions"><button class="primary-button full-button" type="button" data-action="close-modal">Verstanden</button></div>`, { wide:true });
@@ -3546,9 +3776,15 @@
       case "open-companion-food": openCompanionFoodPicker(actionElement.dataset.childId); break;
       case "feed-companion": feedCompanion(actionElement.dataset.childId, actionElement.dataset.foodType); break;
       case "open-companion-game": openCompanionGame(actionElement.dataset.childId); break;
+      case "start-companion-game": startCompanionGame(actionElement.dataset.childId, actionElement.dataset.gameType); break;
+      case "back-to-companion-games": backToCompanionGames(actionElement.dataset.childId); break;
       case "hit-companion-game-ball": hitCompanionGameBall(); break;
+      case "flip-companion-memory": flipCompanionMemory(actionElement.dataset.cardIndex); break;
+      case "jump-companion-obstacle": jumpCompanionObstacle(); break;
+      case "dance-move": playDanceMove(actionElement.dataset.danceMove); break;
+      case "replay-dance-sequence": replayDanceSequence(); break;
       case "finish-companion-game": finishCompanionGame(false); break;
-      case "close-companion-game-result": { const childId=actionElement.dataset.childId; closeModal(); if(ui.screen==="world"&&ui.childId===childId) setCompanionAction(childId,"play","Das hat Spaß gemacht! 🎾",2300); break; }
+      case "close-companion-game-result": { const childId=actionElement.dataset.childId; closeModal(); if(ui.screen==="world"&&ui.childId===childId) setCompanionAction(childId,"play","Das hat Spaß gemacht! 🎮",2300); break; }
       case "find-companion-object": findCompanionObject(actionElement.dataset.childId); break;
       case "dismiss-companion-search": { const child=childById(actionElement.dataset.childId); if(child){ child.companionSearch=null; child.companionNextSearchAt=Date.now()+86400000*(3+Math.random()*4); saveData({snapshot:true}); render(); } break; }
       case "world-item-reaction": { const item=itemById(actionElement.dataset.itemId); showToast(item ? `${item.icon} ${item.title} gehört zu deinem Bereich.` : "Gegenstand"); break; }
