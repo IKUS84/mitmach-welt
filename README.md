@@ -1,3 +1,22 @@
+# Mitmach-Welt 3.0.3 – 12-Stunden-Automatik & geheime Überraschungssterne
+
+- Baut gezielt auf dem stabilen Stand 3.0.2 auf; Sync- und iPad-Speicherlogik aus 3.0.2 bleiben unangetastet.
+- Behebt die blockierte 12-Stunden-Autobestätigung bei Geräten, auf denen aus dem früheren 2.9.1-Hotfix noch `autoApproveEnabled: false` gespeichert war.
+- Normale erledigt gemeldete Aufgaben werden wieder spätestens 12 Stunden nach der Meldung automatisch bestätigt; versäumte Prüfungen werden beim nächsten Öffnen nachgeholt.
+- Falls bei älteren Meldungen `reportedAt` fehlt, wird der Meldezeitpunkt aus dem vorhandenen Aufgabenverlauf rekonstruiert.
+- Ausnahmen bleiben erhalten: ausdrücklich manuell zu prüfende Aufgaben, Aufgaben mit offen sichtbaren Sternen, ausgeschaltete Aufgabenautomatik und ungeklärte Teilnehmer.
+- Neue geheime Überraschungssterne: ungefähr alle 5 bis 9 Tage bestimmt das System eine geeignete erledigt gemeldete Aufgabe als Sternaufgabe.
+- Der zusätzliche Stern ist für Kinder vor der Bestätigung nirgends sichtbar. Die Aufgabe sieht für das Kind bis dahin wie eine normale Aufgabe aus.
+- Eine geheime Sternaufgabe wird niemals nach 12 Stunden automatisch bestätigt, sondern wartet auf die Erzieherbestätigung.
+- Erst nach der Bestätigung erhält jedes tatsächlich beteiligte Kind einen zusätzlichen Stern und beim nächsten Öffnen eine deutliche Überraschungsnachricht.
+- Die Sternzuordnung wird beim Geräteabgleich geschützt; auch ein gleichzeitig eintreffender älterer Datenstand darf den verdeckten Stern nicht verlieren.
+- Wird eine geheime Sternaufgabe abgelehnt, wird kein Stern vergeben und die nächste geeignete Aufgabe kann erneut ausgewählt werden.
+- Version, Manifest und Offline-Cache auf 3.0.3 aktualisiert.
+
+## Technische Umsetzung
+
+3.0.3 wird bewusst als kleine Korrekturschicht `hotfix-3.0.3.js` zwischen `app.js` und `sync.js` geladen. Dadurch bleibt die bewährte 3.0.2-Kernlogik für Speicherung und Synchronisierung unverändert, während die korrigierte 12-Stunden-Prüfung und die Überraschungssterne gezielt ergänzt werden.
+
 # Mitmach-Welt 3.0.2 – iPad-Speicher & Geräte-Sync Hotfix
 
 - Behebt den Fehler „Speichern war nicht möglich. Bitte Browser-Speicher prüfen.“ auf dem Kinder-Tablet.
@@ -16,7 +35,7 @@
 - Erledigt gemeldete, freigegebene Aufgaben werden 12 Stunden nach der Meldung automatisch bestätigt, wenn vorher kein Erzieher entscheidet.
 - Die Prüfung wird beim Öffnen der App und danach regelmäßig nachgeholt; sie ist nicht mehr an 21:00 Uhr oder den Kalendertag gebunden.
 - Gemeldete Aufgaben bleiben im Kinderbereich sichtbar, auch wenn inzwischen der nächste Tag begonnen hat.
-- Der Geräteabgleich führt Aufgabenstände gezielt zusammen, damit Reservierungen und Erledigt-Meldungen vom Kinder-Tablet nicht durch einen neueren Gesamtstand des Erziehergeräts verloren gehen.
+- Der Geräteabgleich führt Aufgabenstände gezielt zusammen, damit Reservierungen und Erledigt-Meldungen vom Kinder-Tablet nicht durch einen neueren Stand des Erziehergeräts verloren gehen.
 - Tagesmissionen werden weiterhin gezielt zusammengeführt.
 - Besondere Aufgaben mit Sternen, manueller Prüfung oder ausgeschalteter Automatik bleiben von der automatischen Bestätigung ausgenommen.
 
