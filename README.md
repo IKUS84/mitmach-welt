@@ -1,3 +1,20 @@
+# Mitmach-Welt 3.0.5 – frische Profilnavigation & automatische Sperre
+
+- Baut vollständig auf Version 3.0.4 auf. Profil-PIN, schnelle Missionsauswertung, 12-Stunden-Automatik, geheime Überraschungssterne sowie die stabile Sync-/iPad-Speicherbasis bleiben erhalten.
+- Die vier bekannten Kinder-Menüpunkte bleiben unverändert: **Start · Aufgaben · Gemeinsam · Mein Bereich**.
+- In allen persönlichen Kinderansichten erscheint oben eine kompakte Profilleiste mit **Avatar, Name und Schutzstatus**.
+- Geschützte Profile können dort mit **„🔒 Sperren“** sofort verlassen und gesperrt werden.
+- Die Profil-PIN wird über die kompakte Profilleiste verwaltet; die zusätzliche große PIN-Karte im Kinder-Hauptmenü wird ausgeblendet.
+- Geschützte Profile werden automatisch gesperrt, sobald die App in den Hintergrund geht oder **2 Minuten nicht benutzt** wurde.
+- Beim Wechsel zurück auf **Start** wird ein geschütztes Profil weiterhin sofort gesperrt. Dadurch kann das nächste Kind nicht in ein zuvor geöffnetes Profil zurückkehren.
+- Die Kinderkarten auf der Startseite wurden ruhiger und eindeutiger: **„🔒 Geschütztes Profil“** beziehungsweise **„Profil öffnen“** statt zusätzlicher Statuszeilen.
+- PIN-geschützte Profile behalten den Erzieher-Override aus 3.0.4; Erzieher können weiterhin jederzeit mit der bestehenden Erzieher-PIN zugreifen und Kinder-PINs im Erzieherbereich zurücksetzen oder ändern.
+- Version, Manifest und Offline-Cache wurden auf 3.0.5 aktualisiert.
+
+## Technische Umsetzung
+
+3.0.5 wird als zusätzliche, kleine UI-/Sicherheits-Schicht `hotfix-3.0.5.js` nach 3.0.4 und vor `sync.js` geladen. `app.js`, die 3.0.2-Speicher-/Sync-Basis, die 3.0.3-Automatik und die 3.0.4-PIN-/Missionslogik werden nicht ersetzt. Die automatische Profilsperre nutzt bewusst die vorhandene Startseiten-Navigation, damit die 3.0.4-PIN-Sitzung sauber verworfen wird.
+
 # Mitmach-Welt 3.0.4 – optionale Profil-PIN & schnelle Missionsauswertung
 
 - Baut vollständig auf Version 3.0.3 auf. Die 12-Stunden-Automatik, geheimen Überraschungssterne sowie die Sync- und iPad-Speicherlogik bleiben erhalten.
