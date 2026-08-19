@@ -219,6 +219,16 @@
 
     document.addEventListener("click", event => {
       lastActivityAt = Date.now();
+
+      const sharedNav = event.target.closest?.('[data-nav="group"],[data-action="nav-group"]');
+      if (sharedNav && childScreenActive() && protectedProfile(api.getData(), currentChildId)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        lockCurrentProfile(api, "shared", false);
+        setTimeout(() => document.querySelector('[data-nav="group"]')?.click(), 30);
+        return;
+      }
+
       const open = event.target.closest?.('[data-action="open-child"][data-child-id]');
       if (open) {
         const id = String(open.dataset.childId || "");
