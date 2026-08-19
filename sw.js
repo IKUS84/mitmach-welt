@@ -1,4 +1,4 @@
-const CACHE_NAME = "mitmach-welt-v3.0.5-r2";
+const CACHE_NAME = "mitmach-welt-v3.0.6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const ASSETS = [
   "./app.js",
   "./hotfix-3.0.3.js",
   "./hotfix-3.0.4.js",
-  "./hotfix-3.0.5.js",
+  "./hotfix-3.0.6.js",
   "./sync.js",
   "./manifest.webmanifest",
   "./icon-192.png",
@@ -21,7 +21,7 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => cache.delete(key))))
       .then(() => self.clients.claim())
   );
 });
