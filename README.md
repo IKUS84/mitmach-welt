@@ -1,3 +1,21 @@
+# Mitmach-Welt 3.0.4 – optionale Profil-PIN & schnelle Missionsauswertung
+
+- Baut vollständig auf Version 3.0.3 auf. Die 12-Stunden-Automatik, geheimen Überraschungssterne sowie die Sync- und iPad-Speicherlogik bleiben erhalten.
+- Jedes Kinderprofil kann freiwillig mit einer eigenen **3-stelligen PIN** geschützt werden. Profile ohne aktivierte PIN funktionieren unverändert.
+- Kinder können ihre Profil-PIN im eigenen Kinderbereich selbst einschalten, ändern oder wieder ausschalten.
+- Beim Antippen eines geschützten Kinderprofils wird die 3-stellige PIN abgefragt, bevor das Profil geöffnet wird.
+- Im PIN-Fenster gibt es die Option **„Ich bin Erzieher/in“**. Damit kann ein Erzieher jederzeit mit der bestehenden Erzieher-PIN direkt auf das Kinderprofil zugreifen.
+- Erzieher können die Kinder-PIN im vorhandenen Dialog **„Kind bearbeiten“** setzen, ändern oder zurücksetzen.
+- Die Kinder-PIN wird nicht im Klartext gespeichert, sondern als Hash. PIN-Änderungen und Rücksetzungen werden beim Geräteabgleich anhand ihres Änderungszeitpunkts geschützt.
+- Geschützte Profile werden auf der Startseite mit einem kleinen Schloss gekennzeichnet.
+- Bereits selbst eingeschätzte Tagesmissionen erhalten im Erzieherbereich zwei Schnellaktionen: **✅ Geschafft** und **❌ Nicht geschafft**.
+- Ein Antippen der Missionskarte öffnet weiterhin die ausführliche Auswertung mit **Teilweise**, **Heute noch nicht** und optionaler Rückmeldung/Notiz.
+- Version, Manifest und Offline-Cache wurden auf 3.0.4 aktualisiert.
+
+## Technische Umsetzung
+
+3.0.4 wird als zusätzliche Korrekturschicht `hotfix-3.0.4.js` nach `hotfix-3.0.3.js` und vor `sync.js` geladen. Dadurch bleiben `app.js`, die stabile 3.0.2-Speicher-/Sync-Basis und die 3.0.3-Automatik unverändert. Die neuen Profil-PIN-Daten liegen in den synchronisierten Einstellungen und werden bei eingehenden Datenständen gezielt zusammengeführt.
+
 # Mitmach-Welt 3.0.3 – 12-Stunden-Automatik & geheime Überraschungssterne
 
 - Baut gezielt auf dem stabilen Stand 3.0.2 auf; Sync- und iPad-Speicherlogik aus 3.0.2 bleiben unangetastet.
@@ -35,7 +53,7 @@
 - Erledigt gemeldete, freigegebene Aufgaben werden 12 Stunden nach der Meldung automatisch bestätigt, wenn vorher kein Erzieher entscheidet.
 - Die Prüfung wird beim Öffnen der App und danach regelmäßig nachgeholt; sie ist nicht mehr an 21:00 Uhr oder den Kalendertag gebunden.
 - Gemeldete Aufgaben bleiben im Kinderbereich sichtbar, auch wenn inzwischen der nächste Tag begonnen hat.
-- Der Geräteabgleich führt Aufgabenstände gezielt zusammen, damit Reservierungen und Erledigt-Meldungen vom Kinder-Tablet nicht durch einen neueren Stand des Erziehergeräts verloren gehen.
+- Der Geräteabgleich führt Aufgabenstände gezielt zusammen, damit Reservierungen und Erledigt-Meldungen vom Kinder-Tablet nicht durch einen neueren Gesamtstand des Erziehergeräts verloren gehen.
 - Tagesmissionen werden weiterhin gezielt zusammengeführt.
 - Besondere Aufgaben mit Sternen, manueller Prüfung oder ausgeschalteter Automatik bleiben von der automatischen Bestätigung ausgenommen.
 
