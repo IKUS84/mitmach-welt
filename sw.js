@@ -1,4 +1,4 @@
-const CACHE_NAME = "mitmach-welt-v3.0.4";
+const CACHE_NAME = "mitmach-welt-v3.0.5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const ASSETS = [
   "./app.js",
   "./hotfix-3.0.3.js",
   "./hotfix-3.0.4.js",
+  "./hotfix-3.0.5.js",
   "./sync.js",
   "./manifest.webmanifest",
   "./icon-192.png",
