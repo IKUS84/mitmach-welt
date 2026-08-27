@@ -5,12 +5,19 @@
   const META_KEY = "childRosterMetaV1";
   const BACKUP_KEY = "mitmach_welt_state_backup_v1";
   const BACKUP_RING_KEY = "mitmach_welt_backup_ring_v2";
-  const SEED_IDS = ["jari","lucy","noah","tius"];
+  const SEED = {
+    lucy:{ name:"Lucy", avatar:"🦄", accent:"#d070ba", theme:"magic", coins:24, seeds:7, completed:4, inventory:["lantern"] },
+    noah:{ name:"Noah", avatar:"🐼", accent:"#55a5d5", theme:"meadow", coins:18, seeds:5, completed:3, inventory:[] },
+    tius:{ name:"Tius", avatar:"🦁", accent:"#ef9f46", theme:"dino", coins:13, seeds:4, completed:2, inventory:[] },
+    jari:{ name:"Jari", avatar:"🐸", accent:"#72ad67", theme:"farm", coins:16, seeds:6, completed:3, inventory:[] }
+  };
+  const SEED_IDS = Object.keys(SEED).sort();
   let stamping = false;
   let lastFingerprint = "";
+  let uiCorrectionPending = false;
 
   const api = () => window.MitmachWelt;
-  const clone = value => JSON.parse(JSON.stringify(value));
+  const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
   const normalizedChildren = state => Array.isArray(state?.children) ? state.children : [];
   const activeChildren = state => normalizedChildren(state).filter(child => child?.active !== false && !child?.deletedAt);
 
@@ -36,6 +43,14 @@
       : { updatedAt:0, fingerprint:"" };
   }
 
+  function legacyRosterMoment(state) {
+    return normalizedChildren(state).reduce((latest, child) => Math.max(
+      latest,
+      Number(child?.deletedAt || 0),
+      Number(child?.createdAt || 0)
+    ), 0);
+  }
+
   function withRosterMeta(state, updatedAt = 0) {
     state.settings ||= {};
     const current = rosterMeta(state);
@@ -46,13 +61,32 @@
     return state;
   }
 
+  function sameArray(left, right) {
+    return JSON.stringify(Array.isArray(left) ? left : []) === JSON.stringify(Array.isArray(right) ? right : []);
+  }
+
   function isSeedRoster(state) {
     const children = normalizedChildren(state);
-    if (children.length !== 4) return false;
+    if (children.length !== SEED_IDS.length) return false;
     const ids = children.map(child => String(child?.id || "")).sort();
     if (ids.join("|") !== SEED_IDS.join("|")) return false;
-    const names = new Map(children.map(child => [String(child.id), String(child.name || "")]));
-    return names.get("lucy") === "Lucy" && names.get("noah") === "Noah" && names.get("tius") === "Tius" && names.get("jari") === "Jari";
+    return children.every(child => {
+      const expected = SEED[child.id];
+      return Boolean(expected)
+        && child.name === expected.name
+        && child.avatar === expected.avatar
+        && child.accent === expected.accent
+        && child.theme === expected.theme
+        && Number(child.coins || 0) === expected.coins
+        && Number(child.seeds || 0) === expected.seeds
+        && Number(child.stars || 0) === 0
+        && Number(child.completed || 0) === expected.completed
+        && sameArray(child.inventory, expected.inventory)
+        && child.active !== false
+        && !child.deletedAt
+        && !child.birthMonth
+        && !child.birthYear;
+    });
   }
 
   function readJson(key) {
@@ -149,10 +183,16 @@
     const incomingFp = rosterFingerprint(incomingState.children);
     if (localFp === incomingFp) return true;
 
+    if (!localMeta.updatedAt && !incomingMeta.updatedAt) {
+      const localMoment = legacyRosterMoment(localState);
+      const incomingMoment = legacyRosterMoment(incomingState);
+      if (Math.abs(incomingMoment - localMoment) > 1000) return incomingMoment > localMoment;
+    }
+
     const role = deviceRole();
     if (role === "child") return true;
     if (role === "educator") return false;
-    return incomingMeta.updatedAt > 0;
+    return false;
   }
 
   function mergeCriticalClaimStates(localState, incomingState) {
@@ -214,9 +254,44 @@
     Object.defineProperty(mw, "__mw307RosterGuard", { value:true });
   }
 
+  function correctedMissionCount(state) {
+    const activeIds = new Set(activeChildren(state).map(child => child.id));
+    return (state.personalGoals || []).filter(goal => goal?.active !== false && activeIds.has(goal?.childId)).length;
+  }
+
+  function scheduleUiCorrection() {
+    if (uiCorrectionPending) return;
+    uiCorrectionPending = true;
+    setTimeout(() => {
+      uiCorrectionPending = false;
+      const mw = api();
+      if (!mw?.getData) return;
+      const state = mw.getData();
+      const activeCount = activeChildren(state).length;
+      const missionCount = correctedMissionCount(state);
+      const reportedCount = (state.claims || []).filter(claim => claim?.status === "reported").length;
+
+      document.querySelectorAll(".admin-grid .card").forEach(card => {
+        const text = card.querySelector("p")?.textContent || "";
+        const heading = card.querySelector("h3");
+        if (text.includes("aktive Kinderprofile") && heading) heading.textContent = `👧 ${activeCount}`;
+        if (text.includes("aktive Tagesmissionen") && heading) heading.textContent = `🌱 ${missionCount}`;
+      });
+
+      document.querySelectorAll(".panel > h3").forEach(heading => {
+        if (/^Aktive Kinder\s*\(/.test(heading.textContent || "")) heading.textContent = `Aktive Kinder (${activeCount})`;
+      });
+
+      document.querySelectorAll('button[data-action="nav-educator"] p.muted').forEach(node => {
+        node.textContent = `${reportedCount} offene Bestätigung${reportedCount === 1 ? "" : "en"} · ${missionCount} aktive Tagesmission${missionCount === 1 ? "" : "en"}.`;
+      });
+    }, 0);
+  }
+
   function installRosterStamping(mw) {
     lastFingerprint = rosterFingerprint(mw.getData().children);
     mw.subscribeToSaves?.(() => {
+      scheduleUiCorrection();
       if (stamping) return;
       const current = mw.getData();
       const fingerprint = rosterFingerprint(current.children);
@@ -244,11 +319,16 @@
     installReplaceGuard(mw);
     recoverSeedRosterIfPossible(mw);
     installRosterStamping(mw);
+    new MutationObserver(records => {
+      if (records.some(record => record.attributeName === "data-screen")) scheduleUiCorrection();
+    }).observe(document.body, { attributes:true, attributeFilter:["data-screen"] });
     updateVersion(mw);
-    setTimeout(() => updateVersion(mw), 700);
+    scheduleUiCorrection();
+    setTimeout(() => { updateVersion(mw); scheduleUiCorrection(); }, 700);
     mw.rosterIntegrity = {
       version:VERSION,
       activeCount:() => activeChildren(mw.getData()).length,
+      activeMissionCount:() => correctedMissionCount(mw.getData()),
       fingerprint:() => rosterFingerprint(mw.getData().children),
       isSeedRoster:() => isSeedRoster(mw.getData())
     };
