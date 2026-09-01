@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6c84d">
+  <title>Mitmach-Welt Reparatur</title>
+  <style>
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffaf0;color:#30443a;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+    main{max-width:520px;width:100%;background:#fff;border:1px solid #eadfc2;border-radius:24px;padding:26px;box-shadow:0 12px 36px rgba(50,76,61,.12);text-align:center}
+    .icon{font-size:3rem}.status{margin:18px 0;padding:14px;border-radius:16px;background:#f7f3e5;font-weight:700}.note{font-size:.9rem;color:#6f7d75;line-height:1.45}
+    button{border:0;border-radius:15px;padding:13px 18px;font:inherit;font-weight:800;background:#dceedd;color:#214d32;cursor:pointer}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">🌻🛠️</div>
+    <h1>Mitmach-Welt reparieren</h1>
+    <p>Die App-Dateien und der Offline-Cache werden neu geladen.</p>
+    <div class="status" id="status">Reparatur wird vorbereitet …</div>
+    <p class="note"><b>Wichtig:</b> Kinder, Aufgaben, Münzen, Samen, Sterne und andere gespeicherte App-Daten werden dabei nicht gelöscht. Diese Seite entfernt nur Service-Worker und Cache-Dateien.</p>
+    <button id="retry" type="button" hidden>Erneut versuchen</button>
+  </main>
+  <script>
+    (async () => {
+      const status = document.getElementById('status');
+      const retry = document.getElementById('retry');
+      const run = async () => {
+        retry.hidden = true;
+        status.textContent = 'Offline-Cache wird entfernt …';
+        try {
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(registration => registration.unregister()));
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(key => key.startsWith('mitmach-welt')).map(key => caches.delete(key)));
+          }
+          status.textContent = 'Reparatur abgeschlossen. Mitmach-Welt wird neu geladen …';
+          setTimeout(() => location.replace('./?recovery=' + Date.now()), 700);
+        } catch (error) {
+          console.error(error);
+          status.textContent = 'Die Reparatur konnte nicht vollständig abgeschlossen werden.';
+          retry.hidden = false;
+        }
+      };
+      retry.addEventListener('click', run);
+      await run();
+    })();
+  </script>
+</body>
+</html>
