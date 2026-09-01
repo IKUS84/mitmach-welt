@@ -1,16 +1,14 @@
-const CACHE_NAME = "mitmach-welt-v3.0.8-recovery1";
+const CACHE_NAME = "mitmach-welt-v3.0.6-stable-recovery2";
 const ASSETS = [
   "./",
   "./index.html",
+  "./recovery.html",
   "./styles.css",
   "./app.js",
   "./hotfix-3.0.3.js",
   "./hotfix-3.0.4.js",
   "./hotfix-3.0.6.js",
   "./sync.js",
-  "./hotfix-3.0.7.js",
-  "./integrity-3.0.7.js",
-  "./hotfix-3.0.8.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png"
@@ -35,6 +33,14 @@ self.addEventListener("message", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.pathname.endsWith("/recovery.html")) {
+    event.respondWith(
+      fetch(event.request, { cache:"no-store" })
+        .catch(() => caches.match("./recovery.html"))
+    );
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then(response => {
